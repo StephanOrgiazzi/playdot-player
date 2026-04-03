@@ -40,9 +40,9 @@ export function parseTracks(node: MpvNodeValue | undefined): MediaTrack[] {
         id,
         type,
         title,
-        lang: typeof value.lang === "string" ? value.lang : undefined,
         selected: value.selected === true,
         external: value.external === true,
+        ...(typeof value.lang === "string" ? { lang: value.lang } : {}),
       };
 
       return track;

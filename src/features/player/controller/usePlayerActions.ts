@@ -44,6 +44,10 @@ type PlayerActions = Pick<
   | "closeWindow"
 >;
 
+function runMediaAction(hasMedia: boolean, action: () => Promise<void>): Promise<void> {
+  return hasMedia ? action() : Promise.resolve();
+}
+
 export function usePlayerActions({
   appWindow,
   player,
@@ -71,101 +75,80 @@ export function usePlayerActions({
 
     void toggleFullscreen();
   }, [hasMedia, isFullscreen, toggleFullscreen]);
-  const togglePlayPause = useCallback(async (): Promise<void> => {
-    if (!hasMedia) {
-      return;
-    }
-
-    await player.togglePlayPause();
-  }, [hasMedia, player]);
-  const seekBack = useCallback(async (): Promise<void> => {
-    if (!hasMedia) {
-      return;
-    }
-
-    await player.seekRelative(-SEEK_STEP_SECONDS);
-  }, [hasMedia, player]);
-  const seekForward = useCallback(async (): Promise<void> => {
-    if (!hasMedia) {
-      return;
-    }
-
-    await player.seekRelative(SEEK_STEP_SECONDS);
-  }, [hasMedia, player]);
-  const slowDownPlayback = useCallback(async (): Promise<void> => {
-    if (!hasMedia) {
-      return;
-    }
-
-    const nextSpeed = await player.adjustPlaybackSpeed(1 / PLAYBACK_SPEED_STEP_FACTOR);
-    setToast(createPlaybackSpeedToast("decrease", nextSpeed));
-  }, [hasMedia, player, setToast]);
-  const speedUpPlayback = useCallback(async (): Promise<void> => {
-    if (!hasMedia) {
-      return;
-    }
-
-    const nextSpeed = await player.adjustPlaybackSpeed(PLAYBACK_SPEED_STEP_FACTOR);
-    setToast(createPlaybackSpeedToast("increase", nextSpeed));
-  }, [hasMedia, player, setToast]);
+  const togglePlayPause = useCallback(
+    (): Promise<void> => runMediaAction(hasMedia, () => player.togglePlayPause()),
+    [hasMedia, player],
+  );
+  const seekBack = useCallback(
+    (): Promise<void> => runMediaAction(hasMedia, () => player.seekRelative(-SEEK_STEP_SECONDS)),
+    [hasMedia, player],
+  );
+  const seekForward = useCallback(
+    (): Promise<void> => runMediaAction(hasMedia, () => player.seekRelative(SEEK_STEP_SECONDS)),
+    [hasMedia, player],
+  );
+  const slowDownPlayback = useCallback(
+    (): Promise<void> =>
+      runMediaAction(hasMedia, async () => {
+        const nextSpeed = await player.adjustPlaybackSpeed(1 / PLAYBACK_SPEED_STEP_FACTOR);
+        setToast(createPlaybackSpeedToast("decrease", nextSpeed));
+      }),
+    [hasMedia, player, setToast],
+  );
+  const speedUpPlayback = useCallback(
+    (): Promise<void> =>
+      runMediaAction(hasMedia, async () => {
+        const nextSpeed = await player.adjustPlaybackSpeed(PLAYBACK_SPEED_STEP_FACTOR);
+        setToast(createPlaybackSpeedToast("increase", nextSpeed));
+      }),
+    [hasMedia, player, setToast],
+  );
   const toggleMute = useCallback(async (): Promise<void> => {
     const nextMuted = !player.getIsMuted();
     await player.toggleMute();
     setToast(createMuteToast(nextMuted));
   }, [player, setToast]);
-  const zoomIn = useCallback(async (): Promise<void> => {
-    if (!hasMedia) {
-      return;
-    }
-
-    await player.adjustVideoZoom(VIDEO_ZOOM_STEP);
-    estimatedVideoZoomRef.current += VIDEO_ZOOM_STEP;
-    setToast(createZoomToast("in", estimatedVideoZoomRef.current));
-  }, [hasMedia, player, setToast]);
-  const zoomOut = useCallback(async (): Promise<void> => {
-    if (!hasMedia) {
-      return;
-    }
-
-    await player.adjustVideoZoom(-VIDEO_ZOOM_STEP);
-    estimatedVideoZoomRef.current -= VIDEO_ZOOM_STEP;
-    setToast(createZoomToast("out", estimatedVideoZoomRef.current));
-  }, [hasMedia, player, setToast]);
+  const zoomIn = useCallback(
+    (): Promise<void> =>
+      runMediaAction(hasMedia, async () => {
+        await player.adjustVideoZoom(VIDEO_ZOOM_STEP);
+        estimatedVideoZoomRef.current += VIDEO_ZOOM_STEP;
+        setToast(createZoomToast("in", estimatedVideoZoomRef.current));
+      }),
+    [hasMedia, player, setToast],
+  );
+  const zoomOut = useCallback(
+    (): Promise<void> =>
+      runMediaAction(hasMedia, async () => {
+        await player.adjustVideoZoom(-VIDEO_ZOOM_STEP);
+        estimatedVideoZoomRef.current -= VIDEO_ZOOM_STEP;
+        setToast(createZoomToast("out", estimatedVideoZoomRef.current));
+      }),
+    [hasMedia, player, setToast],
+  );
   const increaseSubtitleScale = useCallback(
-    async (): Promise<void> => {
-      if (!hasMedia) {
-        return;
-      }
-
-      await player.adjustSubtitleScale(SUBTITLE_SCALE_STEP);
-      estimatedSubtitleScaleRef.current += SUBTITLE_SCALE_STEP;
-      setToast(createSubtitleScaleToast("increase", estimatedSubtitleScaleRef.current));
-    },
+    (): Promise<void> =>
+      runMediaAction(hasMedia, async () => {
+        await player.adjustSubtitleScale(SUBTITLE_SCALE_STEP);
+        estimatedSubtitleScaleRef.current += SUBTITLE_SCALE_STEP;
+        setToast(createSubtitleScaleToast("increase", estimatedSubtitleScaleRef.current));
+      }),
     [hasMedia, player, setToast],
   );
   const decreaseSubtitleScale = useCallback(
-    async (): Promise<void> => {
-      if (!hasMedia) {
-        return;
-      }
-
-      await player.adjustSubtitleScale(-SUBTITLE_SCALE_STEP);
-      estimatedSubtitleScaleRef.current = Math.max(
-        SUBTITLE_SCALE_STEP,
-        estimatedSubtitleScaleRef.current - SUBTITLE_SCALE_STEP,
-      );
-      setToast(createSubtitleScaleToast("decrease", estimatedSubtitleScaleRef.current));
-    },
+    (): Promise<void> =>
+      runMediaAction(hasMedia, async () => {
+        await player.adjustSubtitleScale(-SUBTITLE_SCALE_STEP);
+        estimatedSubtitleScaleRef.current = Math.max(
+          SUBTITLE_SCALE_STEP,
+          estimatedSubtitleScaleRef.current - SUBTITLE_SCALE_STEP,
+        );
+        setToast(createSubtitleScaleToast("decrease", estimatedSubtitleScaleRef.current));
+      }),
     [hasMedia, player, setToast],
   );
   const setTimelinePosition = useCallback(
-    async (value: number): Promise<void> => {
-      if (!hasMedia) {
-        return;
-      }
-
-      await player.seekAbsolute(value);
-    },
+    (value: number): Promise<void> => runMediaAction(hasMedia, () => player.seekAbsolute(value)),
     [hasMedia, player],
   );
   const setVolume = useCallback(

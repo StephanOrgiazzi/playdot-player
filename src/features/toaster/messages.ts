@@ -38,7 +38,7 @@ function getTrackLabel(
     return fallback;
   }
 
-  const primary = track.title.trim() || track.lang?.trim() || fallback;
+  const primary = track.title.trim();
   const language = track.lang?.trim();
 
   if (language && primary.localeCompare(language, undefined, { sensitivity: "accent" }) !== 0) {

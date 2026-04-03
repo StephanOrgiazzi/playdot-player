@@ -315,6 +315,9 @@ export class MpvPlayer {
       ? audioTracks.findIndex((track) => track.id === selectedTrack.id)
       : -1;
     const nextTrack = audioTracks[(selectedIndex + 1 + audioTracks.length) % audioTracks.length];
+    if (!nextTrack) {
+      return;
+    }
 
     if (nextTrack.id === selectedTrack?.id) {
       return;
@@ -333,14 +336,20 @@ export class MpvPlayer {
     const selectedTrack = getSelectedTrackByType(this.state, "sub");
 
     if (!selectedTrack) {
-      await this.setSubtitleTrack(subtitleTracks[0].id);
-      await this.waitForTrackSelection("sub", subtitleTracks[0].id);
+      const firstSubtitleTrack = subtitleTracks[0];
+      if (!firstSubtitleTrack) {
+        return;
+      }
+
+      await this.setSubtitleTrack(firstSubtitleTrack.id);
+      await this.waitForTrackSelection("sub", firstSubtitleTrack.id);
       return;
     }
 
     const selectedIndex = subtitleTracks.findIndex((track) => track.id === selectedTrack.id);
+    const nextSubtitleTrack = subtitleTracks[selectedIndex + 1];
     const nextSelection: TrackSelection =
-      selectedIndex >= subtitleTracks.length - 1 ? "no" : subtitleTracks[selectedIndex + 1].id;
+      selectedIndex >= subtitleTracks.length - 1 || !nextSubtitleTrack ? "no" : nextSubtitleTrack.id;
 
     await this.setSubtitleTrack(nextSelection);
     await this.waitForTrackSelection("sub", nextSelection);

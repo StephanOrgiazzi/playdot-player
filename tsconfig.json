@@ -2,7 +2,11 @@
   "compilerOptions": {
     "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "Bundler",
@@ -16,12 +20,27 @@
     "noUnusedParameters": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
     "paths": {
-      "@app/*": ["./src/app/*"],
-      "@features/*": ["./src/features/*"],
-      "@integrations/*": ["./src/integrations/*"],
-      "@shared/*": ["./src/shared/*"]
+      "@app/*": [
+        "./src/app/*"
+      ],
+      "@features/*": [
+        "./src/features/*"
+      ],
+      "@integrations/*": [
+        "./src/integrations/*"
+      ],
+      "@shared/*": [
+        "./src/shared/*"
+      ]
     }
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

@@ -6,7 +6,7 @@ type VideoViewportProps = {
   onDoubleClick?: () => void;
 };
 
-const EMPTY_RATIO: VideoMarginRatio = {
+const EMPTY_RATIO: Required<VideoMarginRatio> = {
   left: 0,
   right: 0,
   top: 0,
@@ -18,7 +18,7 @@ export function VideoViewport({
   onDoubleClick,
 }: VideoViewportProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  const previousRatioRef = useRef<VideoMarginRatio>(EMPTY_RATIO);
+  const previousRatioRef = useRef<Required<VideoMarginRatio>>(EMPTY_RATIO);
 
   useEffect(() => {
     const element = viewportRef.current;
@@ -60,7 +60,7 @@ export function VideoViewport({
       const rect = getLayoutRect(element);
       const viewportWidth = Math.max(1, window.innerWidth);
       const viewportHeight = Math.max(1, window.innerHeight);
-      const nextRatio: VideoMarginRatio = {
+      const nextRatio: Required<VideoMarginRatio> = {
         left: normalizeRatio(rect.left / viewportWidth),
         right: normalizeRatio(1 - rect.right / viewportWidth),
         top: normalizeRatio(rect.top / viewportHeight),

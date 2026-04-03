@@ -1,16 +1,15 @@
-import { startTransition, useEffect, useRef, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
 import { getStartupMediaSource } from "@features/mediaOpen/startup";
 import type { Window } from "@tauri-apps/api/window";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
 import { getErrorMessage } from "@shared/lib/error";
-import type { PlayerState } from "../model/playerState";
+import { resetPlayerState, setPlayerState } from "../model/playerStore";
 
 type StateSetter<T> = Dispatch<SetStateAction<T>>;
 
 type UsePlayerLifecycleOptions = {
   player: MpvPlayer;
   appWindow: Window;
-  setState: StateSetter<PlayerState>;
   setError: StateSetter<string>;
   syncWindowState: () => Promise<void>;
   beforeStart?: () => Promise<void>;
@@ -19,7 +18,6 @@ type UsePlayerLifecycleOptions = {
 export function usePlayerLifecycle({
   player,
   appWindow,
-  setState,
   setError,
   syncWindowState,
   beforeStart,
@@ -32,6 +30,7 @@ export function usePlayerLifecycle({
 
   useEffect(() => {
     let mounted = true;
+    resetPlayerState();
 
     const setup = async (): Promise<void> => {
       const startupMediaSourcePromise = getStartupMediaSource();
@@ -75,9 +74,7 @@ export function usePlayerLifecycle({
         return;
       }
 
-      startTransition(() => {
-        setState((current) => (current === next ? current : next));
-      });
+      setPlayerState(next);
     });
 
     const dragPromise = appWindow.onDragDropEvent(async (event) => {
@@ -107,9 +104,10 @@ export function usePlayerLifecycle({
     return () => {
       mounted = false;
       unsub();
+      resetPlayerState();
       void dragPromise.then((unlisten) => unlisten());
       void resizePromise.then((unlisten) => unlisten());
       void player.stop();
     };
-  }, [appWindow, player, setError, setState, syncWindowState]);
+  }, [appWindow, player, setError, syncWindowState]);
 }

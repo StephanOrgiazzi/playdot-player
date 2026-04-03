@@ -9,7 +9,10 @@ import { PlayerIcon, PlayerIconSprite } from "./PlayerIcons";
 import { VideoViewport } from "./VideoViewport";
 
 export function PlayerScreen({
-  state,
+  initialized,
+  paused,
+  duration,
+  filename,
   error,
   toast,
   isFullscreen,
@@ -24,12 +27,7 @@ export function PlayerScreen({
   hasMedia,
   audioTracks,
   subtitleTracks,
-  currentTime,
   totalTime,
-  progressMax,
-  progressPercent,
-  displayVolume,
-  volumePercent,
   audioSummary,
   subtitleSummary,
   pickAndOpenMediaFile,
@@ -87,7 +85,7 @@ export function PlayerScreen({
         <div className="titlebar__drag" />
         <button className="title-pill" type="button" onClick={handleTitlePillClick}>
           <PlayerIcon name="app-mark" className="icon icon--sm icon--app-mark" />
-          <span className="title-pill__label">{state.filename || "No video loaded"}</span>
+          <span className="title-pill__label">{filename || "No video loaded"}</span>
         </button>
         <div className="titlebar__right">
           <div className="titlebar__drag titlebar__drag--right" />
@@ -125,7 +123,7 @@ export function PlayerScreen({
 
       <section className="stage" onContextMenu={handleStageContextMenu}>
         <div className="stage__mesh" aria-hidden="true" />
-        <VideoViewport initialized={state.initialized} onDoubleClick={handleVideoDoubleClick} />
+        <VideoViewport initialized={initialized} onDoubleClick={handleVideoDoubleClick} />
 
         {showEmptyState && (
           <div className="hero-empty">
@@ -174,7 +172,8 @@ export function PlayerScreen({
           onSubmit={submitUrlDialog}
         />
         <PlayerControls
-          state={state}
+          paused={paused}
+          duration={duration}
           hasMedia={hasMedia}
           isFullscreen={isFullscreen}
           isChromeHidden={isChromeHidden}
@@ -182,12 +181,7 @@ export function PlayerScreen({
           isCyclingSubtitles={isCyclingSubtitles}
           audioTracks={audioTracks}
           subtitleTracks={subtitleTracks}
-          currentTime={currentTime}
           totalTime={totalTime}
-          progressMax={progressMax}
-          progressPercent={progressPercent}
-          displayVolume={displayVolume}
-          volumePercent={volumePercent}
           audioSummary={audioSummary}
           subtitleSummary={subtitleSummary}
           cycleAudioTrack={cycleAudioTrack}

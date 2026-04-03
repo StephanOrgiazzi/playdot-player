@@ -13,6 +13,10 @@ function tracksAreEqual(currentTracks: PlayerState["tracks"], nextTracks: Player
 
   return currentTracks.every((track, index) => {
     const nextTrack = nextTracks[index];
+    if (!nextTrack) {
+      return false;
+    }
+
     return (
       track.id === nextTrack.id &&
       track.type === nextTrack.type &&

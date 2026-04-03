@@ -13,6 +13,34 @@ function isSpaceKey(event: KeyboardEvent): boolean {
   return event.key === " " || event.key === "Spacebar" || event.code === "Space";
 }
 
+type KeyShortcutAction = Exclude<keyof ShortcutActions, "adjustVolume" | "openPastedWebUrl">;
+
+const CTRL_MEDIA_SHORTCUTS: Partial<Record<string, KeyShortcutAction>> = {
+  ArrowLeft: "slowDownPlayback",
+  ArrowRight: "speedUpPlayback",
+  ArrowUp: "increaseSubtitleScale",
+  ArrowDown: "decreaseSubtitleScale",
+};
+
+const MEDIA_SHORTCUTS: Partial<Record<string, KeyShortcutAction>> = {
+  a: "cycleAudioTrack",
+  s: "cycleSubtitleTrack",
+  u: "toggleFsr",
+  m: "toggleMute",
+};
+
+function getZoomShortcutAction(event: KeyboardEvent): KeyShortcutAction | undefined {
+  if (event.key === "+" || event.key === "=" || event.code === "NumpadAdd" || event.code === "Equal") {
+    return "zoomIn";
+  }
+
+  if (event.key === "-" || event.key === "_" || event.code === "NumpadSubtract") {
+    return "zoomOut";
+  }
+
+  return undefined;
+}
+
 export function handleShortcutKeyDown({
   event,
   hasMedia,
@@ -24,55 +52,27 @@ export function handleShortcutKeyDown({
     return;
   }
 
+  const runShortcut = (action: KeyShortcutAction): void => {
+    event.preventDefault();
+    void actions[action]();
+  };
+  const adjustVolume = (delta: number): void => {
+    event.preventDefault();
+    void actions.adjustVolume(delta);
+  };
+  const normalizedKey = event.key.toLowerCase();
+  const hasCtrlShortcutModifiers = event.ctrlKey && !event.altKey && !event.metaKey;
+
   if (!priorityOnly) {
-    const isCloseShortcut =
-      event.ctrlKey &&
-      !event.altKey &&
-      !event.metaKey &&
-      (event.key.toLowerCase() === "q" || event.key.toLowerCase() === "w");
-    if (isCloseShortcut) {
-      event.preventDefault();
-      void actions.closeWindow();
+    if (hasCtrlShortcutModifiers && (normalizedKey === "q" || normalizedKey === "w")) {
+      runShortcut("closeWindow");
       return;
     }
 
-    if (event.ctrlKey && !event.altKey && !event.metaKey && hasMedia) {
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        void actions.slowDownPlayback();
-        return;
-      }
-
-      if (event.key === "ArrowRight") {
-        event.preventDefault();
-        void actions.speedUpPlayback();
-        return;
-      }
-
-      if (event.key === "ArrowUp") {
-        event.preventDefault();
-        void actions.increaseSubtitleScale();
-        return;
-      }
-
-      if (event.key === "ArrowDown") {
-        event.preventDefault();
-        void actions.decreaseSubtitleScale();
-        return;
-      }
-
-      const isZoomIn =
-        event.key === "+" || event.key === "=" || event.code === "NumpadAdd" || event.code === "Equal";
-      if (isZoomIn) {
-        event.preventDefault();
-        void actions.zoomIn();
-        return;
-      }
-
-      const isZoomOut = event.key === "-" || event.key === "_" || event.code === "NumpadSubtract";
-      if (isZoomOut) {
-        event.preventDefault();
-        void actions.zoomOut();
+    if (hasMedia && hasCtrlShortcutModifiers) {
+      const action = CTRL_MEDIA_SHORTCUTS[event.key] ?? getZoomShortcutAction(event);
+      if (action) {
+        runShortcut(action);
         return;
       }
     }
@@ -83,14 +83,12 @@ export function handleShortcutKeyDown({
   }
 
   if (event.key === "Escape" && isFullscreen) {
-    event.preventDefault();
-    void actions.toggleFullscreen();
+    runShortcut("toggleFullscreen");
     return;
   }
 
   if (event.altKey && event.key === "Enter") {
-    event.preventDefault();
-    void actions.toggleFullscreen();
+    runShortcut("toggleFullscreen");
     return;
   }
 
@@ -103,8 +101,7 @@ export function handleShortcutKeyDown({
       return;
     }
 
-    event.preventDefault();
-    void actions.togglePlayPause();
+    runShortcut("togglePlayPause");
     return;
   }
 
@@ -113,53 +110,25 @@ export function handleShortcutKeyDown({
   }
 
   if (!priorityOnly) {
-    const normalizedKey = event.key.toLowerCase();
-    if (normalizedKey === "a") {
-      event.preventDefault();
-      void actions.cycleAudioTrack();
-      return;
-    }
-
-    if (normalizedKey === "s") {
-      event.preventDefault();
-      void actions.cycleSubtitleTrack();
-      return;
-    }
-
-    if (normalizedKey === "u") {
-      event.preventDefault();
-      void actions.toggleFsr();
-      return;
-    }
-
-    if (normalizedKey === "m") {
-      event.preventDefault();
-      void actions.toggleMute();
+    const action = MEDIA_SHORTCUTS[normalizedKey];
+    if (action) {
+      runShortcut(action);
       return;
     }
   }
 
-  if (event.key === "ArrowLeft") {
-    event.preventDefault();
-    void actions.seekBack();
-    return;
-  }
-
-  if (event.key === "ArrowRight") {
-    event.preventDefault();
-    void actions.seekForward();
-    return;
-  }
-
-  if (event.key === "ArrowUp") {
-    event.preventDefault();
-    void actions.adjustVolume(VOLUME_STEP);
-    return;
-  }
-
-  if (event.key === "ArrowDown") {
-    event.preventDefault();
-    void actions.adjustVolume(-VOLUME_STEP);
+  switch (event.key) {
+    case "ArrowLeft":
+      runShortcut("seekBack");
+      return;
+    case "ArrowRight":
+      runShortcut("seekForward");
+      return;
+    case "ArrowUp":
+      adjustVolume(VOLUME_STEP);
+      return;
+    case "ArrowDown":
+      adjustVolume(-VOLUME_STEP);
   }
 }
 

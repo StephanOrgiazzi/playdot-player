@@ -38,44 +38,48 @@ export type VideoMarginRatio = {
   bottom?: number;
 };
 
-export async function init(config?: MpvConfig, windowLabel?: string): Promise<string> {
-  const winLabel = windowLabel ?? getCurrentWindow().label;
-  const transformedConfig = {
-    ...config,
-    observedProperties: config?.observedProperties ? Object.fromEntries(config.observedProperties) : {}
-  };
+function getWindowLabel(windowLabel?: string): string {
+  return windowLabel ?? getCurrentWindow().label;
+}
 
-  return invoke<string>("plugin:libmpv|init", {
-    mpvConfig: transformedConfig,
-    windowLabel: winLabel
+type InvokePayloadValue = string | boolean | number | object | null | undefined;
+
+function invokeMpv<T>(command: string, payload: Record<string, InvokePayloadValue> = {}, windowLabel?: string): Promise<T> {
+  return invoke<T>(`plugin:libmpv|${command}`, {
+    ...payload,
+    windowLabel: getWindowLabel(windowLabel),
   });
+}
+
+export async function init(config?: MpvConfig, windowLabel?: string): Promise<string> {
+  return invokeMpv<string>("init", {
+    mpvConfig: {
+      ...config,
+      observedProperties: Object.fromEntries(config?.observedProperties ?? []),
+    },
+  }, windowLabel);
 }
 
 export async function destroy(windowLabel?: string): Promise<void> {
-  return invoke("plugin:libmpv|destroy", {
-    windowLabel: windowLabel ?? getCurrentWindow().label
-  });
+  return invokeMpv("destroy", {}, windowLabel);
 }
 
 export async function setProperty(name: string, value: string | boolean | number, windowLabel?: string): Promise<void> {
-  return invoke("plugin:libmpv|set_property", {
+  return invokeMpv("set_property", {
     name,
     value,
-    windowLabel: windowLabel ?? getCurrentWindow().label
-  });
+  }, windowLabel);
 }
 
 export async function command(name: string, args: (string | boolean | number)[] = [], windowLabel?: string): Promise<void> {
-  return invoke("plugin:libmpv|command", {
+  return invokeMpv("command", {
     name,
     args,
-    windowLabel: windowLabel ?? getCurrentWindow().label
-  });
+  }, windowLabel);
 }
 
 export async function listenEvents(callback: (event: MpvEvent) => void, windowLabel?: string): Promise<UnlistenFn> {
-  const winLabel = windowLabel ?? getCurrentWindow().label;
-  return listen<MpvEvent>(`mpv-event-${winLabel}`, (event) => callback(event.payload));
+  return listen<MpvEvent>(`mpv-event-${getWindowLabel(windowLabel)}`, (event) => callback(event.payload));
 }
 
 export async function observeProperties(
@@ -83,10 +87,10 @@ export async function observeProperties(
   callback: (event: MpvObservedPropertyEvent) => void,
   windowLabel?: string
 ): Promise<UnlistenFn> {
-  const propertyNames = properties.map((property) => property[0]);
+  const propertyNames = new Set(properties.map(([name]) => name));
 
   return listenEvents((event) => {
-    if (event.event !== "property-change" || !event.name || !propertyNames.includes(event.name)) {
+    if (event.event !== "property-change" || !event.name || !propertyNames.has(event.name)) {
       return;
     }
 
@@ -95,8 +99,7 @@ export async function observeProperties(
 }
 
 export async function setVideoMarginRatio(ratio: VideoMarginRatio, windowLabel?: string): Promise<void> {
-  return invoke("plugin:libmpv|set_video_margin_ratio", {
+  return invokeMpv("set_video_margin_ratio", {
     ratio,
-    windowLabel: windowLabel ?? getCurrentWindow().label
-  });
+  }, windowLabel);
 }

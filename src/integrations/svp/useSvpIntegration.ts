@@ -3,11 +3,8 @@ import { createSvpToast } from "@features/toaster/messages";
 import type { ToastState } from "@features/toaster/types";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
 import { getErrorMessage } from "@shared/lib/error";
+import { getPersistedBoolean, persistBoolean } from "@shared/lib/persistedBoolean";
 import { resolveSvpIntegration } from "./api";
-import {
-  getPersistedSvpPreference,
-  persistSvpPreference,
-} from "./preferences";
 import type { SvpIntegrationState } from "./types";
 
 type UseSvpIntegrationOptions = {
@@ -24,12 +21,16 @@ type UseSvpIntegrationResult = {
   toggleSvp: () => Promise<void>;
 };
 
+const SVP_PREFERENCE_STORAGE_KEY = "playdot-player.player.svp-enabled";
+
 export function useSvpIntegration({
   player,
   setError,
   setToast,
 }: UseSvpIntegrationOptions): UseSvpIntegrationResult {
-  const [svpPreferenceEnabled, setSvpPreferenceEnabled] = useState<boolean>(getPersistedSvpPreference);
+  const [svpPreferenceEnabled, setSvpPreferenceEnabled] = useState<boolean>(() =>
+    getPersistedBoolean(SVP_PREFERENCE_STORAGE_KEY),
+  );
   const [isSvpAvailable, setIsSvpAvailable] = useState(false);
   const [isSvpEnabled, setIsSvpEnabled] = useState(false);
   const [isSwitchingSvp, setIsSwitchingSvp] = useState(false);
@@ -63,7 +64,7 @@ export function useSvpIntegration({
       const resolved = await applySvpPreference(nextPreferenceEnabled);
       setError("");
       setSvpPreferenceEnabled(nextPreferenceEnabled);
-      persistSvpPreference(nextPreferenceEnabled);
+      persistBoolean(SVP_PREFERENCE_STORAGE_KEY, nextPreferenceEnabled);
       setToast(createSvpToast(resolved.enabled));
     } catch (error) {
       setError(getErrorMessage(error, "Failed to toggle SVP"));

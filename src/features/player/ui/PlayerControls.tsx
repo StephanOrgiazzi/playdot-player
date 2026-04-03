@@ -8,7 +8,9 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { UI_VOLUME_MAX, getUiVolumeFromMpvVolume } from "@integrations/mpv/constants";
 import { formatTime } from "@shared/lib/format";
+import { usePlayerStateSelector } from "../model/playerStore";
 import type { PlayerControlsProps } from "../model/types";
 import { ToolCluster, TransportCluster, VolumeCluster } from "./PlayerControlClusters";
 
@@ -17,10 +19,7 @@ type TimelinePreview = {
   time: string;
 };
 
-type UseTimelineControlArgs = Pick<
-  PlayerControlsProps,
-  "currentTime" | "hasMedia" | "progressMax" | "progressPercent" | "setTimelinePosition"
-> & {
+type UseTimelineControlArgs = Pick<PlayerControlsProps, "hasMedia" | "setTimelinePosition"> & {
   duration: number;
   timePos: number;
 };
@@ -31,6 +30,7 @@ type TimelineControl = {
   timelinePreview: TimelinePreview | null;
   timelineProgressPercent: string;
   timelineValue: number;
+  progressMax: number;
   clearTimelinePreview: () => void;
   handleTimelineChange: (event: ChangeEvent<HTMLInputElement>) => void;
   handleTimelinePointerDown: (event: ReactPointerEvent<HTMLInputElement>) => void;
@@ -55,11 +55,8 @@ type TimelineRowProps = {
 };
 
 function useTimelineControl({
-  currentTime,
   duration,
   hasMedia,
-  progressMax,
-  progressPercent,
   setTimelinePosition,
   timePos,
 }: UseTimelineControlArgs): TimelineControl {
@@ -68,6 +65,8 @@ function useTimelineControl({
   const [timelineDragValue, setTimelineDragValue] = useState<number | null>(null);
   const timelineDragValueRef = useRef<number | null>(null);
   const isTimelinePointerScrubbingRef = useRef(false);
+  const progressMax = duration > 0 ? duration : 1;
+  const progressPercent = duration > 0 ? `${(Math.min(timePos, progressMax) / progressMax) * 100}%` : "0%";
 
   const getClampedTimelineValue = useCallback(
     (value: number): number => Math.min(Math.max(0, value), progressMax),
@@ -201,12 +200,7 @@ function useTimelineControl({
       setTimelineDragState(nextValue);
       void setTimelinePosition(nextValue);
     },
-    [
-      getClampedTimelineValue,
-      hasMedia,
-      setTimelineDragState,
-      setTimelinePosition,
-    ],
+    [getClampedTimelineValue, hasMedia, setTimelineDragState, setTimelinePosition],
   );
 
   useEffect(() => {
@@ -247,24 +241,21 @@ function useTimelineControl({
   }, [hasMedia, setTimelineDragState, setTimelineScrubbingState, timelineDragValue]);
 
   const timelineValue = timelineDragValue === null ? Math.min(timePos, progressMax) : timelineDragValue;
-  let timelineProgressPercentValue = progressPercent;
+  let timelineProgressPercent = progressPercent;
 
   if (timelineDragValue !== null) {
-    if (progressMax > 0) {
-      timelineProgressPercentValue = `${(timelineValue / progressMax) * 100}%`;
-    } else {
-      timelineProgressPercentValue = "0%";
-    }
+    timelineProgressPercent = progressMax > 0 ? `${(timelineValue / progressMax) * 100}%` : "0%";
   }
 
   return {
     displayedCurrentTime:
-      timelineDragValue === null ? currentTime : formatTime(duration > 0 ? timelineValue : null),
+      timelineDragValue === null ? formatTime(timePos) : formatTime(duration > 0 ? timelineValue : null),
     isTimelineScrubbing,
     timelinePreview:
       timelineDragValue === null ? timelineHoverPreview : createTimelinePreview(timelineDragValue),
-    timelineProgressPercent: timelineProgressPercentValue,
+    timelineProgressPercent,
     timelineValue,
+    progressMax,
     clearTimelinePreview,
     handleTimelineChange,
     handleTimelinePointerDown,
@@ -327,8 +318,74 @@ function TimelineRow({
   );
 }
 
+function TimelineRowContainer({
+  duration,
+  hasMedia,
+  totalTime,
+  setTimelinePosition,
+}: Pick<PlayerControlsProps, "duration" | "hasMedia" | "totalTime" | "setTimelinePosition">) {
+  const timePos = usePlayerStateSelector((state) => state.timePos);
+  const {
+    displayedCurrentTime,
+    isTimelineScrubbing,
+    timelinePreview,
+    timelineProgressPercent,
+    timelineValue,
+    progressMax,
+    clearTimelinePreview,
+    handleTimelineChange,
+    handleTimelinePointerDown,
+    handleTimelinePointerMove,
+    updateTimelinePreview,
+  } = useTimelineControl({
+    duration,
+    hasMedia,
+    setTimelinePosition,
+    timePos,
+  });
+
+  return (
+    <TimelineRow
+      displayedCurrentTime={displayedCurrentTime}
+      totalTime={totalTime}
+      progressMax={progressMax}
+      timelineValue={timelineValue}
+      timelineProgressPercent={timelineProgressPercent}
+      isTimelineScrubbing={isTimelineScrubbing}
+      hasMedia={hasMedia}
+      timelinePreview={timelinePreview}
+      clearTimelinePreview={clearTimelinePreview}
+      handleTimelineChange={handleTimelineChange}
+      handleTimelinePointerDown={handleTimelinePointerDown}
+      handleTimelinePointerMove={handleTimelinePointerMove}
+      updateTimelinePreview={updateTimelinePreview}
+    />
+  );
+}
+
+function VolumeClusterContainer({
+  setVolume,
+  toggleMute,
+}: Pick<PlayerControlsProps, "setVolume" | "toggleMute">) {
+  const isMuted = usePlayerStateSelector((state) => state.mute);
+  const volume = usePlayerStateSelector((state) => state.volume);
+  const displayVolume = getUiVolumeFromMpvVolume(volume);
+  const volumePercent = `${(displayVolume / UI_VOLUME_MAX) * 100}%`;
+
+  return (
+    <VolumeCluster
+      isMuted={isMuted}
+      displayVolume={displayVolume}
+      volumePercent={volumePercent}
+      toggleMute={toggleMute}
+      setVolume={setVolume}
+    />
+  );
+}
+
 export function PlayerControls({
-  state,
+  paused,
+  duration,
   hasMedia,
   isFullscreen,
   isChromeHidden,
@@ -336,12 +393,7 @@ export function PlayerControls({
   isCyclingSubtitles,
   audioTracks,
   subtitleTracks,
-  currentTime,
   totalTime,
-  progressMax,
-  progressPercent,
-  displayVolume,
-  volumePercent,
   audioSummary,
   subtitleSummary,
   cycleAudioTrack,
@@ -356,60 +408,24 @@ export function PlayerControls({
   setTimelinePosition,
   setVolume,
 }: PlayerControlsProps) {
-  const {
-    displayedCurrentTime,
-    isTimelineScrubbing,
-    timelinePreview,
-    timelineProgressPercent,
-    timelineValue,
-    clearTimelinePreview,
-    handleTimelineChange,
-    handleTimelinePointerDown,
-    handleTimelinePointerMove,
-    updateTimelinePreview,
-  } = useTimelineControl({
-    currentTime,
-    duration: state.duration,
-    hasMedia,
-    progressMax,
-    progressPercent,
-    setTimelinePosition,
-    timePos: state.timePos,
-  });
-
   return (
     <section
       className={`control-dock${isChromeHidden ? " is-hidden" : ""}`}
       onMouseEnter={handleControlDockMouseEnter}
       onMouseLeave={handleControlDockMouseLeave}
     >
-      <TimelineRow
-        displayedCurrentTime={displayedCurrentTime}
-        totalTime={totalTime}
-        progressMax={progressMax}
-        timelineValue={timelineValue}
-        timelineProgressPercent={timelineProgressPercent}
-        isTimelineScrubbing={isTimelineScrubbing}
+      <TimelineRowContainer
+        duration={duration}
         hasMedia={hasMedia}
-        timelinePreview={timelinePreview}
-        clearTimelinePreview={clearTimelinePreview}
-        handleTimelineChange={handleTimelineChange}
-        handleTimelinePointerDown={handleTimelinePointerDown}
-        handleTimelinePointerMove={handleTimelinePointerMove}
-        updateTimelinePreview={updateTimelinePreview}
+        totalTime={totalTime}
+        setTimelinePosition={setTimelinePosition}
       />
 
       <div className="dock-row dock-row--bottom">
-        <VolumeCluster
-          isMuted={state.mute}
-          displayVolume={displayVolume}
-          volumePercent={volumePercent}
-          toggleMute={toggleMute}
-          setVolume={setVolume}
-        />
+        <VolumeClusterContainer setVolume={setVolume} toggleMute={toggleMute} />
         <TransportCluster
           hasMedia={hasMedia}
-          paused={state.paused}
+          paused={paused}
           togglePlayPause={togglePlayPause}
           seekBack={seekBack}
           seekForward={seekForward}

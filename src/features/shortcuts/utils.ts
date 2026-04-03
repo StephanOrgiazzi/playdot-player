@@ -1,12 +1,8 @@
 export const VOLUME_STEP = 5;
 
 export function isShortcutTargetEditable(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-
   return (
-    target.isContentEditable ||
+    (target instanceof HTMLElement && target.isContentEditable) ||
     target instanceof HTMLInputElement ||
     target instanceof HTMLTextAreaElement ||
     target instanceof HTMLSelectElement

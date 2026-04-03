@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as R
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { createMediaOpenActions } from "@features/mediaOpen/actions";
+import { AUTO_HIDE_DELAY_MS } from "@features/playerChrome/constants";
 import type { TitlebarPointerDown } from "@features/playerChrome/types";
 import { useBlurActiveControlWhenChromeHidden } from "@features/playerChrome/useBlurActiveControlWhenChromeHidden";
-import { useChromeVisibility } from "@features/playerChrome/useChromeVisibility";
-import { useCursorVisibility } from "@features/playerChrome/useCursorVisibility";
+import { useAutoHiddenFlag } from "@features/playerChrome/useAutoHiddenFlag";
 import { useTitlebarDrag } from "@features/playerChrome/useTitlebarDrag";
 import { useGlobalShortcuts } from "@features/shortcuts/useGlobalShortcuts";
 import { createFsrToast, createVolumeToast } from "@features/toaster/messages";
@@ -15,19 +15,19 @@ import { MpvPlayer } from "@integrations/mpv/MpvPlayer";
 import { clampUiVolume, getMpvVolumeFromUiVolume, getUiVolumeFromMpvVolume } from "@integrations/mpv/constants";
 import { useSvpIntegration } from "@integrations/svp/useSvpIntegration";
 import { getErrorMessage } from "@shared/lib/error";
+import { getPersistedBoolean, persistBoolean } from "@shared/lib/persistedBoolean";
 import { usePlayerActions } from "./usePlayerActions";
 import { usePlayerLifecycle } from "./usePlayerLifecycle";
-import {
-  getPersistedFsrPreference,
-  persistFsrPreference,
-} from "../model/playerPreferences";
-import { getPlayerControllerDerivedState } from "../model/playerDerived";
+import { getPlayerTrackDerivedState } from "../model/playerDerived";
 import type { PlayerScreenProps } from "../model/types";
-import { EMPTY_PLAYER_STATE, type PlayerState } from "../model/playerState";
+import { usePlayerStateSelector } from "../model/playerStore";
+import { hasMedia as hasLoadedMedia } from "../model/playerSelectors";
+import { formatTime } from "@shared/lib/format";
 
 const player = new MpvPlayer();
 const appWindow = getCurrentWindow();
 const appWebview = getCurrentWebview();
+const FSR_PREFERENCE_STORAGE_KEY = "playdot-player.player.fsr-enabled";
 const withPlayerFocusRestore = async <T>(task: () => Promise<T>): Promise<T> => {
   try {
     return await task();
@@ -246,9 +246,10 @@ function useWindowStateSync(): {
 }
 
 export function usePlayerController(): PlayerScreenProps {
-  const [state, setState] = useState<PlayerState>(EMPTY_PLAYER_STATE);
   const [error, setError] = useState("");
-  const [fsrPreferenceEnabled, setFsrPreferenceEnabled] = useState<boolean>(getPersistedFsrPreference);
+  const [fsrPreferenceEnabled, setFsrPreferenceEnabled] = useState<boolean>(() =>
+    getPersistedBoolean(FSR_PREFERENCE_STORAGE_KEY),
+  );
   const [isFsrEnabled, setIsFsrEnabled] = useState(false);
   const [isCyclingAudio, setIsCyclingAudio] = useState(false);
   const [isCyclingSubtitles, setIsCyclingSubtitles] = useState(false);
@@ -261,26 +262,39 @@ export function usePlayerController(): PlayerScreenProps {
     handleControlDockMouseEnter,
     handleControlDockMouseLeave,
   } = useControlDockHoverState();
+  const initialized = usePlayerStateSelector((state) => state.initialized);
+  const paused = usePlayerStateSelector((state) => state.paused);
+  const duration = usePlayerStateSelector((state) => state.duration);
+  const filename = usePlayerStateSelector((state) => state.filename);
+  const selectedAudioTrackId = usePlayerStateSelector((state) => state.selectedAudioTrackId);
+  const selectedSubtitleTrackId = usePlayerStateSelector((state) => state.selectedSubtitleTrackId);
+  const tracks = usePlayerStateSelector((state) => state.tracks);
 
-  const derivedState = getPlayerControllerDerivedState(state);
+  const derivedState = useMemo(
+    () =>
+      getPlayerTrackDerivedState({
+        selectedAudioTrackId,
+        selectedSubtitleTrackId,
+        tracks,
+      }),
+    [selectedAudioTrackId, selectedSubtitleTrackId, tracks],
+  );
   const {
-    hasMedia,
     audioTracks,
     subtitleTracks,
     selectedAudioTrack,
     selectedSubtitleTrack,
-    currentTime,
-    totalTime,
-    progressMax,
-    progressPercent,
-    displayVolume,
-    volumePercent,
     audioSummary,
     subtitleSummary,
   } = derivedState;
-  const isChromeVisible = useChromeVisibility(hasMedia, isControlDockHovered);
-  const isChromeHidden = hasMedia && !isChromeVisible;
-  const isCursorHidden = useCursorVisibility(hasMedia, isControlDockHovered);
+  const hasMedia = hasLoadedMedia({ filename });
+  const totalTime = formatTime(duration);
+  const isChromeHidden = useAutoHiddenFlag({
+    enabled: hasMedia,
+    paused: isControlDockHovered,
+    delayMs: AUTO_HIDE_DELAY_MS,
+  });
+  const isCursorHidden = isChromeHidden;
   const {
     isSvpAvailable,
     isSvpEnabled,
@@ -292,7 +306,6 @@ export function usePlayerController(): PlayerScreenProps {
   usePlayerLifecycle({
     player,
     appWindow,
-    setState,
     setError,
     syncWindowState,
     beforeStart: preparePlayerStart,
@@ -350,7 +363,7 @@ export function usePlayerController(): PlayerScreenProps {
       setToast,
       onSuccess: (enabled) => {
         setFsrPreferenceEnabled(enabled);
-        persistFsrPreference(enabled);
+        persistBoolean(FSR_PREFERENCE_STORAGE_KEY, enabled);
       },
       task: () => player.toggleFsr(),
     });
@@ -360,7 +373,7 @@ export function usePlayerController(): PlayerScreenProps {
 
   useSavedFsrPreferenceSync({
     hasMedia,
-    filename: state.filename,
+    filename,
     fsrPreferenceEnabled,
     isFsrEnabled,
     setError,
@@ -427,7 +440,10 @@ export function usePlayerController(): PlayerScreenProps {
   });
 
   return {
-    state,
+    initialized,
+    paused,
+    duration,
+    filename,
     error,
     toast,
     isFullscreen,
@@ -442,12 +458,7 @@ export function usePlayerController(): PlayerScreenProps {
     hasMedia,
     audioTracks,
     subtitleTracks,
-    currentTime,
     totalTime,
-    progressMax,
-    progressPercent,
-    displayVolume,
-    volumePercent,
     audioSummary,
     subtitleSummary,
     pickAndOpenMediaFile,

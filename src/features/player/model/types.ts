@@ -1,12 +1,15 @@
 import type { MouseEvent as ReactMouseEvent } from "react";
 import type { OpenWebUrlResult } from "@features/mediaOpen/types";
 import type { ToastState } from "@features/toaster/types";
-import type { MediaTrack, PlayerState } from "./playerState";
+import type { MediaTrack } from "./playerState";
 
 export type AsyncAction = () => Promise<void>;
 
 export type PlayerScreenProps = {
-  state: PlayerState;
+  initialized: boolean;
+  paused: boolean;
+  duration: number;
+  filename: string;
   error: string;
   toast: ToastState | null;
   isFullscreen: boolean;
@@ -21,12 +24,7 @@ export type PlayerScreenProps = {
   hasMedia: boolean;
   audioTracks: MediaTrack[];
   subtitleTracks: MediaTrack[];
-  currentTime: string;
   totalTime: string;
-  progressMax: number;
-  progressPercent: string;
-  displayVolume: number;
-  volumePercent: string;
   audioSummary: string;
   subtitleSummary: string;
   pickAndOpenMediaFile: AsyncAction;
@@ -59,7 +57,8 @@ export type PlayerScreenProps = {
 
 export type PlayerControlsProps = Pick<
   PlayerScreenProps,
-  | "state"
+  | "paused"
+  | "duration"
   | "hasMedia"
   | "isFullscreen"
   | "isChromeHidden"
@@ -67,12 +66,7 @@ export type PlayerControlsProps = Pick<
   | "isCyclingSubtitles"
   | "audioTracks"
   | "subtitleTracks"
-  | "currentTime"
   | "totalTime"
-  | "progressMax"
-  | "progressPercent"
-  | "displayVolume"
-  | "volumePercent"
   | "audioSummary"
   | "subtitleSummary"
   | "cycleAudioTrack"
