@@ -46,7 +46,6 @@ export class MpvPlayer {
   private svpEnabled = false;
   private started = false;
   private currentSource: string | null = null;
-  private hasLoadedMediaSinceInit = false;
 
   private clearPendingEmit(): void {
     if (this.emitFrameId === null) {
@@ -93,7 +92,6 @@ export class MpvPlayer {
     this.fsrEnabled = false;
     this.started = false;
     this.currentSource = null;
-    this.hasLoadedMediaSinceInit = false;
 
     if (!shouldDestroy) {
       return;
@@ -125,12 +123,8 @@ export class MpvPlayer {
   async loadFile(path: string): Promise<void> {
     this.currentSource = path;
     await command("loadfile", [path]);
+    await this.resetPerMediaDefaults();
 
-    if (this.hasLoadedMediaSinceInit) {
-      await this.resetPerMediaDefaults();
-    }
-
-    this.hasLoadedMediaSinceInit = true;
     await this.play();
   }
 
@@ -170,7 +164,6 @@ export class MpvPlayer {
     this.fsrShaderPath = null;
     this.fsrEnabled = false;
     this.started = true;
-    this.hasLoadedMediaSinceInit = false;
 
     this.state = { ...this.state, initialized: true };
     this.emit();
@@ -249,6 +242,10 @@ export class MpvPlayer {
 
   async adjustSubtitleScale(delta: number): Promise<void> {
     await command("add", ["sub-scale", delta]);
+  }
+
+  async adjustGamma(delta: number): Promise<void> {
+    await command("add", ["gamma", delta]);
   }
 
   async setAudioTrack(id: number | "no"): Promise<void> {
@@ -477,6 +474,7 @@ export class MpvPlayer {
 
   private async resetPerMediaDefaults(): Promise<void> {
     await setProperty("sub-scale", SUBTITLE_SCALE);
+    await setProperty("gamma", 1);
   }
 
   private async restartWithCurrentMedia(): Promise<void> {

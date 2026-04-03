@@ -8,6 +8,16 @@ import { PlayerControls } from "./PlayerControls";
 import { PlayerIcon, PlayerIconSprite } from "./PlayerIcons";
 import { VideoViewport } from "./VideoViewport";
 
+function getTrackMenuLabel(
+  kind: "Audio" | "Subtitle",
+  tracks: Array<{ selected: boolean }>,
+): string {
+  const total = tracks.length;
+  const selectedIndex = tracks.findIndex((track) => track.selected);
+  const current = selectedIndex >= 0 ? selectedIndex + 1 : 0;
+  return `${kind} Track (${current}/${total})`;
+}
+
 export function PlayerScreen({
   initialized,
   paused,
@@ -50,6 +60,8 @@ export function PlayerScreen({
   toggleMute,
   zoomIn,
   zoomOut,
+  increaseGamma,
+  decreaseGamma,
   increaseSubtitleScale,
   decreaseSubtitleScale,
   setTimelinePosition,
@@ -71,6 +83,8 @@ export function PlayerScreen({
   } = useOpenUrlDialog(openWebUrl);
   const { contextMenuPosition, contextMenuRef, closeContextMenu, handleStageContextMenu } =
     useStageContextMenu(isUrlDialogOpen);
+  const audioTrackLabel = getTrackMenuLabel("Audio", audioTracks);
+  const subtitleTrackLabel = getTrackMenuLabel("Subtitle", subtitleTracks);
 
   return (
     <main
@@ -152,8 +166,12 @@ export function PlayerScreen({
             speedUpPlayback={speedUpPlayback}
             zoomIn={zoomIn}
             zoomOut={zoomOut}
+            increaseGamma={increaseGamma}
+            decreaseGamma={decreaseGamma}
             increaseSubtitleScale={increaseSubtitleScale}
             decreaseSubtitleScale={decreaseSubtitleScale}
+            audioTrackLabel={audioTrackLabel}
+            subtitleTrackLabel={subtitleTrackLabel}
             cycleAudioTrack={cycleAudioTrack}
             cycleSubtitleTrack={cycleSubtitleTrack}
             toggleFsr={toggleFsr}

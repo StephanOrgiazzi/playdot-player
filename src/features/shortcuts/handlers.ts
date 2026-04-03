@@ -13,7 +13,7 @@ function isSpaceKey(event: KeyboardEvent): boolean {
   return event.key === " " || event.key === "Spacebar" || event.code === "Space";
 }
 
-type KeyShortcutAction = Exclude<keyof ShortcutActions, "adjustVolume" | "openPastedWebUrl">;
+type KeyShortcutAction = Exclude<keyof ShortcutActions, "adjustVolume" | "adjustGamma" | "openPastedWebUrl">;
 
 const CTRL_MEDIA_SHORTCUTS: Partial<Record<string, KeyShortcutAction>> = {
   ArrowLeft: "slowDownPlayback",
@@ -93,6 +93,22 @@ export function handleShortcutKeyDown({
   }
 
   if (event.altKey) {
+    if (!hasMedia) {
+      return;
+    }
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      void actions.adjustGamma(-1);
+      return;
+    }
+
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      void actions.adjustGamma(1);
+      return;
+    }
+
     return;
   }
 

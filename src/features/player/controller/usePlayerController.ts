@@ -8,7 +8,7 @@ import { useBlurActiveControlWhenChromeHidden } from "@features/playerChrome/use
 import { useAutoHiddenFlag } from "@features/playerChrome/useAutoHiddenFlag";
 import { useTitlebarDrag } from "@features/playerChrome/useTitlebarDrag";
 import { useGlobalShortcuts } from "@features/shortcuts/useGlobalShortcuts";
-import { createFsrToast, createVolumeToast } from "@features/toaster/messages";
+import { createFsrToast, createGammaToast, createVolumeToast } from "@features/toaster/messages";
 import type { ToastState, TrackKind } from "@features/toaster/types";
 import { usePendingTrackToast, useToastAutoHide } from "@features/toaster/useToastEffects";
 import { MpvPlayer } from "@integrations/mpv/MpvPlayer";
@@ -28,6 +28,7 @@ const player = new MpvPlayer();
 const appWindow = getCurrentWindow();
 const appWebview = getCurrentWebview();
 const FSR_PREFERENCE_STORAGE_KEY = "playdot-player.player.fsr-enabled";
+const GAMMA_STEP = 1;
 const withPlayerFocusRestore = async <T>(task: () => Promise<T>): Promise<T> => {
   try {
     return await task();
@@ -255,6 +256,7 @@ export function usePlayerController(): PlayerScreenProps {
   const [isCyclingSubtitles, setIsCyclingSubtitles] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [pendingTrackToast, setPendingTrackToast] = useState<TrackKind | null>(null);
+  const gammaLevelRef = useRef(0);
   const isOpeningPastedWebUrlRef = useRef(false);
   const { isFullscreen, syncWindowState } = useWindowStateSync();
   const {
@@ -370,6 +372,29 @@ export function usePlayerController(): PlayerScreenProps {
   }, [hasMedia]);
 
   const adjustVolume = useCallback((delta: number): Promise<void> => applyVolumeAction({ hasMedia, delta, setToast }), [hasMedia]);
+  const adjustGamma = useCallback(
+    async (delta: number): Promise<void> => {
+      if (!hasMedia || delta === 0) {
+        return;
+      }
+
+      await player.adjustGamma(delta);
+      gammaLevelRef.current += delta;
+      setToast(createGammaToast(gammaLevelRef.current));
+    },
+    [hasMedia, setToast],
+  );
+  const increaseGamma = useCallback((): Promise<void> => adjustGamma(GAMMA_STEP), [adjustGamma]);
+  const decreaseGamma = useCallback((): Promise<void> => adjustGamma(-GAMMA_STEP), [adjustGamma]);
+
+  useEffect(() => {
+    if (!hasMedia) {
+      gammaLevelRef.current = 0;
+      return;
+    }
+
+    gammaLevelRef.current = 0;
+  }, [filename, hasMedia]);
 
   useSavedFsrPreferenceSync({
     hasMedia,
@@ -422,6 +447,7 @@ export function usePlayerController(): PlayerScreenProps {
     cycleSubtitleTrack,
     closeWindow,
     adjustVolume,
+    adjustGamma,
     hasMedia,
     isFullscreen,
     openPastedWebUrl,
@@ -481,6 +507,8 @@ export function usePlayerController(): PlayerScreenProps {
     toggleMute,
     zoomIn,
     zoomOut,
+    increaseGamma,
+    decreaseGamma,
     increaseSubtitleScale,
     decreaseSubtitleScale,
     setTimelinePosition,

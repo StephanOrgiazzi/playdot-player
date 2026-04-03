@@ -47,6 +47,8 @@ export type PlayerScreenProps = {
   toggleMute: AsyncAction;
   zoomIn: AsyncAction;
   zoomOut: AsyncAction;
+  increaseGamma: AsyncAction;
+  decreaseGamma: AsyncAction;
   increaseSubtitleScale: AsyncAction;
   decreaseSubtitleScale: AsyncAction;
   setTimelinePosition: (value: number) => Promise<void>;

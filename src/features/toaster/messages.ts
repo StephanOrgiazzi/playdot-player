@@ -86,6 +86,11 @@ export function createSubtitleScaleToast(
   return createToast(`${prefix} (${scalePercent})`);
 }
 
+export function createGammaToast(gamma: number): ToastState {
+  const normalizedGamma = Math.round(gamma);
+  return createToast(`Gamma ${normalizedGamma}`);
+}
+
 export function createTrackToast(
   kind: TrackKind,
   tracks: MediaTrack[],

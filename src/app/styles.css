@@ -366,6 +366,25 @@ button {
   user-select: none;
 }
 
+.player-context-menu__submenu-group {
+  position: relative;
+  display: grid;
+}
+
+.player-context-menu__submenu-group::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -8px;
+  bottom: 0;
+  width: 8px;
+}
+
+.player-context-menu__submenu-group.is-open-left::after {
+  right: auto;
+  left: -8px;
+}
+
 .player-context-menu__item {
   display: flex;
   align-items: center;
@@ -380,6 +399,53 @@ button {
   font-size: 12px;
   text-align: left;
   cursor: pointer;
+}
+
+.player-context-menu__item--submenu {
+  position: relative;
+  width: 100%;
+  padding-right: 28px;
+}
+
+.player-context-menu__item--submenu::after {
+  content: "›";
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  color: var(--text-soft);
+  font-size: 16px;
+  line-height: 1;
+  transform: translateY(-52%);
+}
+
+.player-context-menu__item--submenu.is-open-left::after {
+  content: "‹";
+}
+
+.player-context-menu__submenu-group.is-open > .player-context-menu__item--submenu,
+.player-context-menu__submenu-group:focus-within > .player-context-menu__item--submenu {
+  background: var(--control-hover);
+}
+
+.player-context-menu__submenu-panel {
+  position: absolute;
+  top: -6px;
+  left: calc(100% + 8px);
+  z-index: 1;
+  display: grid;
+  min-width: 248px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(16, 16, 16, 0.96);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.45);
+  animation: context-menu-enter 110ms ease-out;
+}
+
+.player-context-menu__submenu-panel.is-open-left {
+  left: auto;
+  right: calc(100% + 8px);
 }
 
 .player-context-menu__item-label {
