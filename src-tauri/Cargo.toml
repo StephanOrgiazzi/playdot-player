@@ -1,6 +1,6 @@
 [package]
 name = "playdot-player"
-version = "0.1.0"
+version = "0.8.0"
 description = "Windows-first video player with Tauri and libmpv"
 authors = ["playdot player"]
 edition = "2021"
