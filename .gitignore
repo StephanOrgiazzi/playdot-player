@@ -1,7 +1,6 @@
 node_modules/
 build/
 artifacts/
-old_repo_for_reference/
 vendor/
 dist/
 release/
