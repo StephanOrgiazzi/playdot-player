@@ -21,6 +21,7 @@ import {
   type PlayerState,
 } from "@features/player/model/playerState";
 import { getSelectedTrackByType, getTracksByType } from "@features/player/model/playerSelectors";
+import { toError } from "@shared/lib/error";
 
 type PlayerListener = (state: PlayerState) => void;
 type TrackType = MediaTrack["type"];
@@ -40,9 +41,8 @@ export class MpvPlayer {
   private audioTrackChange: Promise<void> | null = null;
   private subtitleTrackChange: Promise<void> | null = null;
   private fsrToggle: Promise<boolean> | null = null;
-  private fsrShaderCandidates: string[] = [];
-  private fsrShaderPath: string | null = null;
-  private fsrEnabled = false;
+  private upscaleShaderBundles: string[][] = [];
+  private appliedUpscaleShaderPaths: string[] = [];
   private svpEnabled = false;
   private started = false;
   private currentSource: string | null = null;
@@ -87,9 +87,8 @@ export class MpvPlayer {
     this.unlisten?.();
     this.unlisten = null;
     this.fsrToggle = null;
-    this.fsrShaderCandidates = [];
-    this.fsrShaderPath = null;
-    this.fsrEnabled = false;
+    this.upscaleShaderBundles = [];
+    this.appliedUpscaleShaderPaths = [];
     this.started = false;
     this.currentSource = null;
 
@@ -160,9 +159,8 @@ export class MpvPlayer {
     const resourcePaths = await getMpvResourcePaths();
     const config = await createMpvConfig(resourcePaths, { svpEnabled: this.svpEnabled });
     await init(config);
-    this.fsrShaderCandidates = resourcePaths.fsrShaderCandidates;
-    this.fsrShaderPath = null;
-    this.fsrEnabled = false;
+    this.upscaleShaderBundles = resourcePaths.upscaleShaderBundles;
+    this.appliedUpscaleShaderPaths = [];
     this.started = true;
 
     this.state = { ...this.state, initialized: true };
@@ -353,49 +351,57 @@ export class MpvPlayer {
   }
 
   private async runFsrToggle(): Promise<boolean> {
-    if (this.fsrEnabled) {
-      if (!this.fsrShaderPath) {
-        this.fsrEnabled = false;
-        throw new Error("FSR shader resource is unavailable");
+    if (this.appliedUpscaleShaderPaths.length > 0) {
+      for (const shaderPath of [...this.appliedUpscaleShaderPaths].reverse()) {
+        await command("change-list", ["glsl-shaders", "remove", shaderPath]);
       }
-
-      await command("change-list", ["glsl-shaders", "remove", this.fsrShaderPath]);
-      this.fsrEnabled = false;
+      this.appliedUpscaleShaderPaths = [];
       return false;
     }
 
-    const shaderPath = await this.enableFsr();
-    if (!shaderPath) {
+    const shaderPaths = await this.enableFsr();
+    if (!shaderPaths) {
       throw new Error("FSR shader resource is unavailable");
     }
 
     return true;
   }
 
-  private async enableFsr(): Promise<string | null> {
-    if (this.fsrEnabled && this.fsrShaderPath) {
-      return this.fsrShaderPath;
-    }
+  private async enableFsr(): Promise<string[] | null> {
+    const preferredBundle = this.appliedUpscaleShaderPaths;
+    const orderedBundles =
+      preferredBundle.length > 0
+        ? [
+            preferredBundle,
+            ...this.upscaleShaderBundles.filter(
+              (bundle) => bundle.join("\n") !== preferredBundle.join("\n"),
+            ),
+          ]
+        : this.upscaleShaderBundles;
+    let lastError: Error | null = null;
 
-    const candidates = this.fsrShaderPath
-      ? [
-          this.fsrShaderPath,
-          ...this.fsrShaderCandidates.filter((candidate) => candidate !== this.fsrShaderPath),
-        ]
-      : this.fsrShaderCandidates;
-
-    for (const candidate of candidates) {
+    for (const bundle of orderedBundles) {
+      const appliedBundlePaths: string[] = [];
       try {
-        await command("change-list", ["glsl-shaders", "append", candidate]);
-        this.fsrShaderPath = candidate;
-        this.fsrEnabled = true;
-        return candidate;
-      } catch {
-        continue;
+        for (const shaderPath of bundle) {
+          await command("change-list", ["glsl-shaders", "append", shaderPath]);
+          appliedBundlePaths.push(shaderPath);
+        }
+
+        this.appliedUpscaleShaderPaths = appliedBundlePaths;
+        return appliedBundlePaths;
+      } catch (error) {
+        lastError = toError(error);
+        for (const shaderPath of [...appliedBundlePaths].reverse()) {
+          await command("change-list", ["glsl-shaders", "remove", shaderPath]).catch(() => undefined);
+        }
       }
     }
 
-    this.fsrEnabled = false;
+    if (lastError) {
+      throw lastError;
+    }
+
     return null;
   }
 

@@ -64,10 +64,21 @@ export async function destroy(windowLabel?: string): Promise<void> {
   return invokeMpv("destroy", {}, windowLabel);
 }
 
-export async function setProperty(name: string, value: string | boolean | number, windowLabel?: string): Promise<void> {
+export async function setProperty(name: string, value: MpvNodeValue, windowLabel?: string): Promise<void> {
   return invokeMpv("set_property", {
     name,
     value,
+  }, windowLabel);
+}
+
+export async function getProperty<T = MpvNodeValue>(
+  name: string,
+  format: MpvFormat,
+  windowLabel?: string,
+): Promise<T | null> {
+  return invokeMpv<T | null>("get_property", {
+    name,
+    format,
   }, windowLabel);
 }
 

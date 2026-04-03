@@ -1,4 +1,4 @@
-import { join, resourceDir } from "@tauri-apps/api/path";
+import { join, resolveResource, resourceDir } from "@tauri-apps/api/path";
 import { getSvpMpvInitialOptions } from "@integrations/svp/mpv";
 import type { MpvConfig } from "./libmpv-api";
 import {
@@ -18,39 +18,75 @@ import {
 
 type MpvResourcePaths = {
   subtitleFontsDir: string | null;
-  fsrShaderCandidates: string[];
+  upscaleShaderBundles: string[][];
 };
 
 type MpvFeatureFlags = {
   svpEnabled?: boolean;
 };
 
-async function getBundledFsrShaderCandidates(resourcesPath: string | null): Promise<string[]> {
+async function getBundledUpscaleShaderBundles(resourcesPath: string | null): Promise<string[][]> {
+  const [resolvedFsrPath, resolvedAdaptiveLumaPath] = await Promise.all([
+    resolveResource("../shaders/FSR.glsl").catch(() => null),
+    resolveResource("../shaders/adaptive-luma-ultra.glsl").catch(() => null),
+  ]);
+
+  if (resolvedFsrPath && resolvedAdaptiveLumaPath) {
+    return [[resolvedFsrPath, resolvedAdaptiveLumaPath]];
+  }
+
   if (!resourcesPath) {
     return [];
   }
 
-  const candidateSegments = [
-    ["lib", "shaders", "FSR.glsl"],
-    ["shaders", "FSR.glsl"],
-    ["_up_", "shaders", "FSR.glsl"],
+  const fallbackCandidateSegments = [
+    ["lib", "shaders"],
+    ["shaders"],
+    ["_up_", "shaders"],
   ];
 
-  const candidates = await Promise.all(
-    candidateSegments.map(async (segments) => join(resourcesPath, ...segments).catch(() => null)),
-  );
+  const [fsrCandidatesRaw, adaptiveLumaCandidatesRaw] = await Promise.all([
+    Promise.all(
+      fallbackCandidateSegments.map(async (segments) => join(resourcesPath, ...segments, "FSR.glsl").catch(() => null)),
+    ),
+    Promise.all(
+      fallbackCandidateSegments.map(async (segments) =>
+        join(resourcesPath, ...segments, "adaptive-luma-ultra.glsl").catch(() => null),
+      ),
+    ),
+  ]);
 
-  return [...new Set(candidates.filter((candidate): candidate is string => candidate !== null))];
+  const fsrCandidates = [...new Set(fsrCandidatesRaw.filter((candidate): candidate is string => candidate !== null))];
+  const adaptiveLumaCandidates = [
+    ...new Set(adaptiveLumaCandidatesRaw.filter((candidate): candidate is string => candidate !== null)),
+  ];
+
+  const validBundles: string[][] = [];
+  for (const fsrPath of fsrCandidates) {
+    for (const adaptiveLumaPath of adaptiveLumaCandidates) {
+      validBundles.push([fsrPath, adaptiveLumaPath]);
+    }
+  }
+
+  const uniqueBundles = new Map<string, string[]>();
+  for (const bundle of validBundles) {
+    uniqueBundles.set(bundle.join("\n"), bundle);
+  }
+
+  return [...uniqueBundles.values()];
 }
 
 async function readMpvResourcePaths(): Promise<MpvResourcePaths> {
   const resourcesPath = await resourceDir().catch(() => null);
-  const [subtitleFontsDir, fsrShaderCandidates] = await Promise.all([
+  const [subtitleFontsDir, upscaleShaderBundles] = await Promise.all([
     resourcesPath ? join(resourcesPath, "lib", "fonts").catch(() => null) : Promise.resolve(null),
-    getBundledFsrShaderCandidates(resourcesPath),
+    getBundledUpscaleShaderBundles(resourcesPath),
   ]);
 
-  return { subtitleFontsDir, fsrShaderCandidates };
+  return {
+    subtitleFontsDir,
+    upscaleShaderBundles,
+  };
 }
 
 let mpvResourcePathsPromise: Promise<MpvResourcePaths> | null = null;
