@@ -1,6 +1,10 @@
 # PLAY.
 
-Website: https://stephanorgiazzi.github.io/playdot-player/
+<p align="center">
+  <a href="https://stephanorgiazzi.github.io/playdot-player/">
+    <img src="https://img.shields.io/badge/Website-Playdot_Player-111827?style=for-the-badge&logo=githubpages&logoColor=white" alt="Playdot Player website" />
+  </a>
+</p>
 
 [![Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)](https://tauri.app/)
 [![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)](https://react.dev/)
@@ -11,16 +15,18 @@ Website: https://stephanorgiazzi.github.io/playdot-player/
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Open Source](https://img.shields.io/badge/Open%20Source-Yes-green)](#open-source)
 
-<p align="center">
-  <img src="./public/logo.png" alt="PLAY. logo" width="144" />
-</p>
-
 ## Premium video playback on Windows
 
 _PLAY._ is an open source premium video player for Windows built around one goal: **deliver a better viewing experience**. It combines **broad real-world media compatibility**, **high-performance playback**, **strong rendering quality**, and a polished desktop presentation in one focused app.
 
 <p align="center">
   <img src="./public/app.jpg" alt="PLAY. app screenshot" width="1100" />
+</p>
+
+<p align="center">
+  <a href="https://stephanorgiazzi.github.io/playdot-player/"><strong>Playdot Player Website</strong></a>
+  <br />
+  <sub>stephanorgiazzi.github.io/playdot-player</sub>
 </p>
 
 **Why it stands out**
