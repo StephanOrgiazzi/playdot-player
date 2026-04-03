@@ -1,0 +1,41 @@
+{
+  "name": "playdot-player",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "app:dev": "npm run setup-lib && npm run tauri:dev",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint -c ./.oxlintrc.json . --type-aware --deny typescript/no-deprecated --deny max-lines --deny max-lines-per-function",
+    "format": "oxfmt -c ./.oxfmtrc.json --check .",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "setup-lib": "node ./scripts/setup-lib.mjs",
+    "release:win": "npm run setup-lib && tauri build --bundles nsis",
+    "release:artifacts": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-artifacts.ps1",
+    "release": "npm run release:win && npm run release:artifacts"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.10.1",
+    "@tauri-apps/plugin-dialog": "2.6.0",
+    "@tauri-apps/plugin-log": "2.8.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.10.1",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.1.0",
+    "7z-wasm": "^1.2.0",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "oxfmt": "^0.43.0",
+    "oxlint": "^1.58.0",
+    "oxlint-tsgolint": "^0.18.1",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.3"
+  }
+}

@@ -1,0 +1,12 @@
+node_modules/
+build/
+artifacts/
+old_repo_for_reference/
+vendor/
+dist/
+release/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/lib/*.dll
+*.log
+*.tsbuildinfo
