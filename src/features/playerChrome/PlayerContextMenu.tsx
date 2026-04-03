@@ -1,6 +1,7 @@
 import { forwardRef, useCallback, useState, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
+import type { MediaTrack } from "@features/player/model/playerState";
 import { PlayerIcon } from "@features/player/ui/PlayerIcons";
-import type { AsyncAction } from "@features/player/model/types";
+import type { AsyncAction, TrackSelectionAction } from "@features/player/model/types";
 import { CONTEXT_MENU_SUBMENU_WIDTH, CONTEXT_MENU_WIDTH } from "./constants";
 
 type PlayerContextMenuProps = {
@@ -22,8 +23,10 @@ type PlayerContextMenuProps = {
   decreaseSubtitleScale: AsyncAction;
   audioTrackLabel: string;
   subtitleTrackLabel: string;
-  cycleAudioTrack: AsyncAction;
-  cycleSubtitleTrack: AsyncAction;
+  audioTracks: MediaTrack[];
+  subtitleTracks: MediaTrack[];
+  selectAudioTrack: TrackSelectionAction;
+  selectSubtitleTrack: TrackSelectionAction;
   toggleFsr: AsyncAction;
   toggleSvp: AsyncAction;
   toggleFullscreen: AsyncAction;
@@ -75,6 +78,17 @@ function MenuActionItem({
       {metaContent}
     </button>
   );
+}
+
+function getTrackDisplayLabel(track: MediaTrack): string {
+  const title = track.title.trim();
+  const language = track.lang?.trim();
+
+  if (title && language && title.toLowerCase() !== language.toLowerCase()) {
+    return `${language} (${title})`;
+  }
+
+  return language || title || `Track ${track.id}`;
 }
 
 type PlaybackOptionsSubmenuProps = {
@@ -202,6 +216,99 @@ function PlaybackOptionsSubmenu({
   );
 }
 
+type TrackSelectionSubmenuProps = {
+  buttonLabel: string;
+  hasMedia: boolean;
+  isSubmenuOpenLeft: boolean;
+  isOpen: boolean;
+  tracks: MediaTrack[];
+  selectedTrackId: number | null;
+  includeOffOption?: boolean;
+  onSelect: TrackSelectionAction;
+  runAction: (action: AsyncAction) => void;
+  setIsOpen: Dispatch<SetStateAction<boolean>>;
+};
+
+function TrackSelectionSubmenu({
+  buttonLabel,
+  hasMedia,
+  isSubmenuOpenLeft,
+  isOpen,
+  tracks,
+  selectedTrackId,
+  includeOffOption = false,
+  onSelect,
+  runAction,
+  setIsOpen,
+}: TrackSelectionSubmenuProps): JSX.Element {
+  const hasSelectableTrack = tracks.length > 0;
+  const disabled = !hasMedia || !hasSelectableTrack;
+
+  return (
+    <div
+      className={`player-context-menu__submenu-group${isOpen ? " is-open" : ""}${
+        isSubmenuOpenLeft ? " is-open-left" : ""
+      }`}
+      onPointerEnter={(): void => {
+        setIsOpen(true);
+      }}
+      onPointerLeave={(): void => {
+        setIsOpen(false);
+      }}
+      onFocusCapture={(): void => {
+        setIsOpen(true);
+      }}
+      onBlurCapture={(event): void => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setIsOpen(false);
+        }
+      }}
+    >
+      <button
+        className={`player-context-menu__item player-context-menu__item--submenu${
+          isSubmenuOpenLeft ? " is-open-left" : ""
+        }`}
+        type="button"
+        role="menuitem"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        disabled={disabled}
+        onClick={(): void => {
+          setIsOpen((current) => !current);
+        }}
+      >
+        <span className="player-context-menu__item-label">{buttonLabel}</span>
+      </button>
+      {isOpen && !disabled ? (
+        <div
+          className={`player-context-menu__submenu-panel${isSubmenuOpenLeft ? " is-open-left" : ""}`}
+          role="menu"
+        >
+          {includeOffOption ? (
+            <MenuActionItem
+              label="Off"
+              role="menuitemcheckbox"
+              ariaChecked={selectedTrackId === null}
+              onClick={(): void => runAction(() => onSelect("no"))}
+              icon={selectedTrackId === null ? <PlayerIcon name="check" className="icon icon--xs" /> : null}
+            />
+          ) : null}
+          {tracks.map((track) => (
+            <MenuActionItem
+              key={track.id}
+              label={getTrackDisplayLabel(track)}
+              role="menuitemcheckbox"
+              ariaChecked={track.id === selectedTrackId}
+              onClick={(): void => runAction(() => onSelect(track.id))}
+              icon={track.id === selectedTrackId ? <PlayerIcon name="check" className="icon icon--xs" /> : null}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuProps>(
   function PlayerContextMenu(
     {
@@ -223,8 +330,10 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
       decreaseSubtitleScale,
       audioTrackLabel,
       subtitleTrackLabel,
-      cycleAudioTrack,
-      cycleSubtitleTrack,
+      audioTracks,
+      subtitleTracks,
+      selectAudioTrack,
+      selectSubtitleTrack,
       toggleFsr,
       toggleSvp,
       toggleFullscreen,
@@ -232,6 +341,8 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
     ref,
   ) {
     const [isPlaybackSubmenuOpen, setIsPlaybackSubmenuOpen] = useState(false);
+    const [isAudioTracksSubmenuOpen, setIsAudioTracksSubmenuOpen] = useState(false);
+    const [isSubtitleTracksSubmenuOpen, setIsSubtitleTracksSubmenuOpen] = useState(false);
     const isSubmenuOpenLeft =
       typeof window === "undefined"
         ? false
@@ -300,30 +411,29 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
           />
         ) : null}
         <div className="player-context-menu__separator" aria-hidden="true" />
-        <button
-          className="player-context-menu__item"
-          type="button"
-          role="menuitem"
-          disabled={!hasMedia}
-          onClick={(): void => {
-            runAction(cycleAudioTrack);
-          }}
-        >
-          <span className="player-context-menu__item-label">{audioTrackLabel}</span>
-          <span className="player-context-menu__item-shortcut">A</span>
-        </button>
-        <button
-          className="player-context-menu__item"
-          type="button"
-          role="menuitem"
-          disabled={!hasMedia}
-          onClick={(): void => {
-            runAction(cycleSubtitleTrack);
-          }}
-        >
-          <span className="player-context-menu__item-label">{subtitleTrackLabel}</span>
-          <span className="player-context-menu__item-shortcut">S</span>
-        </button>
+        <TrackSelectionSubmenu
+          buttonLabel={audioTrackLabel}
+          hasMedia={hasMedia}
+          isSubmenuOpenLeft={isSubmenuOpenLeft}
+          isOpen={isAudioTracksSubmenuOpen}
+          tracks={audioTracks}
+          selectedTrackId={audioTracks.find((track) => track.selected)?.id ?? null}
+          onSelect={selectAudioTrack}
+          runAction={runAction}
+          setIsOpen={setIsAudioTracksSubmenuOpen}
+        />
+        <TrackSelectionSubmenu
+          buttonLabel={subtitleTrackLabel}
+          hasMedia={hasMedia}
+          isSubmenuOpenLeft={isSubmenuOpenLeft}
+          isOpen={isSubtitleTracksSubmenuOpen}
+          tracks={subtitleTracks}
+          selectedTrackId={subtitleTracks.find((track) => track.selected)?.id ?? null}
+          includeOffOption
+          onSelect={selectSubtitleTrack}
+          runAction={runAction}
+          setIsOpen={setIsSubtitleTracksSubmenuOpen}
+        />
         <div className="player-context-menu__separator" aria-hidden="true" />
         <button
           className="player-context-menu__item"

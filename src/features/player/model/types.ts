@@ -4,6 +4,7 @@ import type { ToastState } from "@features/toaster/types";
 import type { MediaTrack } from "./playerState";
 
 export type AsyncAction = () => Promise<void>;
+export type TrackSelectionAction = (id: number | "no") => Promise<void>;
 
 export type PlayerScreenProps = {
   initialized: boolean;
@@ -31,6 +32,8 @@ export type PlayerScreenProps = {
   openWebUrl: (url: string) => Promise<OpenWebUrlResult>;
   cycleAudioTrack: AsyncAction;
   cycleSubtitleTrack: AsyncAction;
+  selectAudioTrack: TrackSelectionAction;
+  selectSubtitleTrack: TrackSelectionAction;
   toggleFsr: AsyncAction;
   toggleSvp: AsyncAction;
   toggleFullscreen: AsyncAction;

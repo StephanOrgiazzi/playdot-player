@@ -1,34 +1,29 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useCallback, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
-import { createMediaOpenActions } from "@features/mediaOpen/actions";
 import { AUTO_HIDE_DELAY_MS } from "@features/playerChrome/constants";
 import type { TitlebarPointerDown } from "@features/playerChrome/types";
 import { useBlurActiveControlWhenChromeHidden } from "@features/playerChrome/useBlurActiveControlWhenChromeHidden";
 import { useAutoHiddenFlag } from "@features/playerChrome/useAutoHiddenFlag";
 import { useTitlebarDrag } from "@features/playerChrome/useTitlebarDrag";
 import { useGlobalShortcuts } from "@features/shortcuts/useGlobalShortcuts";
-import { createFsrToast, createGammaToast, createVolumeToast } from "@features/toaster/messages";
-import type { ToastState, TrackKind } from "@features/toaster/types";
-import { usePendingTrackToast, useToastAutoHide } from "@features/toaster/useToastEffects";
+import type { ToastState } from "@features/toaster/types";
+import { useToastAutoHide } from "@features/toaster/useToastEffects";
 import { MpvPlayer } from "@integrations/mpv/MpvPlayer";
-import { clampUiVolume, getMpvVolumeFromUiVolume, getUiVolumeFromMpvVolume } from "@integrations/mpv/constants";
 import { useSvpIntegration } from "@integrations/svp/useSvpIntegration";
-import { getErrorMessage } from "@shared/lib/error";
-import { getPersistedBoolean, persistBoolean } from "@shared/lib/persistedBoolean";
 import { usePlayerActions } from "./usePlayerActions";
+import {
+  useMediaOpenActions,
+  usePlayerEnhancementActions,
+  usePlayerMediaState,
+  useTrackActions,
+} from "./usePlayerControllerHooks";
 import { usePlayerLifecycle } from "./usePlayerLifecycle";
-import { getPlayerTrackDerivedState } from "../model/playerDerived";
 import type { PlayerScreenProps } from "../model/types";
-import { usePlayerStateSelector } from "../model/playerStore";
-import { hasMedia as hasLoadedMedia } from "../model/playerSelectors";
-import { formatTime } from "@shared/lib/format";
 
 const player = new MpvPlayer();
 const appWindow = getCurrentWindow();
 const appWebview = getCurrentWebview();
-const FSR_PREFERENCE_STORAGE_KEY = "playdot-player.player.fsr-enabled";
-const GAMMA_STEP = 1;
 const withPlayerFocusRestore = async <T>(task: () => Promise<T>): Promise<T> => {
   try {
     return await task();
@@ -36,129 +31,6 @@ const withPlayerFocusRestore = async <T>(task: () => Promise<T>): Promise<T> => 
     await Promise.allSettled([appWindow.setFocus(), appWebview.setFocus()]);
   }
 };
-
-async function applyFsrAction({
-  errorMessage,
-  setError,
-  setIsFsrEnabled,
-  setToast,
-  showToast = true,
-  onSuccess,
-  task,
-}: {
-  errorMessage: string;
-  setError: (value: string) => void;
-  setIsFsrEnabled: (value: boolean) => void;
-  setToast: (value: ToastState) => void;
-  showToast?: boolean;
-  onSuccess?: (enabled: boolean) => void;
-  task: () => Promise<boolean>;
-}): Promise<void> {
-  try {
-    const enabled = await task();
-    setError("");
-    setIsFsrEnabled(enabled);
-    if (showToast) {
-      setToast(createFsrToast(enabled));
-    }
-    onSuccess?.(enabled);
-  } catch (error) {
-    setError(getErrorMessage(error, errorMessage));
-  }
-}
-
-async function applyVolumeAction({
-  hasMedia,
-  delta,
-  setToast,
-}: {
-  hasMedia: boolean;
-  delta: number;
-  setToast: (value: ToastState) => void;
-}): Promise<void> {
-  if (!hasMedia) {
-    return;
-  }
-
-  const nextDisplayVolume = clampUiVolume(getUiVolumeFromMpvVolume(player.getVolume()) + delta);
-  await player.setVolume(getMpvVolumeFromUiVolume(nextDisplayVolume));
-  setToast(createVolumeToast(nextDisplayVolume));
-}
-
-function useTrackCycleAction({
-  cycleTrack,
-  errorMessage,
-  isCycling,
-  kind,
-  setError,
-  setIsCycling,
-  setPendingTrackToast,
-}: {
-  cycleTrack: () => Promise<void>;
-  errorMessage: string;
-  isCycling: boolean;
-  kind: TrackKind;
-  setError: (value: string) => void;
-  setIsCycling: (value: boolean) => void;
-  setPendingTrackToast: (value: TrackKind) => void;
-}): () => Promise<void> {
-  return useCallback(async (): Promise<void> => {
-    if (isCycling) {
-      return;
-    }
-
-    setIsCycling(true);
-    try {
-      await cycleTrack();
-      setError("");
-      setPendingTrackToast(kind);
-    } catch (error) {
-      setError(getErrorMessage(error, errorMessage));
-    } finally {
-      setIsCycling(false);
-    }
-  }, [cycleTrack, errorMessage, isCycling, kind, setError, setIsCycling, setPendingTrackToast]);
-}
-
-function useSavedFsrPreferenceSync({
-  hasMedia,
-  filename,
-  fsrPreferenceEnabled,
-  isFsrEnabled,
-  setError,
-  setIsFsrEnabled,
-  setToast,
-}: {
-  hasMedia: boolean;
-  filename: string;
-  fsrPreferenceEnabled: boolean;
-  isFsrEnabled: boolean;
-  setError: (value: string) => void;
-  setIsFsrEnabled: (value: boolean) => void;
-  setToast: (value: ToastState) => void;
-}): void {
-  const lastFsrSyncKeyRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    const fsrSyncKey = hasMedia ? `${filename}:${fsrPreferenceEnabled}` : null;
-    if (!fsrSyncKey) {
-      lastFsrSyncKeyRef.current = null;
-      return;
-    }
-    if (lastFsrSyncKeyRef.current === fsrSyncKey || isFsrEnabled === fsrPreferenceEnabled) {
-      return;
-    }
-    lastFsrSyncKeyRef.current = fsrSyncKey;
-    void applyFsrAction({
-      errorMessage: "Failed to apply saved FSR setting",
-      setError,
-      setIsFsrEnabled,
-      setToast,
-      showToast: false,
-      task: () => player.toggleFsr(),
-    });
-  }, [filename, fsrPreferenceEnabled, hasMedia, isFsrEnabled, setError, setIsFsrEnabled, setToast]);
-}
 
 function useControlDockHoverState(): {
   isControlDockHovered: boolean;
@@ -248,49 +120,27 @@ function useWindowStateSync(): {
 
 export function usePlayerController(): PlayerScreenProps {
   const [error, setError] = useState("");
-  const [fsrPreferenceEnabled, setFsrPreferenceEnabled] = useState<boolean>(() =>
-    getPersistedBoolean(FSR_PREFERENCE_STORAGE_KEY),
-  );
-  const [isFsrEnabled, setIsFsrEnabled] = useState(false);
-  const [isCyclingAudio, setIsCyclingAudio] = useState(false);
-  const [isCyclingSubtitles, setIsCyclingSubtitles] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [pendingTrackToast, setPendingTrackToast] = useState<TrackKind | null>(null);
-  const gammaLevelRef = useRef(0);
-  const isOpeningPastedWebUrlRef = useRef(false);
   const { isFullscreen, syncWindowState } = useWindowStateSync();
   const {
     isControlDockHovered,
     handleControlDockMouseEnter,
     handleControlDockMouseLeave,
   } = useControlDockHoverState();
-  const initialized = usePlayerStateSelector((state) => state.initialized);
-  const paused = usePlayerStateSelector((state) => state.paused);
-  const duration = usePlayerStateSelector((state) => state.duration);
-  const filename = usePlayerStateSelector((state) => state.filename);
-  const selectedAudioTrackId = usePlayerStateSelector((state) => state.selectedAudioTrackId);
-  const selectedSubtitleTrackId = usePlayerStateSelector((state) => state.selectedSubtitleTrackId);
-  const tracks = usePlayerStateSelector((state) => state.tracks);
-
-  const derivedState = useMemo(
-    () =>
-      getPlayerTrackDerivedState({
-        selectedAudioTrackId,
-        selectedSubtitleTrackId,
-        tracks,
-      }),
-    [selectedAudioTrackId, selectedSubtitleTrackId, tracks],
-  );
   const {
+    initialized,
+    paused,
+    duration,
+    filename,
+    hasMedia,
+    totalTime,
     audioTracks,
     subtitleTracks,
     selectedAudioTrack,
     selectedSubtitleTrack,
     audioSummary,
     subtitleSummary,
-  } = derivedState;
-  const hasMedia = hasLoadedMedia({ filename });
-  const totalTime = formatTime(duration);
+  } = usePlayerMediaState();
   const isChromeHidden = useAutoHiddenFlag({
     enabled: hasMedia,
     paused: isControlDockHovered,
@@ -314,95 +164,41 @@ export function usePlayerController(): PlayerScreenProps {
   });
   useToastAutoHide(toast, setToast);
   useBlurActiveControlWhenChromeHidden(isChromeHidden);
-  usePendingTrackToast({
-    pendingTrackToast,
-    audioTracks,
-    subtitleTracks,
+
+  const { pickAndOpenMediaFile, openWebUrl, openPastedWebUrl } = useMediaOpenActions({
+    player,
+    setError,
+    withPlayerFocusRestore,
+  });
+  const {
+    isCyclingAudio,
+    isCyclingSubtitles,
+    cycleAudioTrack,
+    cycleSubtitleTrack,
+    selectAudioTrack,
+    selectSubtitleTrack,
+  } = useTrackActions({
+    player,
+    hasMedia,
     selectedAudioTrack,
     selectedSubtitleTrack,
+    audioTracks,
+    subtitleTracks,
+    setError,
     setToast,
-    setPendingTrackToast,
   });
-
-  const { pickAndOpenMediaFile, openWebUrl, openPastedWebUrl } = useMemo(
-    () =>
-      createMediaOpenActions({
-        player,
-        setError,
-        withPlayerFocusRestore,
-        isOpeningPastedWebUrlRef,
-      }),
-    [],
-  );
-
-  const cycleAudioTrack = useTrackCycleAction({
-    cycleTrack: () => player.cycleAudioTrack(),
-    errorMessage: "Failed to change audio track",
-    isCycling: isCyclingAudio,
-    kind: "audio",
-    setError,
-    setIsCycling: setIsCyclingAudio,
-    setPendingTrackToast,
-  });
-  const cycleSubtitleTrack = useTrackCycleAction({
-    cycleTrack: () => player.cycleSubtitleTrack(),
-    errorMessage: "Failed to change subtitle track",
-    isCycling: isCyclingSubtitles,
-    kind: "subtitles",
-    setError,
-    setIsCycling: setIsCyclingSubtitles,
-    setPendingTrackToast,
-  });
-
-  const toggleFsr = useCallback(async (): Promise<void> => {
-    if (!hasMedia) {
-      return;
-    }
-    await applyFsrAction({
-      errorMessage: "Failed to toggle FSR",
-      setError,
-      setIsFsrEnabled,
-      setToast,
-      onSuccess: (enabled) => {
-        setFsrPreferenceEnabled(enabled);
-        persistBoolean(FSR_PREFERENCE_STORAGE_KEY, enabled);
-      },
-      task: () => player.toggleFsr(),
-    });
-  }, [hasMedia]);
-
-  const adjustVolume = useCallback((delta: number): Promise<void> => applyVolumeAction({ hasMedia, delta, setToast }), [hasMedia]);
-  const adjustGamma = useCallback(
-    async (delta: number): Promise<void> => {
-      if (!hasMedia || delta === 0) {
-        return;
-      }
-
-      await player.adjustGamma(delta);
-      gammaLevelRef.current += delta;
-      setToast(createGammaToast(gammaLevelRef.current));
-    },
-    [hasMedia, setToast],
-  );
-  const increaseGamma = useCallback((): Promise<void> => adjustGamma(GAMMA_STEP), [adjustGamma]);
-  const decreaseGamma = useCallback((): Promise<void> => adjustGamma(-GAMMA_STEP), [adjustGamma]);
-
-  useEffect(() => {
-    if (!hasMedia) {
-      gammaLevelRef.current = 0;
-      return;
-    }
-
-    gammaLevelRef.current = 0;
-  }, [filename, hasMedia]);
-
-  useSavedFsrPreferenceSync({
+  const {
+    isFsrEnabled,
+    toggleFsr,
+    adjustVolume,
+    adjustGamma,
+    increaseGamma,
+    decreaseGamma,
+  } = usePlayerEnhancementActions({
+    player,
     hasMedia,
     filename,
-    fsrPreferenceEnabled,
-    isFsrEnabled,
     setError,
-    setIsFsrEnabled,
     setToast,
   });
 
@@ -411,12 +207,10 @@ export function usePlayerController(): PlayerScreenProps {
     await appWindow.setFullscreen(next);
     await syncWindowState();
   }, [syncWindowState]);
-
   const { handleTitlebarMouseDown, handleTitlePillClick } = useTitlebarInteractions({
     isFullscreen,
     pickAndOpenMediaFile,
   });
-
   const {
     handleVideoDoubleClick,
     togglePlayPause,
@@ -491,6 +285,8 @@ export function usePlayerController(): PlayerScreenProps {
     openWebUrl,
     cycleAudioTrack,
     cycleSubtitleTrack,
+    selectAudioTrack,
+    selectSubtitleTrack,
     toggleFsr,
     toggleSvp,
     toggleFullscreen,

@@ -44,6 +44,8 @@ export function PlayerScreen({
   openWebUrl,
   cycleAudioTrack,
   cycleSubtitleTrack,
+  selectAudioTrack,
+  selectSubtitleTrack,
   toggleFsr,
   toggleSvp,
   toggleFullscreen,
@@ -172,8 +174,10 @@ export function PlayerScreen({
             decreaseSubtitleScale={decreaseSubtitleScale}
             audioTrackLabel={audioTrackLabel}
             subtitleTrackLabel={subtitleTrackLabel}
-            cycleAudioTrack={cycleAudioTrack}
-            cycleSubtitleTrack={cycleSubtitleTrack}
+            audioTracks={audioTracks}
+            subtitleTracks={subtitleTracks}
+            selectAudioTrack={selectAudioTrack}
+            selectSubtitleTrack={selectSubtitleTrack}
             toggleFsr={toggleFsr}
             toggleSvp={toggleSvp}
             toggleFullscreen={toggleFullscreen}
