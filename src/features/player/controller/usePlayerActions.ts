@@ -91,7 +91,7 @@ export function usePlayerActions({
     (): Promise<void> =>
       runMediaAction(hasMedia, async () => {
         const nextSpeed = await player.adjustPlaybackSpeed(1 / PLAYBACK_SPEED_STEP_FACTOR);
-        setToast(createPlaybackSpeedToast("decrease", nextSpeed));
+        setToast(createPlaybackSpeedToast(nextSpeed));
       }),
     [hasMedia, player, setToast],
   );
@@ -99,7 +99,7 @@ export function usePlayerActions({
     (): Promise<void> =>
       runMediaAction(hasMedia, async () => {
         const nextSpeed = await player.adjustPlaybackSpeed(PLAYBACK_SPEED_STEP_FACTOR);
-        setToast(createPlaybackSpeedToast("increase", nextSpeed));
+        setToast(createPlaybackSpeedToast(nextSpeed));
       }),
     [hasMedia, player, setToast],
   );

@@ -12,10 +12,6 @@ function formatPercent(value: number): string {
   return `${Math.max(1, Math.round(value))}%`;
 }
 
-function formatPlaybackSpeed(speed: number): string {
-  return `${speed.toFixed(2).replace(/\.?0+$/, "")}x`;
-}
-
 function getTrackCounter(
   tracks: Array<{ id: number }>,
   selectedTrack: { id: number } | undefined,
@@ -64,12 +60,9 @@ export function createMuteToast(muted: boolean): ToastState {
   return createToast(muted ? "Muted" : "Unmuted");
 }
 
-export function createPlaybackSpeedToast(
-  direction: "increase" | "decrease",
-  speed: number,
-): ToastState {
-  const prefix = direction === "increase" ? "Speed Up" : "Slow Down";
-  return createToast(`${prefix} (${formatPlaybackSpeed(speed)})`);
+export function createPlaybackSpeedToast(speed: number): ToastState {
+  const value = parseFloat(speed.toFixed(2));
+  return createToast(`Speed ${value}`);
 }
 
 export function createZoomToast(direction: "in" | "out", zoom: number): ToastState {

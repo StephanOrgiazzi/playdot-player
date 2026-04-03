@@ -395,7 +395,6 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
         />
         <MenuActionItem
           label="Upscale"
-          shortcut="U"
           disabled={!hasMedia}
           onClick={(): void => runAction(toggleFsr)}
           icon={isFsrEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null}

@@ -123,7 +123,7 @@ export async function createMpvConfig(
       replaygain: "no",
       "replaygain-fallback": "0",
       "replaygain-clip": "no",
-      "ad-lavc-ac3drc": 0.35,
+      "ad-lavc-ac3drc": 0.5,
       "sub-font": SUBTITLE_FONT,
       "sub-font-size": SUBTITLE_FONT_SIZE,
       "sub-scale": SUBTITLE_SCALE,
