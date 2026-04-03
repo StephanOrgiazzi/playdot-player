@@ -15,10 +15,6 @@ const base = import.meta.env.BASE_URL;
     <!-- ═══════════════════════════════ TOPBAR ═══════════════════════════════ -->
     <header class="topbar">
       <a class="brand" href="#top" aria-label="PLAY. home">PLAY.</a>
-      <nav class="nav" aria-label="Primary">
-        <a href="#features">Features</a>
-        <a href="#playback">Playback</a>
-      </nav>
       <a class="nav-cta" href="#download">Download</a>
     </header>
 
@@ -28,8 +24,8 @@ const base = import.meta.env.BASE_URL;
         <p class="kicker">Windows video player</p>
         <h1>PLAY.</h1>
         <p class="hero-sub">
-        Premium video playback on Windows.<br/>
-          Built for people who care about quality.
+       Premium video playback on Windows.<br/>
+          Built for people who care about <span class="text-sky-gradient">quality.</span>
         </p>
         <div class="hero-actions">
           <a class="btn btn-primary" href={latestWindowsInstaller}>
@@ -65,16 +61,16 @@ const base = import.meta.env.BASE_URL;
     <section class="why-section" id="features">
       <div class="section-intro">
         <p class="kicker">For Windows</p>
-        <h2>A better viewing experience.</h2>
+        <h2>The finest viewing <span class="text-sky-gradient">experience.</span></h2>
         <p class="section-lead">
-          We focus on what matters: beautiful colors, crisp image, gorgeous subtitles, and overall great user experience.
+          We focus on what matters: beautiful colors, crisp image, gorgeous subtitles, and outstanding user experience.
         </p>
       </div>
 
       <div class="pillars">
         <div class="pillar">
           <div class="pillar-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="1" y="1" width="20" height="20" rx="4" stroke="currentColor" stroke-width="1.5"/><path d="M5 11h12M11 5v12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="1" y="1" width="20" height="20" rx="4" stroke="currentColor" stroke-width="1.5"/><path d="M9 7.75V14.25L14.5 11L9 7.75Z" fill="currentColor"/></svg>
           </div>
           <h3>Broad compatibility</h3>
           <p>
@@ -86,7 +82,7 @@ const base = import.meta.env.BASE_URL;
 
         <div class="pillar">
           <div class="pillar-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M11 7v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M12.8 2.5L6.5 12h4l-1 7.5L15.5 10h-4l1.3-7.5Z" fill="currentColor"/></svg>
           </div>
           <h3>High performance</h3>
           <p>
@@ -98,7 +94,7 @@ const base = import.meta.env.BASE_URL;
 
         <div class="pillar">
           <div class="pillar-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 19l4-4m0 0l4-4m-4 4l4 4M11 11l4-4m0 0l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="1.5" y="2.5" width="19" height="17" rx="3.5" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/><path d="M3.5 15l4.2-4.2 3 3 2.5-2.5 4.3 4.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
           <h3>Superior image quality</h3>
           <p>
@@ -119,7 +115,7 @@ const base = import.meta.env.BASE_URL;
       </div>
       <div class="feature-copy">
         <p class="kicker">Image quality</p>
-        <h2>Looks better by default.</h2>
+        <h2>Looks <span class="text-sky-gradient">better.</span></h2>
         <p>
           PLAY. ships with high-quality video rendering, accurate HDR-to-SDR
           tone mapping, and optional FSR upscaling so your video looks sharper
@@ -133,20 +129,16 @@ const base = import.meta.env.BASE_URL;
       </div>
     </section>
 
-    <!-- ═══════════════════════════ MORE FEATURES ════════════════════════════ -->
+    <!-- ═══════════════════════════ FEATURES ════════════════════════════ -->
     <section class="more-section">
       <div class="section-intro">
-        <p class="kicker">More features</p>
-        <h2>Everything you expect, nothing you don't.</h2>
+        <p class="kicker">Features</p>
+        <h2 class="more-title"><span class="more-title-line">Everything you expect,</span><br />and even <span class="text-sky-gradient">more.</span></h2>
       </div>
       <div class="more-grid">
         <div class="more-item">
           <h4>Motion Interpolation</h4>
           <p>SVP (Smooth Video Player) integration for smooth, cinema-quality frame interpolation.</p>
-        </div>
-        <div class="more-item">
-          <h4>Open Source</h4>
-          <p>Built on mpv and Tauri, fully open and auditable.</p>
         </div>
         <div class="more-item">
           <h4>Minimal Interface</h4>
@@ -271,6 +263,7 @@ const base = import.meta.env.BASE_URL;
   .nav a:hover { color: var(--text); transition: color 120ms ease; }
 
   .nav-cta {
+    margin-left: auto;
     padding: 8px 18px;
     border-radius: 8px;
     border: 1px solid var(--line-md);
@@ -320,6 +313,15 @@ const base = import.meta.env.BASE_URL;
     font-size: clamp(16px, 1.6vw, 19px);
     line-height: 1.6;
     max-width: 520px;
+  }
+
+  .text-sky-gradient {
+    display: inline-block;
+    font-weight: 700;
+    background: linear-gradient(90deg, #8bcdea 0%, #5faedb 50%, #3d8fca 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   .hero-actions {
@@ -410,6 +412,14 @@ const base = import.meta.env.BASE_URL;
     justify-items: center;
   }
   .section-intro h2 { max-width: 16ch; }
+
+  .more-title {
+    max-width: 23ch;
+  }
+
+  .more-title-line {
+    white-space: nowrap;
+  }
 
   h2 {
     font-family: "Segoe UI Variable Display","Aptos Display",sans-serif;
@@ -555,8 +565,7 @@ const base = import.meta.env.BASE_URL;
   }
 
   .more-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
     gap: 2px;
     background: var(--line);
     border-radius: var(--r);
@@ -564,14 +573,14 @@ const base = import.meta.env.BASE_URL;
   }
 
   .more-item {
+    flex: 1 1 0;
+    min-width: 0;
     background: var(--bg);
     padding: clamp(24px, 2.5vw, 36px);
     display: grid;
     gap: 10px;
     align-content: start;
-    transition: background 160ms ease;
   }
-  .more-item:hover { background: var(--surface); }
 
   h4 {
     font-size: 0.95rem;
@@ -642,7 +651,7 @@ const base = import.meta.env.BASE_URL;
   /* ── responsive ──────────────────────────────────────────────────────────── */
   @media (max-width: 900px) {
     .pillars      { grid-template-columns: 1fr; }
-    .more-grid    { grid-template-columns: repeat(2, 1fr); }
+    .more-grid    { flex-direction: column; }
     .feature-row  { grid-template-columns: 1fr; }
     .feature-row-flip { direction: ltr; }
   }
@@ -650,8 +659,8 @@ const base = import.meta.env.BASE_URL;
   @media (max-width: 600px) {
     .topbar { padding: 14px 20px; }
     .nav    { display: none; }
-    .more-grid { grid-template-columns: 1fr; }
     .site-footer { flex-direction: column; align-items: center; text-align: center; }
+    .more-title-line { white-space: normal; }
     h1 { font-size: 40px; }
   }
 
