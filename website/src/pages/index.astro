@@ -1,0 +1,667 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const title = "PLAY, premium video playback on Windows";
+const description =
+  "PLAY. is a modern media player for Windows with high-quality playback, broad compatibility, and a refined desktop interface.";
+const latestWindowsInstaller =
+  "https://github.com/StephanOrgiazzi/playdot-player/releases/download/v0.8.1/PLAY._0.8.1_x64-setup.exe";
+---
+
+<Layout title={title} description={description}>
+  <main class="page" id="top">
+
+    <!-- ═══════════════════════════════ TOPBAR ═══════════════════════════════ -->
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="PLAY. home">PLAY.</a>
+      <nav class="nav" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#playback">Playback</a>
+      </nav>
+      <a class="nav-cta" href="#download">Download</a>
+    </header>
+
+    <!-- ═══════════════════════════════ HERO ════════════════════════════════ -->
+    <section class="hero" id="hero">
+      <div class="hero-text">
+        <p class="kicker">Windows video player</p>
+        <h1>PLAY.</h1>
+        <p class="hero-sub">
+        Premium video playback on Windows.<br/>
+          Built for people who care about quality.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href={latestWindowsInstaller}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+            Download for Windows 11
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/StephanOrgiazzi/playdot-player" target="_blank" rel="noopener noreferrer">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              View on GitHub
+            </a>
+        </div>
+        <ul class="hero-tags" aria-label="Highlights">
+          <li><b>Free</b> Forever</li>
+          <li><b>Open Source</b> MIT License</li>
+          <li><b>MPV</b> Powered</li>
+        </ul>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <div class="shot-shell">
+          <img
+            src="/play-app.jpg"
+            alt=""
+            loading="eager"
+            decoding="async"
+            class="shot"
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════ WHY PLAY. ══════════════════════════════════ -->
+    <section class="why-section" id="features">
+      <div class="section-intro">
+        <p class="kicker">For Windows</p>
+        <h2>A better viewing experience.</h2>
+        <p class="section-lead">
+          We focus on what matters: beautiful colors, crisp image, gorgeous subtitles, and overall great user experience.
+        </p>
+      </div>
+
+      <div class="pillars">
+        <div class="pillar">
+          <div class="pillar-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="1" y="1" width="20" height="20" rx="4" stroke="currentColor" stroke-width="1.5"/><path d="M5 11h12M11 5v12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Broad compatibility</h3>
+          <p>
+            PLAY. everything from older formats to modern high-bitrate files with
+            support for subtitles, audio tracks, and the kinds of media real
+            libraries are built from.
+          </p>
+        </div>
+
+        <div class="pillar">
+          <div class="pillar-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M11 7v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <h3>High performance</h3>
+          <p>
+            Smooth playback, responsive seeking, and confident handling of
+            demanding sources give PLAY. the quick, solid feel expected from a
+            serious desktop player.
+          </p>
+        </div>
+
+        <div class="pillar">
+          <div class="pillar-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 19l4-4m0 0l4-4m-4 4l4 4M11 11l4-4m0 0l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Superior image quality</h3>
+          <p>
+            Better scaling, stronger tone mapping, and cleaner HDR-to-SDR
+            results help content look sharper and more natural than it does in
+            most players.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════ FEATURE ROW — image quality ═══════════════════ -->
+    <section class="feature-row" id="playback">
+      <div class="feature-media">
+        <div class="feature-shot-shell">
+          <img src="/screenshot.png" alt="" loading="lazy" decoding="async" class="feature-shot" />
+        </div>
+      </div>
+      <div class="feature-copy">
+        <p class="kicker">Image quality</p>
+        <h2>Looks better by default.</h2>
+        <p>
+          PLAY. ships with high-quality video rendering, accurate HDR-to-SDR
+          tone mapping, and optional FSR upscaling so your video looks sharper
+          and more natural on any display.
+        </p>
+        <ul class="spec-list">
+          <li><span>Rendering</span><strong>GPU-Next</strong></li>
+          <li><span>Enhancement</span><strong>AMD FSR built-in</strong></li>
+          <li><span>HDR</span><strong>Tuned tone mapping</strong></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ MORE FEATURES ════════════════════════════ -->
+    <section class="more-section">
+      <div class="section-intro">
+        <p class="kicker">More features</p>
+        <h2>Everything you expect, nothing you don't.</h2>
+      </div>
+      <div class="more-grid">
+        <div class="more-item">
+          <h4>Motion Interpolation</h4>
+          <p>SVP (Smooth Video Player) integration for smooth, cinema-quality frame interpolation.</p>
+        </div>
+        <div class="more-item">
+          <h4>Open Source</h4>
+          <p>Built on mpv and Tauri, fully open and auditable.</p>
+        </div>
+        <div class="more-item">
+          <h4>Minimal Interface</h4>
+          <p>A black stage and compact dock that stays out of the frame.</p>
+        </div>
+        <div class="more-item">
+          <h4>Windows Native</h4>
+          <p>Feels at home on Windows 10 and 11.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════ DOWNLOAD ════════════════════════════════ -->
+    <section class="download-section" id="download">
+      <div class="section-intro">
+        <p class="kicker">Download</p>
+        <h2>Download PLAY. <br/>for free</h2>
+        <p class="section-lead">
+          Built for local playback, tuned for image quality, and shaped for
+          people who expect more from a desktop video player.
+        </p>
+      </div>
+      <div class="download-actions">
+        <a class="btn btn-primary btn-lg" href={latestWindowsInstaller}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+          Download for Windows 11
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/StephanOrgiazzi/playdot-player" target="_blank" rel="noopener noreferrer">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              View on GitHub
+            </a>
+      </div>
+      <ul class="download-meta">
+        <li>Windows 10 / 11</li>
+        <li>Open source</li>
+        <li>Free forever</li>
+      </ul>
+    </section>
+
+    <!-- ════════════════════════════ FOOTER ═════════════════════════════════ -->
+    <footer class="site-footer">
+      <span class="footer-brand">PLAY.</span>
+      <span class="footer-copy">Open source · Built with mpv &amp; Tauri</span>
+    </footer>
+
+  </main>
+</Layout>
+
+<style>
+  /* ── tokens ─────────────────────────────────────────────────────────────── */
+  :global(:root) {
+    color-scheme: dark;
+    --bg:          #0b0b0b;
+    --surface:     rgba(255,255,255,0.055);
+    --surface-md:  rgba(255,255,255,0.10);
+    --line:        rgba(255,255,255,0.16);
+    --line-md:     rgba(255,255,255,0.24);
+    --text:        #f5f3ee;
+    --text-muted:  rgba(245,243,238,0.76);
+    --text-soft:   rgba(245,243,238,0.50);
+    --accent:      rgba(255,255,255,0.14);
+    --shadow-lg:   0 32px 80px rgba(0,0,0,0.55);
+    --shadow-sm:   0 8px 24px rgba(0,0,0,0.35);
+    --r:           16px;
+  }
+
+  :global(html) {
+    background: var(--bg);
+    color: var(--text);
+    scroll-behavior: smooth;
+  }
+
+  :global(body) {
+    margin: 0;
+    font-family: "Segoe UI Variable Text","Segoe UI Variable Display","Aptos",sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: transparent;
+    color: var(--text);
+  }
+
+  :global(*) { box-sizing: border-box; }
+  :global(a)  { color: inherit; text-decoration: none; }
+  p, h1, h2, h3, h4, ul, li { margin: 0; padding: 0; }
+  ul { list-style: none; }
+
+  .page { overflow-x: clip; }
+
+  /* narrow content wrapper used in multiple sections */
+  .wrap   { width: min(1080px, 100% - 48px); margin-inline: auto; }
+  .wrap-s { width: min(640px,  100% - 48px); margin-inline: auto; }
+
+  /* ── topbar ─────────────────────────────────────────────────────────────── */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 16px 32px;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    background: rgba(16,16,16,0.76);
+    border-bottom: 1px solid var(--line);
+    animation: fade-down 400ms ease-out both;
+  }
+
+  .brand {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  .nav {
+    display: flex;
+    gap: 28px;
+    margin-left: auto;
+    font-size: 0.88rem;
+    color: var(--text-soft);
+  }
+
+  .nav a:hover { color: var(--text); transition: color 120ms ease; }
+
+  .nav-cta {
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--line-md);
+    background: var(--surface-md);
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: background 130ms ease, border-color 130ms ease;
+  }
+  .nav-cta:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.24); }
+
+  /* ── hero ───────────────────────────────────────────────────────────────── */
+  .hero {
+    width: min(1120px, 100% - 48px);
+    margin-inline: auto;
+    padding-block: clamp(80px, 12vw, 140px) clamp(80px, 8vw, 100px);
+    display: grid;
+    gap: clamp(48px, 6vw, 80px);
+    justify-items: center;
+    text-align: center;
+  }
+
+  .hero-text {
+    display: grid;
+    gap: 20px;
+    justify-items: center;
+    animation: fade-up 600ms 60ms ease-out both;
+    max-width: 800px;
+  }
+
+  .kicker {
+    color: var(--text-soft);
+    font-size: 11px;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-family: "Segoe UI Variable Display","Aptos Display",sans-serif;
+    font-size: clamp(48px, 8vw, 96px);
+    line-height: 1.0;
+    font-weight: 720;
+    letter-spacing: -0.045em;
+  }
+
+  .hero-sub {
+    color: var(--text-muted);
+    font-size: clamp(16px, 1.6vw, 19px);
+    line-height: 1.6;
+    max-width: 520px;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+  }
+
+  .hero-tags {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 12px;
+    color: var(--text-soft);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .hero-tags b { color: var(--text-muted); margin-right: 5px; }
+
+  /* buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 22px;
+    min-height: 46px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    line-height: 1;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    transition: background 130ms ease, border-color 130ms ease, transform 130ms ease;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn svg { flex-shrink: 0; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.18);
+  }
+  .btn-primary:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.28); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+  }
+  .btn-ghost:hover { background: var(--surface); border-color: var(--line-md); color: var(--text); }
+  .btn-lg { min-height: 54px; padding: 0 28px; font-size: 0.96rem; }
+
+  /* hero visual */
+  .hero-visual {
+    width: 100%;
+    display: grid;
+    gap: 20px;
+    justify-items: center;
+    animation: fade-up 700ms 180ms ease-out both;
+  }
+
+  .shot-shell {
+    width: 100%;
+    border-radius: var(--r);
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: var(--shadow-lg);
+    background: transparent;
+  }
+  .shot {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: inherit;
+    transform: scale(1.018);
+    transform-origin: center;
+  }
+
+  /* ── section shared ──────────────────────────────────────────────────────── */
+  .section-intro {
+    text-align: center;
+    display: grid;
+    gap: 16px;
+    justify-items: center;
+  }
+  .section-intro h2 { max-width: 16ch; }
+
+  h2 {
+    font-family: "Segoe UI Variable Display","Aptos Display",sans-serif;
+    font-size: clamp(30px, 4.5vw, 56px);
+    line-height: 1.04;
+    font-weight: 680;
+    letter-spacing: -0.04em;
+  }
+
+  .section-lead {
+    color: var(--text-muted);
+    font-size: clamp(15px, 1.5vw, 17px);
+    line-height: 1.7;
+    max-width: 480px;
+    text-align: center;
+  }
+
+  /* ── why section ─────────────────────────────────────────────────────────── */
+  .why-section {
+    padding-block: clamp(80px, 10vw, 120px);
+    width: min(1080px, 100% - 48px);
+    margin-inline: auto;
+    display: grid;
+    gap: 64px;
+    border-top: 1px solid var(--line);
+  }
+
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--line);
+    border-radius: var(--r);
+    overflow: hidden;
+  }
+
+  .pillar {
+    background: var(--bg);
+    padding: clamp(28px, 3vw, 40px);
+    display: grid;
+    gap: 14px;
+    align-content: start;
+  }
+
+  .pillar-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--line-md);
+    display: grid;
+    place-items: center;
+    color: var(--text-muted);
+    background: var(--surface-md);
+  }
+
+  h3 {
+    font-size: 1.15rem;
+    font-weight: 650;
+    letter-spacing: -0.03em;
+  }
+
+  .pillar p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.65;
+  }
+
+  /* ── feature rows ───────────────────────────────────────────────────────── */
+  .feature-row {
+    width: min(1080px, 100% - 48px);
+    margin-inline: auto;
+    padding-block: clamp(80px, 10vw, 120px);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(40px, 5vw, 80px);
+    align-items: center;
+    border-top: 1px solid var(--line);
+  }
+
+  .feature-row-flip { direction: rtl; }
+  .feature-row-flip > * { direction: ltr; }
+
+  .feature-copy {
+    display: grid;
+    gap: 20px;
+  }
+  .feature-copy h2 { max-width: 14ch; }
+
+  .feature-copy p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.7;
+    max-width: 38ch;
+  }
+
+  .spec-list {
+    display: grid;
+    gap: 1px;
+    border-radius: var(--r);
+    overflow: hidden;
+    background: var(--line);
+    margin-top: 8px;
+  }
+
+  .spec-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 13px 16px;
+    background: var(--bg);
+    font-size: 0.88rem;
+  }
+
+  .spec-list li span { color: var(--text-soft); }
+  .spec-list li strong { font-weight: 600; letter-spacing: -0.02em; }
+
+  .feature-media {
+    display: grid;
+    gap: 20px;
+  }
+
+  .feature-shot-shell {
+    border-radius: var(--r);
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: var(--shadow-lg);
+  }
+  .feature-shot {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: inherit;
+  }
+
+  /* dock demo in feature row */
+  /* ── more features ──────────────────────────────────────────────────────── */
+  .more-section {
+    width: min(1080px, 100% - 48px);
+    margin-inline: auto;
+    padding-block: clamp(80px, 10vw, 120px);
+    display: grid;
+    gap: 56px;
+    border-top: 1px solid var(--line);
+  }
+
+  .more-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    background: var(--line);
+    border-radius: var(--r);
+    overflow: hidden;
+  }
+
+  .more-item {
+    background: var(--bg);
+    padding: clamp(24px, 2.5vw, 36px);
+    display: grid;
+    gap: 10px;
+    align-content: start;
+    transition: background 160ms ease;
+  }
+  .more-item:hover { background: var(--surface); }
+
+  h4 {
+    font-size: 0.95rem;
+    font-weight: 660;
+    letter-spacing: -0.025em;
+  }
+
+  .more-item p {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  /* ── download ───────────────────────────────────────────────────────────── */
+  .download-section {
+    padding-block: clamp(100px, 14vw, 160px);
+    border-top: 1px solid var(--line);
+    display: grid;
+    gap: 32px;
+    justify-items: center;
+    text-align: center;
+    width: min(780px, 100% - 48px);
+    margin-inline: auto;
+  }
+
+  .download-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .download-meta {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    color: var(--text-soft);
+    font-size: 0.80rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* ── footer ─────────────────────────────────────────────────────────────── */
+  .site-footer {
+    border-top: 1px solid var(--line);
+    padding: 28px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .footer-brand {
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    color: var(--text);
+  }
+
+  .footer-copy {
+    font-size: 0.8rem;
+    color: var(--text-soft);
+  }
+
+  /* ── responsive ──────────────────────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .pillars      { grid-template-columns: 1fr; }
+    .more-grid    { grid-template-columns: repeat(2, 1fr); }
+    .feature-row  { grid-template-columns: 1fr; }
+    .feature-row-flip { direction: ltr; }
+  }
+
+  @media (max-width: 600px) {
+    .topbar { padding: 14px 20px; }
+    .nav    { display: none; }
+    .more-grid { grid-template-columns: 1fr; }
+    .site-footer { flex-direction: column; align-items: center; text-align: center; }
+    h1 { font-size: 40px; }
+  }
+
+  /* ── animations ──────────────────────────────────────────────────────────── */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fade-down {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
