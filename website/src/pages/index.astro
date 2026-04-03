@@ -6,7 +6,6 @@ const description =
   "PLAY. is a modern media player for Windows with high-quality playback, broad compatibility, and a refined desktop interface.";
 const latestWindowsInstaller =
   "https://github.com/StephanOrgiazzi/playdot-player/releases/download/v0.8.1/PLAY._0.8.1_x64-setup.exe";
-const base = import.meta.env.BASE_URL;
 ---
 
 <Layout title={title} description={description}>
@@ -51,7 +50,7 @@ const base = import.meta.env.BASE_URL;
       <div class="hero-visual" aria-hidden="true">
         <div class="shot-shell">
           <img
-            src={`${base}play-app.jpg`}
+            src="./play-app.jpg"
             alt=""
             loading="eager"
             decoding="async"
@@ -114,7 +113,7 @@ const base = import.meta.env.BASE_URL;
     <section class="feature-row" id="playback">
       <div class="feature-media">
         <div class="feature-shot-shell">
-          <img src={`${base}screenshot.png`} alt="" loading="lazy" decoding="async" class="feature-shot" />
+          <img src="./screenshot.png" alt="" loading="lazy" decoding="async" class="feature-shot" />
         </div>
       </div>
       <div class="feature-copy">
