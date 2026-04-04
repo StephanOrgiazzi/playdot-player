@@ -8,7 +8,7 @@ interface Props {
 
 const { title, description, image, url } = Astro.props;
 const base = import.meta.env.BASE_URL;
-const siteUrl = import.meta.env.SITE || 'https://playdot.app';
+const siteUrl = 'https://stephanorgiazzi.github.io/playdot-player';
 const canonicalUrl = url ? `${siteUrl}${url}` : siteUrl;
 const socialImage = image ? `${siteUrl}${image}` : `${siteUrl}/play-app.jpg`;
 ---
