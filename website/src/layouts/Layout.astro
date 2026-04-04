@@ -2,10 +2,15 @@
 interface Props {
   title: string;
   description: string;
+  image?: string;
+  url?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, image, url } = Astro.props;
 const base = import.meta.env.BASE_URL;
+const siteUrl = import.meta.env.SITE || 'https://playdot.app';
+const canonicalUrl = url ? `${siteUrl}${url}` : siteUrl;
+const socialImage = image ? `${siteUrl}${image}` : `${siteUrl}/play-app.jpg`;
 ---
 
 <!doctype html>
@@ -13,20 +18,35 @@ const base = import.meta.env.BASE_URL;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="index, follow" />
     <meta name="description" content={description} />
     <meta name="theme-color" content="#07111f" />
+
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+    <link rel="apple-touch-icon" href={`${base}icon-192.png`} />
+    <link rel="manifest" href={`${base}manifest.json`} />
+
+    <title>{title}</title>
+
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content={`${base}play-app.jpg`} />
-    <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={socialImage} />
+    <meta property="og:site_name" content="PlayDot" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap"
       rel="stylesheet"
     />
-    <title>{title}</title>
   </head>
   <body>
     <slot />
