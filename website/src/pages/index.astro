@@ -28,7 +28,7 @@ const base = import.meta.env.BASE_URL;
           Built for people who care about <span class="text-sky-gradient">quality.</span>
         </p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href={latestWindowsInstaller}>
+          <a class="btn btn-primary bg-sky-gradient" href={latestWindowsInstaller}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
             Download for Windows 11
           </a>
@@ -74,7 +74,7 @@ const base = import.meta.env.BASE_URL;
           </div>
           <h3>Broad compatibility</h3>
           <p>
-            PLAY. everything from older formats to modern high-bitrate files with
+            Play everything from older formats to modern high-bitrate files with
             support for subtitles, audio tracks, and the kinds of media real
             libraries are built from.
           </p>
@@ -162,7 +162,7 @@ const base = import.meta.env.BASE_URL;
         </p>
       </div>
       <div class="download-actions">
-        <a class="btn btn-primary btn-lg" href={latestWindowsInstaller}>
+        <a class="btn btn-primary btn-lg bg-sky-gradient" href={latestWindowsInstaller}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
           Download for Windows 11
         </a>
@@ -318,10 +318,14 @@ const base = import.meta.env.BASE_URL;
   .text-sky-gradient {
     display: inline-block;
     font-weight: 700;
-    background: linear-gradient(90deg, #8bcdea 0%, #5faedb 50%, #3d8fca 100%);
+    background: linear-gradient(90deg, #4a9ab8 0%, #3582b0 50%, #256aa0 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+  }
+
+  .bg-sky-gradient {
+    background: linear-gradient(90deg, #4a9ab8 0%, #3582b0 50%, #256aa0 100%);
   }
 
   .hero-actions {
@@ -369,6 +373,8 @@ const base = import.meta.env.BASE_URL;
     border-color: rgba(255,255,255,0.18);
   }
   .btn-primary:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.28); }
+  .btn-primary.bg-sky-gradient { background: linear-gradient(90deg, #4a9ab8 0%, #3582b0 50%, #256aa0 100%); border-color: transparent; }
+  .btn-primary.bg-sky-gradient:hover { background: linear-gradient(90deg, #4a9ab8 0%, #3582b0 50%, #256aa0 100%); border-color: transparent; }
   .btn-ghost {
     background: transparent;
     color: var(--text-muted);
@@ -445,11 +451,11 @@ const base = import.meta.env.BASE_URL;
 
   /* ── why section ─────────────────────────────────────────────────────────── */
   .why-section {
-    padding-block: clamp(80px, 10vw, 120px);
+    padding-block: clamp(48px, 8vw, 80px);
     width: min(1080px, 100% - 48px);
     margin-inline: auto;
     display: grid;
-    gap: 64px;
+    gap: 40px;
     border-top: 1px solid var(--line);
   }
 
@@ -464,9 +470,9 @@ const base = import.meta.env.BASE_URL;
 
   .pillar {
     background: var(--bg);
-    padding: clamp(28px, 3vw, 40px);
+    padding: clamp(20px, 2.5vw, 28px);
     display: grid;
-    gap: 14px;
+    gap: 10px;
     align-content: start;
   }
 
@@ -488,18 +494,18 @@ const base = import.meta.env.BASE_URL;
 
   .pillar p {
     color: var(--text-muted);
-    font-size: 0.9rem;
-    line-height: 1.65;
+    font-size: 0.85rem;
+    line-height: 1.5;
   }
 
   /* ── feature rows ───────────────────────────────────────────────────────── */
   .feature-row {
     width: min(1080px, 100% - 48px);
     margin-inline: auto;
-    padding-block: clamp(80px, 10vw, 120px);
+    padding-block: clamp(48px, 8vw, 80px);
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: clamp(40px, 5vw, 80px);
+    gap: clamp(24px, 4vw, 48px);
     align-items: center;
     border-top: 1px solid var(--line);
   }
@@ -509,14 +515,14 @@ const base = import.meta.env.BASE_URL;
 
   .feature-copy {
     display: grid;
-    gap: 20px;
+    gap: 16px;
   }
   .feature-copy h2 { max-width: 14ch; }
 
   .feature-copy p {
     color: var(--text-muted);
-    font-size: 0.95rem;
-    line-height: 1.7;
+    font-size: 0.9rem;
+    line-height: 1.5;
     max-width: 38ch;
   }
 
