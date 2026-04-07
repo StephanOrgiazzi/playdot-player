@@ -90,7 +90,7 @@ export async function command(name: string, args: (string | boolean | number)[] 
 }
 
 export async function listenEvents(callback: (event: MpvEvent) => void, windowLabel?: string): Promise<UnlistenFn> {
-  return listen<MpvEvent>(`mpv-event-${getWindowLabel(windowLabel)}`, (event) => callback(event.payload));
+  return listen<MpvEvent>(`mpv-event-${getWindowLabel(windowLabel)}`, (event) =>{  callback(event.payload); });
 }
 
 export async function observeProperties(

@@ -1,12 +1,12 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "options": {
-    "typeAware": true,
+    "typeAware": true
   },
   "plugins": ["typescript", "unicorn", "oxc"],
   "ignorePatterns": ["dist/**", "src-tauri/target/**", "vendor/**", "node_modules/**"],
   "categories": {
-    "correctness": "error",
+    "correctness": "error"
   },
   "rules": {
     "no-nested-ternary": "error",
@@ -27,24 +27,30 @@
     "typescript/switch-exhaustiveness-check": "error",
     "typescript/no-unnecessary-condition": "error",
     "typescript/no-unnecessary-type-assertion": "error",
+    "@typescript-eslint/no-unnecessary-condition": "error",
+    "@typescript-eslint/no-confusing-void-expression": "error",
+    "@typescript-eslint/no-unsafe-argument": "error",
+    "@typescript-eslint/restrict-plus-operands": "error",
+    "@typescript-eslint/no-deprecated": "error",
+    "@typescript-eslint/no-unnecessary-type-assertion": "error",
     "max-lines": [
       "error",
       {
         "max": 500,
         "skipBlankLines": true,
-        "skipComments": true,
-      },
+        "skipComments": true
+      }
     ],
     "max-lines-per-function": [
       "error",
       {
         "max": 250,
         "skipBlankLines": true,
-        "skipComments": true,
-      },
-    ],
+        "skipComments": true
+      }
+    ]
   },
   "env": {
-    "builtin": true,
-  },
+    "builtin": true
+  }
 }

@@ -14,8 +14,8 @@ export function useGlobalShortcuts({ hasMedia, isFullscreen, ...actions }: UseGl
   });
 
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => handleKeyDown(event);
-    const onPriorityKeyDown = (event: KeyboardEvent): void => handleKeyDown(event, true);
+    const onKeyDown = (event: KeyboardEvent): void =>{  handleKeyDown(event); };
+    const onPriorityKeyDown = (event: KeyboardEvent): void =>{  handleKeyDown(event, true); };
 
     window.addEventListener("keydown", onPriorityKeyDown, { capture: true });
     window.addEventListener("keydown", onKeyDown);

@@ -20,7 +20,7 @@ export function useToastAutoHide(
       setToast((current) => (current ? { ...current, visible: false } : null));
     }, TOAST_HIDE_DELAY_MS);
 
-    return () => window.clearTimeout(timeout);
+    return () =>{  window.clearTimeout(timeout); };
   }, [setToast, toast]);
 }
 

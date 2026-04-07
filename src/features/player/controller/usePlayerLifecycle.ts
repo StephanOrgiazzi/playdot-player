@@ -105,8 +105,8 @@ export function usePlayerLifecycle({
       mounted = false;
       unsub();
       resetPlayerState();
-      void dragPromise.then((unlisten) => unlisten());
-      void resizePromise.then((unlisten) => unlisten());
+      void dragPromise.then((unlisten) =>{  unlisten(); });
+      void resizePromise.then((unlisten) =>{  unlisten(); });
       void player.stop();
     };
   }, [appWindow, player, setError, syncWindowState]);

@@ -1,4 +1,12 @@
-import { forwardRef, useCallback, useState, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useState,
+  type Dispatch,
+  type JSX,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 import type { MediaTrack } from "@features/player/model/playerState";
 import { PlayerIcon } from "@features/player/ui/PlayerIcons";
 import type { AsyncAction, TrackSelectionAction } from "@features/player/model/types";
@@ -166,49 +174,65 @@ function PlaybackOptionsSubmenu({
             label="Speed Up"
             shortcut="Ctrl+Right"
             disabled={!hasMedia}
-            onClick={(): void => runAction(speedUpPlayback)}
+            onClick={(): void => {
+              runAction(speedUpPlayback);
+            }}
           />
           <MenuActionItem
             label="Slow Down"
             shortcut="Ctrl+Left"
             disabled={!hasMedia}
-            onClick={(): void => runAction(slowDownPlayback)}
+            onClick={(): void => {
+              runAction(slowDownPlayback);
+            }}
           />
           <MenuActionItem
             label="Zoom In"
             shortcut="Ctrl++"
             disabled={!hasMedia}
-            onClick={(): void => runAction(zoomIn)}
+            onClick={(): void => {
+              runAction(zoomIn);
+            }}
           />
           <MenuActionItem
             label="Zoom Out"
             shortcut="Ctrl+-"
             disabled={!hasMedia}
-            onClick={(): void => runAction(zoomOut)}
+            onClick={(): void => {
+              runAction(zoomOut);
+            }}
           />
           <MenuActionItem
             label="Increase Gamma"
             shortcut="Alt+Right"
             disabled={!hasMedia}
-            onClick={(): void => runAction(increaseGamma)}
+            onClick={(): void => {
+              runAction(increaseGamma);
+            }}
           />
           <MenuActionItem
             label="Decrease Gamma"
             shortcut="Alt+Left"
             disabled={!hasMedia}
-            onClick={(): void => runAction(decreaseGamma)}
+            onClick={(): void => {
+              runAction(decreaseGamma);
+            }}
           />
           <MenuActionItem
             label="Increase Subtitle Size"
             shortcut="Ctrl+Up"
             disabled={!hasMedia}
-            onClick={(): void => runAction(increaseSubtitleScale)}
+            onClick={(): void => {
+              runAction(increaseSubtitleScale);
+            }}
           />
           <MenuActionItem
             label="Decrease Subtitle Size"
             shortcut="Ctrl+Down"
             disabled={!hasMedia}
-            onClick={(): void => runAction(decreaseSubtitleScale)}
+            onClick={(): void => {
+              runAction(decreaseSubtitleScale);
+            }}
           />
         </div>
       ) : null}
@@ -289,8 +313,14 @@ function TrackSelectionSubmenu({
               label="Off"
               role="menuitemcheckbox"
               ariaChecked={selectedTrackId === null}
-              onClick={(): void => runAction(() => onSelect("no"))}
-              icon={selectedTrackId === null ? <PlayerIcon name="check" className="icon icon--xs" /> : null}
+              onClick={(): void => {
+                runAction(() => onSelect("no"));
+              }}
+              icon={
+                selectedTrackId === null ? (
+                  <PlayerIcon name="check" className="icon icon--xs" />
+                ) : null
+              }
             />
           ) : null}
           {tracks.map((track) => (
@@ -299,8 +329,14 @@ function TrackSelectionSubmenu({
               label={getTrackDisplayLabel(track)}
               role="menuitemcheckbox"
               ariaChecked={track.id === selectedTrackId}
-              onClick={(): void => runAction(() => onSelect(track.id))}
-              icon={track.id === selectedTrackId ? <PlayerIcon name="check" className="icon icon--xs" /> : null}
+              onClick={(): void => {
+                runAction(() => onSelect(track.id));
+              }}
+              icon={
+                track.id === selectedTrackId ? (
+                  <PlayerIcon name="check" className="icon icon--xs" />
+                ) : null
+              }
             />
           ))}
         </div>
@@ -396,7 +432,9 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
         <MenuActionItem
           label="Upscale"
           disabled={!hasMedia}
-          onClick={(): void => runAction(toggleFsr)}
+          onClick={(): void => {
+            runAction(toggleFsr);
+          }}
           icon={isFsrEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null}
         />
         {isSvpAvailable ? (
@@ -405,7 +443,9 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
             role="menuitemcheckbox"
             ariaChecked={isSvpEnabled}
             disabled={!hasMedia}
-            onClick={(): void => runAction(toggleSvp)}
+            onClick={(): void => {
+              runAction(toggleSvp);
+            }}
             icon={isSvpEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null}
           />
         ) : null}

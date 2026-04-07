@@ -38,8 +38,8 @@ function useControlDockHoverState(): {
   handleControlDockMouseLeave: () => void;
 } {
   const [isControlDockHovered, setIsControlDockHovered] = useState(false);
-  const handleControlDockMouseEnter = useCallback((): void => setIsControlDockHovered(true), []);
-  const handleControlDockMouseLeave = useCallback((): void => setIsControlDockHovered(false), []);
+  const handleControlDockMouseEnter = useCallback((): void =>{  setIsControlDockHovered(true); }, []);
+  const handleControlDockMouseLeave = useCallback((): void =>{  setIsControlDockHovered(false); }, []);
 
   return {
     isControlDockHovered,
