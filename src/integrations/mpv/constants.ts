@@ -26,11 +26,11 @@ const SUBTITLE_MARGIN_RIGHT = 30;
 const SUBTITLE_MARGIN_BOTTOM = 45;
 const SUBTITLE_ALIGNMENT = 2;
 
-export const SUBTITLE_ASS_STYLE =
-  `FontName=${SUBTITLE_FONT},FontSize=${SUBTITLE_FONT_SIZE},PrimaryColour=${SUBTITLE_PRIMARY_COLOUR},OutlineColour=${SUBTITLE_OUTLINE_COLOUR},BackColour=${SUBTITLE_BACK_COLOUR},Bold=${SUBTITLE_BOLD},BorderStyle=${SUBTITLE_BORDER_STYLE},Outline=${SUBTITLE_OUTLINE},Shadow=${SUBTITLE_SHADOW},Blur=${SUBTITLE_BLUR},Spacing=${SUBTITLE_SPACING},MarginL=${SUBTITLE_MARGIN_LEFT},MarginR=${SUBTITLE_MARGIN_RIGHT},MarginV=${SUBTITLE_MARGIN_BOTTOM},Alignment=${SUBTITLE_ALIGNMENT}`;
+export const SUBTITLE_ASS_STYLE = `FontName=${SUBTITLE_FONT},FontSize=${SUBTITLE_FONT_SIZE},PrimaryColour=${SUBTITLE_PRIMARY_COLOUR},OutlineColour=${SUBTITLE_OUTLINE_COLOUR},BackColour=${SUBTITLE_BACK_COLOUR},Bold=${SUBTITLE_BOLD},BorderStyle=${SUBTITLE_BORDER_STYLE},Outline=${SUBTITLE_OUTLINE},Shadow=${SUBTITLE_SHADOW},Blur=${SUBTITLE_BLUR},Spacing=${SUBTITLE_SPACING},MarginL=${SUBTITLE_MARGIN_LEFT},MarginR=${SUBTITLE_MARGIN_RIGHT},MarginV=${SUBTITLE_MARGIN_BOTTOM},Alignment=${SUBTITLE_ALIGNMENT}`;
 
 export const OBSERVED_PROPERTIES = [
   ["pause", "flag"],
+  ["eof-reached", "flag", "none"],
   ["time-pos", "double", "none"],
   ["duration", "double", "none"],
   ["volume", "double"],

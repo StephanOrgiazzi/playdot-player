@@ -44,7 +44,11 @@ function getWindowLabel(windowLabel?: string): string {
 
 type InvokePayloadValue = string | boolean | number | object | null | undefined;
 
-function invokeMpv<T>(command: string, payload: Record<string, InvokePayloadValue> = {}, windowLabel?: string): Promise<T> {
+function invokeMpv<T>(
+  command: string,
+  payload: Record<string, InvokePayloadValue> = {},
+  windowLabel?: string,
+): Promise<T> {
   return invoke<T>(`plugin:libmpv|${command}`, {
     ...payload,
     windowLabel: getWindowLabel(windowLabel),
@@ -52,23 +56,35 @@ function invokeMpv<T>(command: string, payload: Record<string, InvokePayloadValu
 }
 
 export async function init(config?: MpvConfig, windowLabel?: string): Promise<string> {
-  return invokeMpv<string>("init", {
-    mpvConfig: {
-      ...config,
-      observedProperties: Object.fromEntries(config?.observedProperties ?? []),
+  return invokeMpv<string>(
+    "init",
+    {
+      mpvConfig: {
+        ...config,
+        observedProperties: Object.fromEntries(config?.observedProperties ?? []),
+      },
     },
-  }, windowLabel);
+    windowLabel,
+  );
 }
 
 export async function destroy(windowLabel?: string): Promise<void> {
   return invokeMpv("destroy", {}, windowLabel);
 }
 
-export async function setProperty(name: string, value: MpvNodeValue, windowLabel?: string): Promise<void> {
-  return invokeMpv("set_property", {
-    name,
-    value,
-  }, windowLabel);
+export async function setProperty(
+  name: string,
+  value: MpvNodeValue,
+  windowLabel?: string,
+): Promise<void> {
+  return invokeMpv(
+    "set_property",
+    {
+      name,
+      value,
+    },
+    windowLabel,
+  );
 }
 
 export async function getProperty<T = MpvNodeValue>(
@@ -76,27 +92,44 @@ export async function getProperty<T = MpvNodeValue>(
   format: MpvFormat,
   windowLabel?: string,
 ): Promise<T | null> {
-  return invokeMpv<T | null>("get_property", {
-    name,
-    format,
-  }, windowLabel);
+  return invokeMpv<T | null>(
+    "get_property",
+    {
+      name,
+      format,
+    },
+    windowLabel,
+  );
 }
 
-export async function command(name: string, args: (string | boolean | number)[] = [], windowLabel?: string): Promise<void> {
-  return invokeMpv("command", {
-    name,
-    args,
-  }, windowLabel);
+export async function command(
+  name: string,
+  args: (string | boolean | number)[] = [],
+  windowLabel?: string,
+): Promise<void> {
+  return invokeMpv(
+    "command",
+    {
+      name,
+      args,
+    },
+    windowLabel,
+  );
 }
 
-export async function listenEvents(callback: (event: MpvEvent) => void, windowLabel?: string): Promise<UnlistenFn> {
-  return listen<MpvEvent>(`mpv-event-${getWindowLabel(windowLabel)}`, (event) =>{  callback(event.payload); });
+export async function listenEvents(
+  callback: (event: MpvEvent) => void,
+  windowLabel?: string,
+): Promise<UnlistenFn> {
+  return listen<MpvEvent>(`mpv-event-${getWindowLabel(windowLabel)}`, (event) => {
+    callback(event.payload);
+  });
 }
 
 export async function observeProperties(
   properties: readonly MpvObservableProperty[],
   callback: (event: MpvObservedPropertyEvent) => void,
-  windowLabel?: string
+  windowLabel?: string,
 ): Promise<UnlistenFn> {
   const propertyNames = new Set(properties.map(([name]) => name));
 
@@ -109,8 +142,15 @@ export async function observeProperties(
   }, windowLabel);
 }
 
-export async function setVideoMarginRatio(ratio: VideoMarginRatio, windowLabel?: string): Promise<void> {
-  return invokeMpv("set_video_margin_ratio", {
-    ratio,
-  }, windowLabel);
+export async function setVideoMarginRatio(
+  ratio: VideoMarginRatio,
+  windowLabel?: string,
+): Promise<void> {
+  return invokeMpv(
+    "set_video_margin_ratio",
+    {
+      ratio,
+    },
+    windowLabel,
+  );
 }

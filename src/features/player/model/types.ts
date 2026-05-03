@@ -28,6 +28,8 @@ export type PlayerScreenProps = {
   totalTime: string;
   audioSummary: string;
   subtitleSummary: string;
+  isAudioArtworkActive: boolean;
+  audioArtworkUrl: string;
   pickAndOpenMediaFile: AsyncAction;
   openWebUrl: (url: string) => Promise<OpenWebUrlResult>;
   cycleAudioTrack: AsyncAction;

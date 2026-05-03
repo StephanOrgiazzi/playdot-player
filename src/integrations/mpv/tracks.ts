@@ -1,15 +1,11 @@
 import type { MediaTrack } from "@features/player/model/playerState";
 import type { MpvNodeValue } from "./libmpv-api";
 
-function isMpvNodeObject(
-  value: MpvNodeValue,
-): value is { readonly [key: string]: MpvNodeValue } {
+function isMpvNodeObject(value: MpvNodeValue): value is { readonly [key: string]: MpvNodeValue } {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isMpvNodeArray(
-  value: MpvNodeValue | undefined,
-): value is readonly MpvNodeValue[] {
+function isMpvNodeArray(value: MpvNodeValue | undefined): value is readonly MpvNodeValue[] {
   return Array.isArray(value);
 }
 
@@ -24,7 +20,10 @@ export function parseTracks(node: MpvNodeValue | undefined): MediaTrack[] {
         return null;
       }
 
-      const type = value.type === "audio" || value.type === "sub" ? value.type : null;
+      const type =
+        value.type === "audio" || value.type === "sub" || value.type === "video"
+          ? value.type
+          : null;
       const id = typeof value.id === "number" ? value.id : null;
 
       if (!type || id === null) {
@@ -42,6 +41,7 @@ export function parseTracks(node: MpvNodeValue | undefined): MediaTrack[] {
         title,
         selected: value.selected === true,
         external: value.external === true,
+        albumart: value.albumart === true,
         ...(typeof value.lang === "string" ? { lang: value.lang } : {}),
       };
 

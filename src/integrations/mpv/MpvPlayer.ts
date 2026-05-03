@@ -1,3 +1,4 @@
+import { convertFileSrc } from "@tauri-apps/api/core";
 import {
   command,
   destroy,
@@ -7,6 +8,14 @@ import {
   type MpvObservedPropertyEvent,
   setProperty,
 } from "./libmpv-api";
+import {
+  createArtworkCapturePath,
+  isLikelyAudioSource,
+  nextAnimationFrame,
+  shouldShowAudioArtwork,
+  waitForArtworkCaptureDelay,
+} from "./audioArtwork";
+import { normalizePlaybackSpeed } from "./playback";
 import {
   DEFAULT_PLAYBACK_SPEED,
   OBSERVED_PROPERTIES,
@@ -26,11 +35,6 @@ import { toError } from "@shared/lib/error";
 type PlayerListener = (state: PlayerState) => void;
 type TrackType = MediaTrack["type"];
 type TrackSelection = number | "no";
-const MIN_PLAYBACK_SPEED = 0.01;
-
-function normalizePlaybackSpeed(speed: number): number {
-  return Math.max(MIN_PLAYBACK_SPEED, Number(speed.toFixed(3)));
-}
 
 export class MpvPlayer {
   private state: PlayerState = { ...EMPTY_PLAYER_STATE };
@@ -46,6 +50,7 @@ export class MpvPlayer {
   private svpEnabled = false;
   private started = false;
   private currentSource: string | null = null;
+  private artworkCaptureToken = 0;
 
   private clearPendingEmit(): void {
     if (this.emitFrameId === null) {
@@ -70,6 +75,13 @@ export class MpvPlayer {
     });
   }
 
+  private emitImmediately(): void {
+    this.clearPendingEmit();
+    for (const listener of this.listeners) {
+      listener(this.state);
+    }
+  }
+
   subscribe(listener: PlayerListener): () => void {
     this.listeners.add(listener);
     listener(this.state);
@@ -91,6 +103,7 @@ export class MpvPlayer {
     this.appliedUpscaleShaderPaths = [];
     this.started = false;
     this.currentSource = null;
+    this.artworkCaptureToken += 1;
 
     if (!shouldDestroy) {
       return;
@@ -121,6 +134,10 @@ export class MpvPlayer {
 
   async loadFile(path: string): Promise<void> {
     this.currentSource = path;
+    const prehideArtwork = this.prepareAudioArtworkLoad(path);
+    if (prehideArtwork) {
+      await nextAnimationFrame();
+    }
     await command("loadfile", [path]);
     await this.resetPerMediaDefaults();
 
@@ -176,8 +193,78 @@ export class MpvPlayer {
 
         this.state = nextState;
         this.emit();
+        if (event.name === "track-list") {
+          void this.refreshAudioArtwork();
+        }
       },
     );
+  }
+
+  private prepareAudioArtworkLoad(source: string): boolean {
+    this.artworkCaptureToken += 1;
+    const isAudioArtworkActive = isLikelyAudioSource(source);
+    const nextState = {
+      ...this.state,
+      isAudioArtworkActive,
+      audioArtworkUrl: "",
+    };
+
+    if (
+      nextState.isAudioArtworkActive === this.state.isAudioArtworkActive &&
+      nextState.audioArtworkUrl === this.state.audioArtworkUrl
+    ) {
+      return isAudioArtworkActive;
+    }
+
+    this.state = nextState;
+    this.emitImmediately();
+    return isAudioArtworkActive;
+  }
+
+  private clearAudioArtwork(): void {
+    this.artworkCaptureToken += 1;
+    if (!this.state.isAudioArtworkActive && !this.state.audioArtworkUrl) {
+      return;
+    }
+
+    this.state = { ...this.state, isAudioArtworkActive: false, audioArtworkUrl: "" };
+    this.emit();
+  }
+
+  private async refreshAudioArtwork(): Promise<void> {
+    if (!shouldShowAudioArtwork(this.state.tracks)) {
+      this.clearAudioArtwork();
+      return;
+    }
+
+    const token = ++this.artworkCaptureToken;
+    if (!this.state.isAudioArtworkActive) {
+      this.state = { ...this.state, isAudioArtworkActive: true, audioArtworkUrl: "" };
+      this.emitImmediately();
+    }
+
+    try {
+      await waitForArtworkCaptureDelay();
+      if (token !== this.artworkCaptureToken || !shouldShowAudioArtwork(this.state.tracks)) {
+        return;
+      }
+
+      const path = await createArtworkCapturePath();
+      await command("screenshot-to-file", [path, "video"]);
+      if (token !== this.artworkCaptureToken) {
+        return;
+      }
+
+      const audioArtworkUrl = convertFileSrc(path);
+      if (audioArtworkUrl !== this.state.audioArtworkUrl) {
+        this.state = { ...this.state, isAudioArtworkActive: true, audioArtworkUrl };
+        this.emit();
+      }
+    } catch {
+      if (token === this.artworkCaptureToken) {
+        this.clearAudioArtwork();
+      }
+    }
   }
 
   async setVolume(volume: number): Promise<void> {
@@ -344,7 +431,9 @@ export class MpvPlayer {
     const selectedIndex = subtitleTracks.findIndex((track) => track.id === selectedTrack.id);
     const nextSubtitleTrack = subtitleTracks[selectedIndex + 1];
     const nextSelection: TrackSelection =
-      selectedIndex >= subtitleTracks.length - 1 || !nextSubtitleTrack ? "no" : nextSubtitleTrack.id;
+      selectedIndex >= subtitleTracks.length - 1 || !nextSubtitleTrack
+        ? "no"
+        : nextSubtitleTrack.id;
 
     await this.setSubtitleTrack(nextSelection);
     await this.waitForTrackSelection("sub", nextSelection);
@@ -393,7 +482,9 @@ export class MpvPlayer {
       } catch (error) {
         lastError = toError(error);
         for (const shaderPath of [...appliedBundlePaths].reverse()) {
-          await command("change-list", ["glsl-shaders", "remove", shaderPath]).catch(() => undefined);
+          await command("change-list", ["glsl-shaders", "remove", shaderPath]).catch(
+            () => undefined,
+          );
         }
       }
     }

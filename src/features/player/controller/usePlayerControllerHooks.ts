@@ -1,9 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { createMediaOpenActions } from "@features/mediaOpen/actions";
 import { createFsrToast, createGammaToast, createVolumeToast } from "@features/toaster/messages";
 import type { ToastState, TrackKind } from "@features/toaster/types";
 import { usePendingTrackToast } from "@features/toaster/useToastEffects";
-import { clampUiVolume, getMpvVolumeFromUiVolume, getUiVolumeFromMpvVolume } from "@integrations/mpv/constants";
+import {
+  clampUiVolume,
+  getMpvVolumeFromUiVolume,
+  getUiVolumeFromMpvVolume,
+} from "@integrations/mpv/constants";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
 import { getErrorMessage } from "@shared/lib/error";
 import { formatTime } from "@shared/lib/format";
@@ -142,7 +154,16 @@ function useSavedFsrPreferenceSync({
       showToast: false,
       task: () => player.toggleFsr(),
     });
-  }, [filename, fsrPreferenceEnabled, hasMedia, isFsrEnabled, player, setError, setIsFsrEnabled, setToast]);
+  }, [
+    filename,
+    fsrPreferenceEnabled,
+    hasMedia,
+    isFsrEnabled,
+    player,
+    setError,
+    setIsFsrEnabled,
+    setToast,
+  ]);
 }
 
 export function usePlayerMediaState(): {
@@ -158,6 +179,8 @@ export function usePlayerMediaState(): {
   selectedSubtitleTrack: ReturnType<typeof getPlayerTrackDerivedState>["selectedSubtitleTrack"];
   audioSummary: string;
   subtitleSummary: string;
+  isAudioArtworkActive: boolean;
+  audioArtworkUrl: string;
 } {
   const initialized = usePlayerStateSelector((state) => state.initialized);
   const paused = usePlayerStateSelector((state) => state.paused);
@@ -165,6 +188,8 @@ export function usePlayerMediaState(): {
   const filename = usePlayerStateSelector((state) => state.filename);
   const selectedAudioTrackId = usePlayerStateSelector((state) => state.selectedAudioTrackId);
   const selectedSubtitleTrackId = usePlayerStateSelector((state) => state.selectedSubtitleTrackId);
+  const isAudioArtworkActive = usePlayerStateSelector((state) => state.isAudioArtworkActive);
+  const audioArtworkUrl = usePlayerStateSelector((state) => state.audioArtworkUrl);
   const tracks = usePlayerStateSelector((state) => state.tracks);
   const derivedState = useMemo(
     () =>
@@ -189,6 +214,8 @@ export function usePlayerMediaState(): {
     selectedSubtitleTrack: derivedState.selectedSubtitleTrack,
     audioSummary: derivedState.audioSummary,
     subtitleSummary: derivedState.subtitleSummary,
+    isAudioArtworkActive,
+    audioArtworkUrl,
   };
 }
 
@@ -315,7 +342,14 @@ export function useTrackActions({
         setIsCyclingSubtitles(false);
       }
     },
-    [hasMedia, isCyclingSubtitles, player, selectedSubtitleTrack, selectedSubtitleTrack?.id, setError],
+    [
+      hasMedia,
+      isCyclingSubtitles,
+      player,
+      selectedSubtitleTrack,
+      selectedSubtitleTrack?.id,
+      setError,
+    ],
   );
 
   return {

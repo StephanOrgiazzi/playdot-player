@@ -38,8 +38,12 @@ function useControlDockHoverState(): {
   handleControlDockMouseLeave: () => void;
 } {
   const [isControlDockHovered, setIsControlDockHovered] = useState(false);
-  const handleControlDockMouseEnter = useCallback((): void =>{  setIsControlDockHovered(true); }, []);
-  const handleControlDockMouseLeave = useCallback((): void =>{  setIsControlDockHovered(false); }, []);
+  const handleControlDockMouseEnter = useCallback((): void => {
+    setIsControlDockHovered(true);
+  }, []);
+  const handleControlDockMouseLeave = useCallback((): void => {
+    setIsControlDockHovered(false);
+  }, []);
 
   return {
     isControlDockHovered,
@@ -122,11 +126,8 @@ export function usePlayerController(): PlayerScreenProps {
   const [error, setError] = useState("");
   const [toast, setToast] = useState<ToastState | null>(null);
   const { isFullscreen, syncWindowState } = useWindowStateSync();
-  const {
-    isControlDockHovered,
-    handleControlDockMouseEnter,
-    handleControlDockMouseLeave,
-  } = useControlDockHoverState();
+  const { isControlDockHovered, handleControlDockMouseEnter, handleControlDockMouseLeave } =
+    useControlDockHoverState();
   const {
     initialized,
     paused,
@@ -140,6 +141,8 @@ export function usePlayerController(): PlayerScreenProps {
     selectedSubtitleTrack,
     audioSummary,
     subtitleSummary,
+    isAudioArtworkActive,
+    audioArtworkUrl,
   } = usePlayerMediaState();
   const isChromeHidden = useAutoHiddenFlag({
     enabled: hasMedia,
@@ -147,13 +150,8 @@ export function usePlayerController(): PlayerScreenProps {
     delayMs: AUTO_HIDE_DELAY_MS,
   });
   const isCursorHidden = isChromeHidden;
-  const {
-    isSvpAvailable,
-    isSvpEnabled,
-    isSwitchingSvp,
-    preparePlayerStart,
-    toggleSvp,
-  } = useSvpIntegration({ player, setError, setToast });
+  const { isSvpAvailable, isSvpEnabled, isSwitchingSvp, preparePlayerStart, toggleSvp } =
+    useSvpIntegration({ player, setError, setToast });
 
   usePlayerLifecycle({
     player,
@@ -187,20 +185,14 @@ export function usePlayerController(): PlayerScreenProps {
     setError,
     setToast,
   });
-  const {
-    isFsrEnabled,
-    toggleFsr,
-    adjustVolume,
-    adjustGamma,
-    increaseGamma,
-    decreaseGamma,
-  } = usePlayerEnhancementActions({
-    player,
-    hasMedia,
-    filename,
-    setError,
-    setToast,
-  });
+  const { isFsrEnabled, toggleFsr, adjustVolume, adjustGamma, increaseGamma, decreaseGamma } =
+    usePlayerEnhancementActions({
+      player,
+      hasMedia,
+      filename,
+      setError,
+      setToast,
+    });
 
   const toggleFullscreen = useCallback(async (): Promise<void> => {
     const next = !(await appWindow.isFullscreen());
@@ -281,6 +273,8 @@ export function usePlayerController(): PlayerScreenProps {
     totalTime,
     audioSummary,
     subtitleSummary,
+    isAudioArtworkActive,
+    audioArtworkUrl,
     pickAndOpenMediaFile,
     openWebUrl,
     cycleAudioTrack,

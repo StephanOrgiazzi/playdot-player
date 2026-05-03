@@ -2,16 +2,18 @@ import { DEFAULT_PLAYBACK_SPEED, MPV_VOLUME_DEFAULT } from "@integrations/mpv/co
 
 export type MediaTrack = {
   id: number;
-  type: "audio" | "sub";
+  type: "audio" | "sub" | "video";
   title: string;
   lang?: string;
   selected: boolean;
   external: boolean;
+  albumart: boolean;
 };
 
 export type PlayerState = {
   initialized: boolean;
   paused: boolean;
+  eofReached: boolean;
   timePos: number;
   duration: number;
   volume: number;
@@ -20,12 +22,15 @@ export type PlayerState = {
   filename: string;
   selectedAudioTrackId: number | null;
   selectedSubtitleTrackId: number | null;
+  isAudioArtworkActive: boolean;
+  audioArtworkUrl: string;
   tracks: MediaTrack[];
 };
 
 export const EMPTY_PLAYER_STATE: PlayerState = {
   initialized: false,
   paused: true,
+  eofReached: false,
   timePos: 0,
   duration: 0,
   volume: MPV_VOLUME_DEFAULT,
@@ -34,5 +39,7 @@ export const EMPTY_PLAYER_STATE: PlayerState = {
   filename: "",
   selectedAudioTrackId: null,
   selectedSubtitleTrackId: null,
+  isAudioArtworkActive: false,
+  audioArtworkUrl: "",
   tracks: [],
 };

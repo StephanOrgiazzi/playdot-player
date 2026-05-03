@@ -40,6 +40,8 @@ export function PlayerScreen({
   totalTime,
   audioSummary,
   subtitleSummary,
+  isAudioArtworkActive,
+  audioArtworkUrl,
   pickAndOpenMediaFile,
   openWebUrl,
   cycleAudioTrack,
@@ -87,10 +89,11 @@ export function PlayerScreen({
     useStageContextMenu(isUrlDialogOpen);
   const audioTrackLabel = getTrackMenuLabel("Audio", audioTracks);
   const subtitleTrackLabel = getTrackMenuLabel("Subtitle", subtitleTracks);
+  const showAudioArtwork = audioArtworkUrl.length > 0;
 
   return (
     <main
-      className={`app-shell${showEmptyState ? " is-empty" : ""}${isCursorHidden ? " is-cursor-hidden" : ""}`}
+      className={`app-shell${showEmptyState ? " is-empty" : ""}${isAudioArtworkActive ? " is-audio-artwork" : ""}${isCursorHidden ? " is-cursor-hidden" : ""}`}
     >
       <PlayerIconSprite />
 
@@ -120,10 +123,7 @@ export function PlayerScreen({
               aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
               onClick={toggleFullscreen}
             >
-              <PlayerIcon
-                name={isFullscreen ? "restore" : "maximize"}
-                className="icon icon--xs"
-              />
+              <PlayerIcon name={isFullscreen ? "restore" : "maximize"} className="icon icon--xs" />
             </button>
             <button
               className="window-button window-button--close"
@@ -140,6 +140,22 @@ export function PlayerScreen({
       <section className="stage" onContextMenu={handleStageContextMenu}>
         <div className="stage__mesh" aria-hidden="true" />
         <VideoViewport initialized={initialized} onDoubleClick={handleVideoDoubleClick} />
+        {isAudioArtworkActive && (
+          <div
+            className={`audio-artwork${showAudioArtwork ? " has-artwork" : ""}`}
+            aria-hidden="true"
+          >
+            {showAudioArtwork && (
+              <img className="audio-artwork__backdrop" src={audioArtworkUrl} alt="" />
+            )}
+            <div className="audio-artwork__wash" />
+            {showAudioArtwork && (
+              <figure className="audio-artwork__cover">
+                <img className="audio-artwork__image" src={audioArtworkUrl} alt="" />
+              </figure>
+            )}
+          </div>
+        )}
 
         {showEmptyState && (
           <div className="hero-empty">

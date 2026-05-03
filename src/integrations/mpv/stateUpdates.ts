@@ -2,7 +2,10 @@ import type { PlayerState } from "@features/player/model/playerState";
 import type { MpvObservedPropertyEvent } from "./libmpv-api";
 import { parseTracks } from "./tracks";
 
-function tracksAreEqual(currentTracks: PlayerState["tracks"], nextTracks: PlayerState["tracks"]): boolean {
+function tracksAreEqual(
+  currentTracks: PlayerState["tracks"],
+  nextTracks: PlayerState["tracks"],
+): boolean {
   if (currentTracks === nextTracks) {
     return true;
   }
@@ -23,16 +26,24 @@ function tracksAreEqual(currentTracks: PlayerState["tracks"], nextTracks: Player
       track.title === nextTrack.title &&
       track.lang === nextTrack.lang &&
       track.selected === nextTrack.selected &&
-      track.external === nextTrack.external
+      track.external === nextTrack.external &&
+      track.albumart === nextTrack.albumart
     );
   });
 }
 
-export function applyObservedProperty(state: PlayerState, event: MpvObservedPropertyEvent): PlayerState {
+export function applyObservedProperty(
+  state: PlayerState,
+  event: MpvObservedPropertyEvent,
+): PlayerState {
   switch (event.name) {
     case "pause": {
       const paused = Boolean(event.data);
       return paused === state.paused ? state : { ...state, paused };
+    }
+    case "eof-reached": {
+      const eofReached = Boolean(event.data);
+      return eofReached === state.eofReached ? state : { ...state, eofReached };
     }
     case "time-pos": {
       const timePos = typeof event.data === "number" ? event.data : 0;
@@ -51,8 +62,7 @@ export function applyObservedProperty(state: PlayerState, event: MpvObservedProp
       return mute === state.mute ? state : { ...state, mute };
     }
     case "speed": {
-      const playbackSpeed =
-        typeof event.data === "number" ? event.data : state.playbackSpeed;
+      const playbackSpeed = typeof event.data === "number" ? event.data : state.playbackSpeed;
       return playbackSpeed === state.playbackSpeed ? state : { ...state, playbackSpeed };
     }
     case "filename": {

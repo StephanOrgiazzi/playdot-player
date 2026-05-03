@@ -69,12 +69,17 @@ export function usePlayerLifecycle({
     };
 
     void setup();
+    let autoCloseStarted = false;
     const unsub = player.subscribe((next) => {
       if (!mounted) {
         return;
       }
 
       setPlayerState(next);
+      if (!autoCloseStarted && next.filename && next.eofReached) {
+        autoCloseStarted = true;
+        void appWindow.close();
+      }
     });
 
     const dragPromise = appWindow.onDragDropEvent(async (event) => {
@@ -105,8 +110,12 @@ export function usePlayerLifecycle({
       mounted = false;
       unsub();
       resetPlayerState();
-      void dragPromise.then((unlisten) =>{  unlisten(); });
-      void resizePromise.then((unlisten) =>{  unlisten(); });
+      void dragPromise.then((unlisten) => {
+        unlisten();
+      });
+      void resizePromise.then((unlisten) => {
+        unlisten();
+      });
       void player.stop();
     };
   }, [appWindow, player, setError, syncWindowState]);
