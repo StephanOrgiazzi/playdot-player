@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/config-schema.json",
+  "ignoreDependencies": ["@tauri-apps/plugin-log"],
+  "usedClassMembers": [
+    "start",
+    "setSvpEnabled",
+    "togglePlayPause",
+    "seekRelative",
+    "frameStep",
+    "toggleMute",
+    "adjustVolume",
+    "getVolume",
+    "getIsMuted",
+    "getPlaybackSpeed",
+    "adjustPlaybackSpeed",
+    "adjustVideoZoom",
+    "adjustSubtitleScale",
+    "adjustGamma",
+    "cycleAudioTrack",
+    "cycleSubtitleTrack",
+    "toggleFsr"
+  ],
+  "health": {
+    "maxCyclomatic": 40,
+    "maxCognitive": 40,
+    "maxCrap": 1200
+  }
+}

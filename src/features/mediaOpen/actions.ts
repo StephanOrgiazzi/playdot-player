@@ -5,7 +5,7 @@ import type { OpenWebUrlResult } from "./types";
 
 const WEB_URL_PROTOCOLS = new Set(["http:", "https:"]);
 
-export function normalizeWebUrl(value: string): string | null {
+function normalizeWebUrl(value: string): string | null {
   const trimmedValue = value.trim();
   if (trimmedValue.length === 0) {
     return null;

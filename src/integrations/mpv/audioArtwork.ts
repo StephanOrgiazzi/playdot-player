@@ -40,7 +40,7 @@ export async function createArtworkCapturePath(): Promise<string> {
   return join(directory, `playdot-player-artwork-${suffix}.png`);
 }
 
-export function delay(ms: number): Promise<void> {
+function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
     globalThis.setTimeout(resolve, ms);
   });

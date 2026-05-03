@@ -87,21 +87,6 @@ export async function setProperty(
   );
 }
 
-export async function getProperty<T = MpvNodeValue>(
-  name: string,
-  format: MpvFormat,
-  windowLabel?: string,
-): Promise<T | null> {
-  return invokeMpv<T | null>(
-    "get_property",
-    {
-      name,
-      format,
-    },
-    windowLabel,
-  );
-}
-
 export async function command(
   name: string,
   args: (string | boolean | number)[] = [],

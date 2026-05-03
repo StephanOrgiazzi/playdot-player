@@ -18,62 +18,8 @@ function getTrackMenuLabel(
   return `${kind} Track (${current}/${total})`;
 }
 
-export function PlayerScreen({
-  initialized,
-  paused,
-  duration,
-  filename,
-  error,
-  toast,
-  isFullscreen,
-  isFsrEnabled,
-  isSvpAvailable,
-  isSvpEnabled,
-  isSwitchingSvp,
-  isChromeHidden,
-  isCursorHidden,
-  isCyclingAudio,
-  isCyclingSubtitles,
-  hasMedia,
-  audioTracks,
-  subtitleTracks,
-  totalTime,
-  audioSummary,
-  subtitleSummary,
-  isAudioArtworkActive,
-  audioArtworkUrl,
-  pickAndOpenMediaFile,
-  openWebUrl,
-  cycleAudioTrack,
-  cycleSubtitleTrack,
-  selectAudioTrack,
-  selectSubtitleTrack,
-  toggleFsr,
-  toggleSvp,
-  toggleFullscreen,
-  handleTitlebarMouseDown,
-  handleTitlePillClick,
-  handleControlDockMouseEnter,
-  handleControlDockMouseLeave,
-  handleVideoDoubleClick,
-  togglePlayPause,
-  seekBack,
-  seekForward,
-  slowDownPlayback,
-  speedUpPlayback,
-  toggleMute,
-  zoomIn,
-  zoomOut,
-  increaseGamma,
-  decreaseGamma,
-  increaseSubtitleScale,
-  decreaseSubtitleScale,
-  setTimelinePosition,
-  setVolume,
-  minimizeWindow,
-  closeWindow,
-}: PlayerScreenProps) {
-  const showEmptyState = !hasMedia && !isSwitchingSvp;
+export function PlayerScreen(props: PlayerScreenProps) {
+  const showEmptyState = !props.hasMedia && !props.isSwitchingSvp;
   const {
     isOpen: isUrlDialogOpen,
     isOpening: isOpeningUrl,
@@ -84,27 +30,27 @@ export function PlayerScreen({
     close: closeUrlDialog,
     submit: submitUrlDialog,
     setUrlInputValue,
-  } = useOpenUrlDialog(openWebUrl);
+  } = useOpenUrlDialog(props.openWebUrl);
   const { contextMenuPosition, contextMenuRef, closeContextMenu, handleStageContextMenu } =
     useStageContextMenu(isUrlDialogOpen);
-  const audioTrackLabel = getTrackMenuLabel("Audio", audioTracks);
-  const subtitleTrackLabel = getTrackMenuLabel("Subtitle", subtitleTracks);
-  const showAudioArtwork = audioArtworkUrl.length > 0;
+  const audioTrackLabel = getTrackMenuLabel("Audio", props.audioTracks);
+  const subtitleTrackLabel = getTrackMenuLabel("Subtitle", props.subtitleTracks);
+  const showAudioArtwork = props.audioArtworkUrl.length > 0;
 
   return (
     <main
-      className={`app-shell${showEmptyState ? " is-empty" : ""}${isAudioArtworkActive ? " is-audio-artwork" : ""}${isCursorHidden ? " is-cursor-hidden" : ""}`}
+      className={`app-shell${showEmptyState ? " is-empty" : ""}${props.isAudioArtworkActive ? " is-audio-artwork" : ""}${props.isCursorHidden ? " is-cursor-hidden" : ""}`}
     >
       <PlayerIconSprite />
 
       <header
-        className={`titlebar${isChromeHidden ? " is-hidden" : ""}`}
-        onMouseDown={handleTitlebarMouseDown}
+        className={`titlebar${props.isChromeHidden ? " is-hidden" : ""}`}
+        onMouseDown={props.handleTitlebarMouseDown}
       >
         <div className="titlebar__drag" />
-        <button className="title-pill" type="button" onClick={handleTitlePillClick}>
+        <button className="title-pill" type="button" onClick={props.handleTitlePillClick}>
           <PlayerIcon name="app-mark" className="icon icon--sm icon--app-mark" />
-          <span className="title-pill__label">{filename || "No video loaded"}</span>
+          <span className="title-pill__label">{props.filename || "No video loaded"}</span>
         </button>
         <div className="titlebar__right">
           <div className="titlebar__drag titlebar__drag--right" />
@@ -113,23 +59,26 @@ export function PlayerScreen({
               className="window-button"
               type="button"
               aria-label="Minimize"
-              onClick={minimizeWindow}
+              onClick={props.minimizeWindow}
             >
               <PlayerIcon name="minimize" className="icon icon--xs" />
             </button>
             <button
               className="window-button"
               type="button"
-              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-              onClick={toggleFullscreen}
+              aria-label={props.isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              onClick={props.toggleFullscreen}
             >
-              <PlayerIcon name={isFullscreen ? "restore" : "maximize"} className="icon icon--xs" />
+              <PlayerIcon
+                name={props.isFullscreen ? "restore" : "maximize"}
+                className="icon icon--xs"
+              />
             </button>
             <button
               className="window-button window-button--close"
               type="button"
               aria-label="Close"
-              onClick={closeWindow}
+              onClick={props.closeWindow}
             >
               <PlayerIcon name="close" className="icon icon--xs" />
             </button>
@@ -139,19 +88,22 @@ export function PlayerScreen({
 
       <section className="stage" onContextMenu={handleStageContextMenu}>
         <div className="stage__mesh" aria-hidden="true" />
-        <VideoViewport initialized={initialized} onDoubleClick={handleVideoDoubleClick} />
-        {isAudioArtworkActive && (
+        <VideoViewport
+          initialized={props.initialized}
+          onDoubleClick={props.handleVideoDoubleClick}
+        />
+        {props.isAudioArtworkActive && (
           <div
             className={`audio-artwork${showAudioArtwork ? " has-artwork" : ""}`}
             aria-hidden="true"
           >
             {showAudioArtwork && (
-              <img className="audio-artwork__backdrop" src={audioArtworkUrl} alt="" />
+              <img className="audio-artwork__backdrop" src={props.audioArtworkUrl} alt="" />
             )}
             <div className="audio-artwork__wash" />
             {showAudioArtwork && (
               <figure className="audio-artwork__cover">
-                <img className="audio-artwork__image" src={audioArtworkUrl} alt="" />
+                <img className="audio-artwork__image" src={props.audioArtworkUrl} alt="" />
               </figure>
             )}
           </div>
@@ -161,42 +113,42 @@ export function PlayerScreen({
           <div className="hero-empty">
             <h1 className="hero-empty__title">PLAY.</h1>
             <p className="hero-empty__copy">Drop a file or paste a web video URL.</p>
-            <button className="hero-open-button" type="button" onClick={pickAndOpenMediaFile}>
+            <button className="hero-open-button" type="button" onClick={props.pickAndOpenMediaFile}>
               Open video
             </button>
           </div>
         )}
 
-        {error && <p className="status-message">{error}</p>}
-        <ToastOverlay toast={toast} />
+        {props.error && <p className="status-message">{props.error}</p>}
+        <ToastOverlay toast={props.toast} />
         {contextMenuPosition && (
           <PlayerContextMenu
             ref={contextMenuRef}
             position={contextMenuPosition}
-            hasMedia={hasMedia}
-            isFsrEnabled={isFsrEnabled}
-            isSvpAvailable={isSvpAvailable}
-            isSvpEnabled={isSvpEnabled}
-            isFullscreen={isFullscreen}
+            hasMedia={props.hasMedia}
+            isFsrEnabled={props.isFsrEnabled}
+            isSvpAvailable={props.isSvpAvailable}
+            isSvpEnabled={props.isSvpEnabled}
+            isFullscreen={props.isFullscreen}
             onClose={closeContextMenu}
             showOpenUrlDialog={showOpenUrlDialog}
-            slowDownPlayback={slowDownPlayback}
-            speedUpPlayback={speedUpPlayback}
-            zoomIn={zoomIn}
-            zoomOut={zoomOut}
-            increaseGamma={increaseGamma}
-            decreaseGamma={decreaseGamma}
-            increaseSubtitleScale={increaseSubtitleScale}
-            decreaseSubtitleScale={decreaseSubtitleScale}
+            slowDownPlayback={props.slowDownPlayback}
+            speedUpPlayback={props.speedUpPlayback}
+            zoomIn={props.zoomIn}
+            zoomOut={props.zoomOut}
+            increaseGamma={props.increaseGamma}
+            decreaseGamma={props.decreaseGamma}
+            increaseSubtitleScale={props.increaseSubtitleScale}
+            decreaseSubtitleScale={props.decreaseSubtitleScale}
             audioTrackLabel={audioTrackLabel}
             subtitleTrackLabel={subtitleTrackLabel}
-            audioTracks={audioTracks}
-            subtitleTracks={subtitleTracks}
-            selectAudioTrack={selectAudioTrack}
-            selectSubtitleTrack={selectSubtitleTrack}
-            toggleFsr={toggleFsr}
-            toggleSvp={toggleSvp}
-            toggleFullscreen={toggleFullscreen}
+            audioTracks={props.audioTracks}
+            subtitleTracks={props.subtitleTracks}
+            selectAudioTrack={props.selectAudioTrack}
+            selectSubtitleTrack={props.selectSubtitleTrack}
+            toggleFsr={props.toggleFsr}
+            toggleSvp={props.toggleSvp}
+            toggleFullscreen={props.toggleFullscreen}
           />
         )}
         <PlayerUrlDialog
@@ -210,29 +162,29 @@ export function PlayerScreen({
           onSubmit={submitUrlDialog}
         />
         <PlayerControls
-          paused={paused}
-          duration={duration}
-          hasMedia={hasMedia}
-          isFullscreen={isFullscreen}
-          isChromeHidden={isChromeHidden}
-          isCyclingAudio={isCyclingAudio}
-          isCyclingSubtitles={isCyclingSubtitles}
-          audioTracks={audioTracks}
-          subtitleTracks={subtitleTracks}
-          totalTime={totalTime}
-          audioSummary={audioSummary}
-          subtitleSummary={subtitleSummary}
-          cycleAudioTrack={cycleAudioTrack}
-          cycleSubtitleTrack={cycleSubtitleTrack}
-          toggleFullscreen={toggleFullscreen}
-          handleControlDockMouseEnter={handleControlDockMouseEnter}
-          handleControlDockMouseLeave={handleControlDockMouseLeave}
-          togglePlayPause={togglePlayPause}
-          seekBack={seekBack}
-          seekForward={seekForward}
-          toggleMute={toggleMute}
-          setTimelinePosition={setTimelinePosition}
-          setVolume={setVolume}
+          paused={props.paused}
+          duration={props.duration}
+          hasMedia={props.hasMedia}
+          isFullscreen={props.isFullscreen}
+          isChromeHidden={props.isChromeHidden}
+          isCyclingAudio={props.isCyclingAudio}
+          isCyclingSubtitles={props.isCyclingSubtitles}
+          audioTracks={props.audioTracks}
+          subtitleTracks={props.subtitleTracks}
+          totalTime={props.totalTime}
+          audioSummary={props.audioSummary}
+          subtitleSummary={props.subtitleSummary}
+          cycleAudioTrack={props.cycleAudioTrack}
+          cycleSubtitleTrack={props.cycleSubtitleTrack}
+          toggleFullscreen={props.toggleFullscreen}
+          handleControlDockMouseEnter={props.handleControlDockMouseEnter}
+          handleControlDockMouseLeave={props.handleControlDockMouseLeave}
+          togglePlayPause={props.togglePlayPause}
+          seekBack={props.seekBack}
+          seekForward={props.seekForward}
+          toggleMute={props.toggleMute}
+          setTimelinePosition={props.setTimelinePosition}
+          setVolume={props.setVolume}
         />
       </section>
     </main>

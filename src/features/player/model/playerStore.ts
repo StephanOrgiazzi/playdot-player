@@ -8,7 +8,7 @@ type EqualityCheck<T> = (left: T, right: T) => boolean;
 const listeners = new Set<PlayerStateListener>();
 let playerState: PlayerState = { ...EMPTY_PLAYER_STATE };
 
-export function getPlayerState(): PlayerState {
+function getPlayerState(): PlayerState {
   return playerState;
 }
 
