@@ -1,4 +1,3 @@
-import { convertFileSrc } from "@tauri-apps/api/core";
 import {
   command,
   destroy,
@@ -6,14 +5,14 @@ import {
   listenEvents,
   observeProperties,
   type MpvObservedPropertyEvent,
+  setVideoMarginRatio,
   setProperty,
 } from "./libmpv-api";
 import {
-  createArtworkCapturePath,
+  AUDIO_ARTWORK_HIDDEN_VIDEO_MARGIN_RATIO,
   isLikelyAudioSource,
   nextAnimationFrame,
-  shouldShowAudioArtwork,
-  waitForArtworkCaptureDelay,
+  readAudioArtworkUrl,
 } from "./audioArtwork";
 import { normalizePlaybackSpeed } from "./playback";
 import {
@@ -134,10 +133,18 @@ export class MpvPlayer {
 
   async loadFile(path: string): Promise<void> {
     this.currentSource = path;
-    const prehideArtwork = this.prepareAudioArtworkLoad(path);
-    if (prehideArtwork) {
+    const audioArtworkUrl = isLikelyAudioSource(path)
+      ? await readAudioArtworkUrl(path).catch(() => "")
+      : "";
+
+    this.prepareAudioArtworkLoad(audioArtworkUrl);
+    if (audioArtworkUrl) {
+      await setVideoMarginRatio(AUDIO_ARTWORK_HIDDEN_VIDEO_MARGIN_RATIO).catch(() => undefined);
       await nextAnimationFrame();
+    } else {
+      await setVideoMarginRatio({ left: 0, right: 0, top: 0, bottom: 0 }).catch(() => undefined);
     }
+
     await command("loadfile", [path]);
     await this.resetPerMediaDefaults();
 
@@ -193,78 +200,28 @@ export class MpvPlayer {
 
         this.state = nextState;
         this.emit();
-        if (event.name === "track-list") {
-          void this.refreshAudioArtwork();
-        }
       },
     );
   }
 
-  private prepareAudioArtworkLoad(source: string): boolean {
+  private prepareAudioArtworkLoad(audioArtworkUrl: string): void {
     this.artworkCaptureToken += 1;
-    const isAudioArtworkActive = isLikelyAudioSource(source);
+    const isAudioArtworkActive = audioArtworkUrl.length > 0;
     const nextState = {
       ...this.state,
       isAudioArtworkActive,
-      audioArtworkUrl: "",
+      audioArtworkUrl,
     };
 
     if (
       nextState.isAudioArtworkActive === this.state.isAudioArtworkActive &&
       nextState.audioArtworkUrl === this.state.audioArtworkUrl
     ) {
-      return isAudioArtworkActive;
+      return;
     }
 
     this.state = nextState;
     this.emitImmediately();
-    return isAudioArtworkActive;
-  }
-
-  private clearAudioArtwork(): void {
-    this.artworkCaptureToken += 1;
-    if (!this.state.isAudioArtworkActive && !this.state.audioArtworkUrl) {
-      return;
-    }
-
-    this.state = { ...this.state, isAudioArtworkActive: false, audioArtworkUrl: "" };
-    this.emit();
-  }
-
-  private async refreshAudioArtwork(): Promise<void> {
-    if (!shouldShowAudioArtwork(this.state.tracks)) {
-      this.clearAudioArtwork();
-      return;
-    }
-
-    const token = ++this.artworkCaptureToken;
-    if (!this.state.isAudioArtworkActive) {
-      this.state = { ...this.state, isAudioArtworkActive: true, audioArtworkUrl: "" };
-      this.emitImmediately();
-    }
-
-    try {
-      await waitForArtworkCaptureDelay();
-      if (token !== this.artworkCaptureToken || !shouldShowAudioArtwork(this.state.tracks)) {
-        return;
-      }
-
-      const path = await createArtworkCapturePath();
-      await command("screenshot-to-file", [path, "video"]);
-      if (token !== this.artworkCaptureToken) {
-        return;
-      }
-
-      const audioArtworkUrl = convertFileSrc(path);
-      if (audioArtworkUrl !== this.state.audioArtworkUrl) {
-        this.state = { ...this.state, isAudioArtworkActive: true, audioArtworkUrl };
-        this.emit();
-      }
-    } catch {
-      if (token === this.artworkCaptureToken) {
-        this.clearAudioArtwork();
-      }
-    }
   }
 
   async setVolume(volume: number): Promise<void> {
@@ -302,10 +259,6 @@ export class MpvPlayer {
 
   getIsMuted(): boolean {
     return this.state.mute;
-  }
-
-  getPlaybackSpeed(): number {
-    return this.state.playbackSpeed;
   }
 
   async adjustPlaybackSpeed(multiplier: number): Promise<number> {

@@ -10,13 +10,10 @@ const EMPTY_RATIO: Required<VideoMarginRatio> = {
   left: 0,
   right: 0,
   top: 0,
-  bottom: 0
+  bottom: 0,
 };
 
-export function VideoViewport({
-  initialized,
-  onDoubleClick,
-}: VideoViewportProps) {
+export function VideoViewport({ initialized, onDoubleClick }: VideoViewportProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const previousRatioRef = useRef<Required<VideoMarginRatio>>(EMPTY_RATIO);
 
@@ -35,7 +32,9 @@ export function VideoViewport({
       return Math.round(clamped * 1_000_000) / 1_000_000;
     };
 
-    const getLayoutRect = (node: HTMLElement): { left: number; right: number; top: number; bottom: number } => {
+    const getLayoutRect = (
+      node: HTMLElement,
+    ): { left: number; right: number; top: number; bottom: number } => {
       let left = 0;
       let top = 0;
       let current: HTMLElement | null = node;
@@ -52,7 +51,7 @@ export function VideoViewport({
         left,
         right: left + width,
         top,
-        bottom: top + height
+        bottom: top + height,
       };
     };
 
@@ -64,7 +63,7 @@ export function VideoViewport({
         left: normalizeRatio(rect.left / viewportWidth),
         right: normalizeRatio(1 - rect.right / viewportWidth),
         top: normalizeRatio(rect.top / viewportHeight),
-        bottom: normalizeRatio(1 - rect.bottom / viewportHeight)
+        bottom: normalizeRatio(1 - rect.bottom / viewportHeight),
       };
 
       if (!hasAppliedInitialRatio) {
@@ -116,5 +115,12 @@ export function VideoViewport({
     };
   }, [initialized]);
 
-  return <div ref={viewportRef} className="video-viewport" aria-hidden="true" onDoubleClick={onDoubleClick} />;
+  return (
+    <div
+      ref={viewportRef}
+      className="video-viewport"
+      aria-hidden="true"
+      onDoubleClick={onDoubleClick}
+    />
+  );
 }

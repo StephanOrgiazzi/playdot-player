@@ -1,3 +1,4 @@
+mod audio_artwork;
 mod launch;
 mod svp;
 
@@ -27,6 +28,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_libmpv::init())
         .invoke_handler(tauri::generate_handler![
+            audio_artwork::extract_audio_artwork,
             launch::get_startup_media_argument,
             svp::resolve_svp_integration
         ])

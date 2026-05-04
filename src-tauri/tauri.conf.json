@@ -29,7 +29,7 @@
     "security": {
       "assetProtocol": {
         "enable": true,
-        "scope": ["$TEMP/playdot-player-artwork-*.png"]
+        "scope": ["$TEMP/playdot-player-artwork-*"]
       },
       "csp": null
     }

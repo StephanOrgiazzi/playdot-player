@@ -35,7 +35,6 @@ export function PlayerScreen(props: PlayerScreenProps) {
     useStageContextMenu(isUrlDialogOpen);
   const audioTrackLabel = getTrackMenuLabel("Audio", props.audioTracks);
   const subtitleTrackLabel = getTrackMenuLabel("Subtitle", props.subtitleTracks);
-  const showAudioArtwork = props.audioArtworkUrl.length > 0;
 
   return (
     <main
@@ -93,19 +92,12 @@ export function PlayerScreen(props: PlayerScreenProps) {
           onDoubleClick={props.handleVideoDoubleClick}
         />
         {props.isAudioArtworkActive && (
-          <div
-            className={`audio-artwork${showAudioArtwork ? " has-artwork" : ""}`}
-            aria-hidden="true"
-          >
-            {showAudioArtwork && (
-              <img className="audio-artwork__backdrop" src={props.audioArtworkUrl} alt="" />
-            )}
+          <div className="audio-artwork" aria-hidden="true">
+            <img className="audio-artwork__backdrop" src={props.audioArtworkUrl} alt="" />
             <div className="audio-artwork__wash" />
-            {showAudioArtwork && (
-              <figure className="audio-artwork__cover">
-                <img className="audio-artwork__image" src={props.audioArtworkUrl} alt="" />
-              </figure>
-            )}
+            <figure className="audio-artwork__cover">
+              <img className="audio-artwork__image" src={props.audioArtworkUrl} alt="" />
+            </figure>
           </div>
         )}
 

@@ -1,5 +1,4 @@
-import { join, tempDir } from "@tauri-apps/api/path";
-import type { MediaTrack } from "@features/player/model/playerState";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 
 const AUDIO_FILE_EXTENSIONS = new Set([
   "aac",
@@ -13,7 +12,12 @@ const AUDIO_FILE_EXTENSIONS = new Set([
   "wav",
   "wma",
 ]);
-const ARTWORK_CAPTURE_DELAY_MS = 180;
+export const AUDIO_ARTWORK_HIDDEN_VIDEO_MARGIN_RATIO = {
+  left: 0,
+  right: 0,
+  top: 1,
+  bottom: 0,
+} as const;
 
 export function isLikelyAudioSource(source: string): boolean {
   if (/^https?:\/\//i.test(source)) {
@@ -25,35 +29,15 @@ export function isLikelyAudioSource(source: string): boolean {
   return extension ? AUDIO_FILE_EXTENSIONS.has(extension) : false;
 }
 
-export function shouldShowAudioArtwork(tracks: MediaTrack[]): boolean {
-  const hasAudio = tracks.some((track) => track.type === "audio");
-  const videoTracks = tracks.filter((track) => track.type === "video");
-  const hasArtworkVideo = videoTracks.some((track) => track.albumart);
-  const hasRegularVideo = videoTracks.some((track) => !track.albumart);
-
-  return hasAudio && hasArtworkVideo && !hasRegularVideo;
-}
-
-export async function createArtworkCapturePath(): Promise<string> {
-  const directory = await tempDir();
-  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  return join(directory, `playdot-player-artwork-${suffix}.png`);
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    globalThis.setTimeout(resolve, ms);
-  });
-}
-
-export function waitForArtworkCaptureDelay(): Promise<void> {
-  return delay(ARTWORK_CAPTURE_DELAY_MS);
-}
-
 export function nextAnimationFrame(): Promise<void> {
   return new Promise((resolve) => {
     window.requestAnimationFrame(() => {
       resolve();
     });
   });
+}
+
+export async function readAudioArtworkUrl(source: string): Promise<string> {
+  const path = await invoke<string | null>("extract_audio_artwork", { source });
+  return path ? convertFileSrc(path) : "";
 }

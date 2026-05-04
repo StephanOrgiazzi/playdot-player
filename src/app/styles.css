@@ -225,10 +225,6 @@ button {
   background: #000;
 }
 
-.app-shell.is-audio-artwork .video-viewport {
-  opacity: 0;
-}
-
 .audio-artwork {
   position: absolute;
   inset: 0;
