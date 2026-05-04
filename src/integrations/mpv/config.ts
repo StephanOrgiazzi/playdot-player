@@ -39,15 +39,13 @@ async function getBundledUpscaleShaderBundles(resourcesPath: string | null): Pro
     return [];
   }
 
-  const fallbackCandidateSegments = [
-    ["lib", "shaders"],
-    ["shaders"],
-    ["_up_", "shaders"],
-  ];
+  const fallbackCandidateSegments = [["lib", "shaders"], ["shaders"], ["_up_", "shaders"]];
 
   const [fsrCandidatesRaw, adaptiveLumaCandidatesRaw] = await Promise.all([
     Promise.all(
-      fallbackCandidateSegments.map(async (segments) => join(resourcesPath, ...segments, "FSR.glsl").catch(() => null)),
+      fallbackCandidateSegments.map(async (segments) =>
+        join(resourcesPath, ...segments, "FSR.glsl").catch(() => null),
+      ),
     ),
     Promise.all(
       fallbackCandidateSegments.map(async (segments) =>
@@ -56,9 +54,13 @@ async function getBundledUpscaleShaderBundles(resourcesPath: string | null): Pro
     ),
   ]);
 
-  const fsrCandidates = [...new Set(fsrCandidatesRaw.filter((candidate): candidate is string => candidate !== null))];
+  const fsrCandidates = [
+    ...new Set(fsrCandidatesRaw.filter((candidate): candidate is string => candidate !== null)),
+  ];
   const adaptiveLumaCandidates = [
-    ...new Set(adaptiveLumaCandidatesRaw.filter((candidate): candidate is string => candidate !== null)),
+    ...new Set(
+      adaptiveLumaCandidatesRaw.filter((candidate): candidate is string => candidate !== null),
+    ),
   ];
 
   const validBundles: string[][] = [];
@@ -118,12 +120,19 @@ export async function createMpvConfig(
       ao: "wasapi",
       "audio-exclusive": "no",
       "audio-channels": "auto-safe",
+      "audio-format": "float",
+      "audio-pitch-correction": "yes",
+      "audio-normalize-downmix": "yes",
+      "audio-resample-filter-size": 32,
+      "audio-resample-phase-shift": 10,
+      "audio-resample-linear": "no",
       volume: MPV_VOLUME_DEFAULT,
       "volume-max": MPV_VOLUME_MAX,
       replaygain: "no",
       "replaygain-fallback": "0",
       "replaygain-clip": "no",
-      "ad-lavc-ac3drc": 0.5,
+      "ad-lavc-downmix": "no",
+      "ad-lavc-ac3drc": 0,
       "sub-font": SUBTITLE_FONT,
       "sub-font-size": SUBTITLE_FONT_SIZE,
       "sub-scale": SUBTITLE_SCALE,

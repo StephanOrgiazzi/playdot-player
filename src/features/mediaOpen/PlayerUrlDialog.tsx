@@ -52,7 +52,7 @@ export function PlayerUrlDialog({
         <h2 id="url-dialog-title" className="url-dialog__title">
           Open Web URL
         </h2>
-        <p className="url-dialog__copy">Paste a direct video link or stream URL.</p>
+        <p className="url-dialog__copy">Paste a direct media link or stream URL.</p>
         <label className="url-dialog__label" htmlFor="url-dialog-input">
           URL
         </label>

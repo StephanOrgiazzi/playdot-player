@@ -49,7 +49,7 @@ export function PlayerScreen(props: PlayerScreenProps) {
         <div className="titlebar__drag" />
         <button className="title-pill" type="button" onClick={props.handleTitlePillClick}>
           <PlayerIcon name="app-mark" className="icon icon--sm icon--app-mark" />
-          <span className="title-pill__label">{props.filename || "No video loaded"}</span>
+          <span className="title-pill__label">{props.filename || "No media loaded"}</span>
         </button>
         <div className="titlebar__right">
           <div className="titlebar__drag titlebar__drag--right" />
@@ -104,9 +104,9 @@ export function PlayerScreen(props: PlayerScreenProps) {
         {showEmptyState && (
           <div className="hero-empty">
             <h1 className="hero-empty__title">PLAY.</h1>
-            <p className="hero-empty__copy">Drop a file or paste a web video URL.</p>
+            <p className="hero-empty__copy">Drop a file or paste a web media URL.</p>
             <button className="hero-open-button" type="button" onClick={props.pickAndOpenMediaFile}>
-              Open video
+              Open media
             </button>
           </div>
         )}
