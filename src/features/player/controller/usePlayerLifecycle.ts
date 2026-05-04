@@ -1,5 +1,6 @@
 import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
 import { getStartupMediaSource } from "@features/mediaOpen/startup";
+import { listen } from "@tauri-apps/api/event";
 import type { Window } from "@tauri-apps/api/window";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
 import { getErrorMessage } from "@shared/lib/error";
@@ -32,28 +33,9 @@ export function usePlayerLifecycle({
     let mounted = true;
     resetPlayerState();
 
-    const setup = async (): Promise<void> => {
-      const startupMediaSourcePromise = getStartupMediaSource();
-
+    const loadMediaSource = async (source: string, fallbackMessage: string): Promise<void> => {
       try {
-        await beforeStartRef.current?.();
-        await player.start();
-      } catch (error) {
-        if (!mounted) {
-          return;
-        }
-
-        setError(getErrorMessage(error, "Failed to initialize mpv"));
-        return;
-      }
-
-      try {
-        const startupMediaSource = await startupMediaSourcePromise;
-        if (!startupMediaSource) {
-          return;
-        }
-
-        await player.loadFile(startupMediaSource);
+        await player.loadFile(source);
         if (!mounted) {
           return;
         }
@@ -64,7 +46,38 @@ export function usePlayerLifecycle({
           return;
         }
 
-        setError(getErrorMessage(error, "Failed to open launch media"));
+        setError(getErrorMessage(error, fallbackMessage));
+      }
+    };
+
+    const playerReadyPromise = (async (): Promise<void> => {
+      try {
+        await beforeStartRef.current?.();
+        await player.start();
+      } catch (error) {
+        setError(getErrorMessage(error, "Failed to initialize mpv"));
+        throw error;
+      }
+    })();
+
+    const setup = async (): Promise<void> => {
+      const startupMediaSourcePromise = getStartupMediaSource();
+
+      try {
+        await playerReadyPromise;
+      } catch {
+        return;
+      }
+
+      try {
+        const startupMediaSource = await startupMediaSourcePromise;
+        if (!startupMediaSource) {
+          return;
+        }
+
+        await loadMediaSource(startupMediaSource, "Failed to open launch media");
+      } catch {
+        return;
       }
     };
 
@@ -103,6 +116,11 @@ export function usePlayerLifecycle({
     const resizePromise = appWindow.onResized(() => {
       void syncWindowState();
     });
+    const openMediaSourcePromise = listen<string>("open-media-source", (event) => {
+      void playerReadyPromise
+        .then(() => loadMediaSource(event.payload, "Failed to open launch media"))
+        .catch(() => undefined);
+    });
 
     void syncWindowState();
 
@@ -114,6 +132,9 @@ export function usePlayerLifecycle({
         unlisten();
       });
       void resizePromise.then((unlisten) => {
+        unlisten();
+      });
+      void openMediaSourcePromise.then((unlisten) => {
         unlisten();
       });
       void player.stop();
