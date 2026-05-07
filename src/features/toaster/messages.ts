@@ -48,6 +48,10 @@ export function createFsrToast(enabled: boolean): ToastState {
   return createToast(enabled ? "Upscale ON" : "Upscale OFF");
 }
 
+export function createStereoDownmixToast(enabled: boolean): ToastState {
+  return createToast(enabled ? "Stereo Downmix ON" : "Stereo Downmix OFF");
+}
+
 export function createSvpToast(enabled: boolean): ToastState {
   return createToast(enabled ? "SVP ON" : "SVP OFF");
 }
@@ -97,5 +101,7 @@ export function createTrackToast(
   }
 
   const counter = getTrackCounter(tracks, selectedTrack);
-  return createToast(`Subtitles: ${getTrackLabel(selectedTrack, "Off")}${counter ? ` ${counter}` : ""}`);
+  return createToast(
+    `Subtitles: ${getTrackLabel(selectedTrack, "Off")}${counter ? ` ${counter}` : ""}`,
+  );
 }

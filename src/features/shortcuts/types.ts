@@ -16,6 +16,7 @@ export type ShortcutActions = {
   speedUpPlayback: AsyncAction;
   adjustGamma: (delta: number) => Promise<void>;
   toggleFsr: AsyncAction;
+  toggleStereoDownmix: AsyncAction;
   toggleFullscreen: AsyncAction;
   toggleMute: AsyncAction;
   togglePlayPause: AsyncAction;

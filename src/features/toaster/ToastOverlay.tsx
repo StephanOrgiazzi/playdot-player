@@ -10,7 +10,11 @@ export function ToastOverlay({ toast }: ToastOverlayProps) {
   }
 
   return (
-    <p className={`track-toast${toast.visible ? " is-visible" : ""}`} role="status" aria-live="polite">
+    <p
+      className={`track-toast${toast.visible ? " is-visible" : ""}`}
+      role="status"
+      aria-live="polite"
+    >
       {toast.message}
     </p>
   );

@@ -8,7 +8,12 @@ import {
   type SetStateAction,
 } from "react";
 import { createMediaOpenActions } from "@features/mediaOpen/actions";
-import { createFsrToast, createGammaToast, createVolumeToast } from "@features/toaster/messages";
+import {
+  createFsrToast,
+  createGammaToast,
+  createStereoDownmixToast,
+  createVolumeToast,
+} from "@features/toaster/messages";
 import type { ToastState, TrackKind } from "@features/toaster/types";
 import { usePendingTrackToast } from "@features/toaster/useToastEffects";
 import {
@@ -376,7 +381,9 @@ export function usePlayerEnhancementActions({
   setToast: SetToast;
 }): {
   isFsrEnabled: boolean;
+  isStereoDownmixEnabled: boolean;
   toggleFsr: () => Promise<void>;
+  toggleStereoDownmix: () => Promise<void>;
   adjustVolume: (delta: number) => Promise<void>;
   adjustGamma: (delta: number) => Promise<void>;
   increaseGamma: () => Promise<void>;
@@ -386,6 +393,7 @@ export function usePlayerEnhancementActions({
     getPersistedBoolean(FSR_PREFERENCE_STORAGE_KEY),
   );
   const [isFsrEnabled, setIsFsrEnabled] = useState(false);
+  const [isStereoDownmixEnabled, setIsStereoDownmixEnabled] = useState(false);
   const gammaLevelRef = useRef(0);
   const toggleFsr = useCallback(async (): Promise<void> => {
     if (!hasMedia) {
@@ -407,6 +415,20 @@ export function usePlayerEnhancementActions({
     (delta: number): Promise<void> => applyVolumeAction({ player, hasMedia, delta, setToast }),
     [hasMedia, player, setToast],
   );
+  const toggleStereoDownmix = useCallback(async (): Promise<void> => {
+    if (!hasMedia) {
+      return;
+    }
+
+    try {
+      const enabled = await player.toggleStereoDownmix();
+      setError("");
+      setIsStereoDownmixEnabled(enabled);
+      setToast(createStereoDownmixToast(enabled));
+    } catch (error) {
+      setError(getErrorMessage(error, "Failed to toggle stereo downmix"));
+    }
+  }, [hasMedia, player, setError, setToast]);
   const adjustGamma = useCallback(
     async (delta: number): Promise<void> => {
       if (!hasMedia || delta === 0) {
@@ -438,7 +460,9 @@ export function usePlayerEnhancementActions({
 
   return {
     isFsrEnabled,
+    isStereoDownmixEnabled,
     toggleFsr,
+    toggleStereoDownmix,
     adjustVolume,
     adjustGamma,
     increaseGamma,

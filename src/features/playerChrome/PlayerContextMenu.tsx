@@ -16,6 +16,7 @@ type PlayerContextMenuProps = {
   position: { x: number; y: number };
   hasMedia: boolean;
   isFsrEnabled: boolean;
+  isStereoDownmixEnabled: boolean;
   isSvpAvailable: boolean;
   isSvpEnabled: boolean;
   isFullscreen: boolean;
@@ -36,6 +37,7 @@ type PlayerContextMenuProps = {
   selectAudioTrack: TrackSelectionAction;
   selectSubtitleTrack: TrackSelectionAction;
   toggleFsr: AsyncAction;
+  toggleStereoDownmix: AsyncAction;
   toggleSvp: AsyncAction;
   toggleFullscreen: AsyncAction;
 };
@@ -351,6 +353,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
       position,
       hasMedia,
       isFsrEnabled,
+      isStereoDownmixEnabled,
       isSvpAvailable,
       isSvpEnabled,
       isFullscreen,
@@ -371,6 +374,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
       selectAudioTrack,
       selectSubtitleTrack,
       toggleFsr,
+      toggleStereoDownmix,
       toggleSvp,
       toggleFullscreen,
     },
@@ -436,6 +440,19 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
             runAction(toggleFsr);
           }}
           icon={isFsrEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null}
+        />
+        <MenuActionItem
+          label="Stereo Downmix"
+          shortcut="D"
+          role="menuitemcheckbox"
+          ariaChecked={isStereoDownmixEnabled}
+          disabled={!hasMedia}
+          onClick={(): void => {
+            runAction(toggleStereoDownmix);
+          }}
+          icon={
+            isStereoDownmixEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null
+          }
         />
         {isSvpAvailable ? (
           <MenuActionItem

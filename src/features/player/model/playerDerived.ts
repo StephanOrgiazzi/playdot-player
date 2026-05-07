@@ -3,9 +3,7 @@ import type { MediaTrack, PlayerState } from "./playerState";
 
 type PlayerTrackState = Pick<
   PlayerState,
-  | "selectedAudioTrackId"
-  | "selectedSubtitleTrackId"
-  | "tracks"
+  "selectedAudioTrackId" | "selectedSubtitleTrackId" | "tracks"
 >;
 
 export type PlayerTrackDerivedState = {
@@ -29,9 +27,7 @@ function getTrackSummary(
   return tracks.length > 0 ? `${tracks.length} tracks` : fallback;
 }
 
-export function getPlayerTrackDerivedState(
-  state: PlayerTrackState,
-): PlayerTrackDerivedState {
+export function getPlayerTrackDerivedState(state: PlayerTrackState): PlayerTrackDerivedState {
   const audioTracks = getTracksByType(state, "audio");
   const subtitleTracks = getTracksByType(state, "sub");
   const selectedAudioTrack = getSelectedTrackByType(state, "audio");

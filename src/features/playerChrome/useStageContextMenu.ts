@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type RefObject } from "react";
 import {
-  CONTEXT_MENU_HEIGHT,
-  CONTEXT_MENU_MARGIN,
-  CONTEXT_MENU_WIDTH,
-} from "./constants";
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type RefObject,
+} from "react";
+import { CONTEXT_MENU_HEIGHT, CONTEXT_MENU_MARGIN, CONTEXT_MENU_WIDTH } from "./constants";
 import type { ContextMenuPosition } from "./types";
 
 function getContextMenuPosition(clientX: number, clientY: number): ContextMenuPosition {

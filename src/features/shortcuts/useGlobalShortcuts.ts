@@ -2,7 +2,11 @@ import { useEffect, useEffectEvent } from "react";
 import { handleShortcutKeyDown, handleShortcutPaste, handleShortcutWheel } from "./handlers";
 import type { UseGlobalShortcutsOptions } from "./types";
 
-export function useGlobalShortcuts({ hasMedia, isFullscreen, ...actions }: UseGlobalShortcutsOptions): void {
+export function useGlobalShortcuts({
+  hasMedia,
+  isFullscreen,
+  ...actions
+}: UseGlobalShortcutsOptions): void {
   const handleKeyDown = useEffectEvent((event: KeyboardEvent, priorityOnly = false): void => {
     handleShortcutKeyDown({ event, hasMedia, isFullscreen, actions, priorityOnly });
   });
@@ -14,8 +18,12 @@ export function useGlobalShortcuts({ hasMedia, isFullscreen, ...actions }: UseGl
   });
 
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void =>{  handleKeyDown(event); };
-    const onPriorityKeyDown = (event: KeyboardEvent): void =>{  handleKeyDown(event, true); };
+    const onKeyDown = (event: KeyboardEvent): void => {
+      handleKeyDown(event);
+    };
+    const onPriorityKeyDown = (event: KeyboardEvent): void => {
+      handleKeyDown(event, true);
+    };
 
     window.addEventListener("keydown", onPriorityKeyDown, { capture: true });
     window.addEventListener("keydown", onKeyDown);

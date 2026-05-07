@@ -48,14 +48,8 @@ export function VolumeCluster({
         onClick={toggleMute}
       >
         <span className="icon-stack">
-          <PlayerIcon
-            name="volume"
-            className={`icon icon--md${isMuted ? " is-hidden" : ""}`}
-          />
-          <PlayerIcon
-            name="volume-off"
-            className={`icon icon--md${isMuted ? "" : " is-hidden"}`}
-          />
+          <PlayerIcon name="volume" className={`icon icon--md${isMuted ? " is-hidden" : ""}`} />
+          <PlayerIcon name="volume-off" className={`icon icon--md${isMuted ? "" : " is-hidden"}`} />
         </span>
       </button>
       <input

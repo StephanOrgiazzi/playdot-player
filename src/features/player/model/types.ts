@@ -15,6 +15,7 @@ export type PlayerScreenProps = {
   toast: ToastState | null;
   isFullscreen: boolean;
   isFsrEnabled: boolean;
+  isStereoDownmixEnabled: boolean;
   isSvpAvailable: boolean;
   isSvpEnabled: boolean;
   isSwitchingSvp: boolean;
@@ -37,6 +38,7 @@ export type PlayerScreenProps = {
   selectAudioTrack: TrackSelectionAction;
   selectSubtitleTrack: TrackSelectionAction;
   toggleFsr: AsyncAction;
+  toggleStereoDownmix: AsyncAction;
   toggleSvp: AsyncAction;
   toggleFullscreen: AsyncAction;
   handleTitlebarMouseDown: (event: ReactMouseEvent<HTMLElement>) => void;

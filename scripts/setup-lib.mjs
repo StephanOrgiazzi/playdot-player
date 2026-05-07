@@ -28,7 +28,7 @@ function getSystemInfo() {
     platform,
     osName: "windows",
     archName: arch === "x64" ? "x86_64" : "aarch64",
-    wrapperLibName: "libmpv-wrapper.dll"
+    wrapperLibName: "libmpv-wrapper.dll",
   };
 }
 
@@ -73,7 +73,7 @@ async function extractArchive(archivePath, extractDir) {
   const archiveDir = path.dirname(archivePath);
   const sevenZip = await SevenZip({
     print: () => undefined,
-    printErr: () => undefined
+    printErr: () => undefined,
   });
 
   const sourceMount = "/archive_source";
@@ -183,7 +183,8 @@ async function main() {
     const wrapperSha = await fetchText(`${wrapperBaseUrl}/sha256.txt`);
     const wrapperArchive = pickReleaseFile(
       wrapperSha,
-      (fileName) => fileName.includes(`libmpv-wrapper-windows-${archName}`) && fileName.endsWith(".zip")
+      (fileName) =>
+        fileName.includes(`libmpv-wrapper-windows-${archName}`) && fileName.endsWith(".zip"),
     );
 
     if (!wrapperArchive) {
@@ -195,7 +196,7 @@ async function main() {
     const mpvSha = await fetchText(`${mpvBaseUrl}/sha256.txt`);
     const mpvArchive = pickReleaseFile(
       mpvSha,
-      (fileName) => fileName.includes(`mpv-dev-lgpl-${archName}`) && !fileName.includes("v3")
+      (fileName) => fileName.includes(`mpv-dev-lgpl-${archName}`) && !fileName.includes("v3"),
     );
 
     if (!mpvArchive) {

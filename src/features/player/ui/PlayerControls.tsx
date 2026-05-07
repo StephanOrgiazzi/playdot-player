@@ -66,7 +66,8 @@ function useTimelineControl({
   const timelineDragValueRef = useRef<number | null>(null);
   const isTimelinePointerScrubbingRef = useRef(false);
   const progressMax = duration > 0 ? duration : 1;
-  const progressPercent = duration > 0 ? `${(Math.min(timePos, progressMax) / progressMax) * 100}%` : "0%";
+  const progressPercent =
+    duration > 0 ? `${(Math.min(timePos, progressMax) / progressMax) * 100}%` : "0%";
 
   const getClampedTimelineValue = useCallback(
     (value: number): number => Math.min(Math.max(0, value), progressMax),
@@ -240,7 +241,8 @@ function useTimelineControl({
     }
   }, [hasMedia, setTimelineDragState, setTimelineScrubbingState, timelineDragValue]);
 
-  const timelineValue = timelineDragValue === null ? Math.min(timePos, progressMax) : timelineDragValue;
+  const timelineValue =
+    timelineDragValue === null ? Math.min(timePos, progressMax) : timelineDragValue;
   let timelineProgressPercent = progressPercent;
 
   if (timelineDragValue !== null) {
@@ -249,7 +251,9 @@ function useTimelineControl({
 
   return {
     displayedCurrentTime:
-      timelineDragValue === null ? formatTime(timePos) : formatTime(duration > 0 ? timelineValue : null),
+      timelineDragValue === null
+        ? formatTime(timePos)
+        : formatTime(duration > 0 ? timelineValue : null),
     isTimelineScrubbing,
     timelinePreview:
       timelineDragValue === null ? timelineHoverPreview : createTimelinePreview(timelineDragValue),

@@ -13,7 +13,10 @@ function isSpaceKey(event: KeyboardEvent): boolean {
   return event.key === " " || event.key === "Spacebar" || event.code === "Space";
 }
 
-type KeyShortcutAction = Exclude<keyof ShortcutActions, "adjustVolume" | "adjustGamma" | "openPastedWebUrl">;
+type KeyShortcutAction = Exclude<
+  keyof ShortcutActions,
+  "adjustVolume" | "adjustGamma" | "openPastedWebUrl"
+>;
 
 const CTRL_MEDIA_SHORTCUTS: Partial<Record<string, KeyShortcutAction>> = {
   ArrowLeft: "slowDownPlayback",
@@ -24,13 +27,19 @@ const CTRL_MEDIA_SHORTCUTS: Partial<Record<string, KeyShortcutAction>> = {
 
 const MEDIA_SHORTCUTS: Partial<Record<string, KeyShortcutAction>> = {
   a: "cycleAudioTrack",
+  d: "toggleStereoDownmix",
   s: "cycleSubtitleTrack",
   u: "toggleFsr",
   m: "toggleMute",
 };
 
 function getZoomShortcutAction(event: KeyboardEvent): KeyShortcutAction | undefined {
-  if (event.key === "+" || event.key === "=" || event.code === "NumpadAdd" || event.code === "Equal") {
+  if (
+    event.key === "+" ||
+    event.key === "=" ||
+    event.code === "NumpadAdd" ||
+    event.code === "Equal"
+  ) {
     return "zoomIn";
   }
 
@@ -154,7 +163,11 @@ type HandleShortcutWheelOptions = {
   adjustVolume: (delta: number) => Promise<void>;
 };
 
-export function handleShortcutWheel({ event, hasMedia, adjustVolume }: HandleShortcutWheelOptions): void {
+export function handleShortcutWheel({
+  event,
+  hasMedia,
+  adjustVolume,
+}: HandleShortcutWheelOptions): void {
   if (!hasMedia || event.defaultPrevented || event.ctrlKey) {
     return;
   }

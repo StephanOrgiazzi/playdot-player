@@ -185,14 +185,22 @@ export function usePlayerController(): PlayerScreenProps {
     setError,
     setToast,
   });
-  const { isFsrEnabled, toggleFsr, adjustVolume, adjustGamma, increaseGamma, decreaseGamma } =
-    usePlayerEnhancementActions({
-      player,
-      hasMedia,
-      filename,
-      setError,
-      setToast,
-    });
+  const {
+    isFsrEnabled,
+    isStereoDownmixEnabled,
+    toggleFsr,
+    toggleStereoDownmix,
+    adjustVolume,
+    adjustGamma,
+    increaseGamma,
+    decreaseGamma,
+  } = usePlayerEnhancementActions({
+    player,
+    hasMedia,
+    filename,
+    setError,
+    setToast,
+  });
 
   const toggleFullscreen = useCallback(async (): Promise<void> => {
     const next = !(await appWindow.isFullscreen());
@@ -246,6 +254,7 @@ export function usePlayerController(): PlayerScreenProps {
     increaseSubtitleScale,
     decreaseSubtitleScale,
     toggleFsr,
+    toggleStereoDownmix,
     toggleFullscreen,
     toggleMute,
     togglePlayPause,
@@ -260,6 +269,7 @@ export function usePlayerController(): PlayerScreenProps {
     toast,
     isFullscreen,
     isFsrEnabled,
+    isStereoDownmixEnabled,
     isSvpAvailable,
     isSvpEnabled,
     isSwitchingSvp,
@@ -282,6 +292,7 @@ export function usePlayerController(): PlayerScreenProps {
     selectAudioTrack,
     selectSubtitleTrack,
     toggleFsr,
+    toggleStereoDownmix,
     toggleSvp,
     toggleFullscreen,
     handleTitlebarMouseDown,
