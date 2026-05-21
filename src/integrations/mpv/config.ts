@@ -1,5 +1,6 @@
 import { join, resolveResource, resourceDir } from "@tauri-apps/api/path";
 import { getSvpMpvInitialOptions } from "@integrations/svp/mpv";
+import { getStereoDownmixMpvInitialOptions } from "./stereoDownmix";
 import type { MpvConfig } from "./libmpv-api";
 import {
   MPV_VOLUME_DEFAULT,
@@ -22,6 +23,7 @@ type MpvResourcePaths = {
 };
 
 type MpvFeatureFlags = {
+  stereoDownmixEnabled?: boolean;
   svpEnabled?: boolean;
 };
 
@@ -103,7 +105,8 @@ export async function createMpvConfig(
   featureFlags?: MpvFeatureFlags,
 ): Promise<MpvConfig> {
   const { subtitleFontsDir } = resourcePaths ?? (await getMpvResourcePaths());
-  const { svpEnabled = false } = featureFlags ?? {};
+  const { stereoDownmixEnabled = false, svpEnabled = false } = featureFlags ?? {};
+  const stereoDownmixInitialOptions = getStereoDownmixMpvInitialOptions(stereoDownmixEnabled);
   const svpInitialOptions = getSvpMpvInitialOptions(svpEnabled);
 
   return {
@@ -119,10 +122,8 @@ export async function createMpvConfig(
       pause: "yes",
       ao: "wasapi",
       "audio-exclusive": "no",
-      "audio-channels": "auto-safe",
       "audio-format": "float",
       "audio-pitch-correction": "yes",
-      "audio-normalize-downmix": "yes",
       "audio-resample-filter-size": 32,
       "audio-resample-phase-shift": 10,
       "audio-resample-linear": "no",
@@ -131,8 +132,8 @@ export async function createMpvConfig(
       replaygain: "no",
       "replaygain-fallback": "0",
       "replaygain-clip": "no",
-      "ad-lavc-downmix": "no",
       "ad-lavc-ac3drc": 0,
+      ...stereoDownmixInitialOptions,
       "sub-font": SUBTITLE_FONT,
       "sub-font-size": SUBTITLE_FONT_SIZE,
       "sub-scale": SUBTITLE_SCALE,

@@ -4,13 +4,15 @@ import {
   useState,
   type Dispatch,
   type JSX,
-  type ReactNode,
+  type WheelEvent,
   type SetStateAction,
 } from "react";
 import type { MediaTrack } from "@features/player/model/playerState";
 import { PlayerIcon } from "@features/player/ui/PlayerIcons";
 import type { AsyncAction, TrackSelectionAction } from "@features/player/model/types";
 import { CONTEXT_MENU_SUBMENU_WIDTH, CONTEXT_MENU_WIDTH } from "./constants";
+import { MenuActionItem } from "./MenuActionItem";
+import { useSubmenuViewportStyle } from "./useSubmenuViewportStyle";
 
 type PlayerContextMenuProps = {
   position: { x: number; y: number };
@@ -42,54 +44,6 @@ type PlayerContextMenuProps = {
   toggleFullscreen: AsyncAction;
 };
 
-type MenuActionItemProps = {
-  label: string;
-  shortcut?: string;
-  disabled?: boolean;
-  role?: "menuitem" | "menuitemcheckbox";
-  ariaChecked?: boolean;
-  onClick: () => void;
-  icon?: ReactNode;
-};
-
-function MenuActionItem({
-  label,
-  shortcut,
-  disabled,
-  role = "menuitem",
-  ariaChecked,
-  onClick,
-  icon,
-}: MenuActionItemProps): JSX.Element {
-  let metaContent: JSX.Element | null = null;
-  if (icon) {
-    metaContent = (
-      <span className="player-context-menu__item-meta">
-        {shortcut ? <span className="player-context-menu__item-shortcut">{shortcut}</span> : null}
-        <span className="player-context-menu__item-icon" aria-hidden="true">
-          {icon}
-        </span>
-      </span>
-    );
-  } else if (shortcut) {
-    metaContent = <span className="player-context-menu__item-shortcut">{shortcut}</span>;
-  }
-
-  return (
-    <button
-      className="player-context-menu__item"
-      type="button"
-      role={role}
-      disabled={disabled}
-      aria-checked={ariaChecked}
-      onClick={onClick}
-    >
-      <span className="player-context-menu__item-label">{label}</span>
-      {metaContent}
-    </button>
-  );
-}
-
 function getTrackDisplayLabel(track: MediaTrack): string {
   const title = track.title.trim();
   const language = track.lang?.trim();
@@ -99,6 +53,10 @@ function getTrackDisplayLabel(track: MediaTrack): string {
   }
 
   return language || title || `Track ${track.id}`;
+}
+
+function keepWheelInsideSubmenu(event: WheelEvent<HTMLDivElement>): void {
+  event.stopPropagation();
 }
 
 type PlaybackOptionsSubmenuProps = {
@@ -132,6 +90,8 @@ function PlaybackOptionsSubmenu({
   increaseSubtitleScale,
   decreaseSubtitleScale,
 }: PlaybackOptionsSubmenuProps): JSX.Element {
+  const { panelRef, panelStyle } = useSubmenuViewportStyle(isPlaybackSubmenuOpen && hasMedia);
+
   return (
     <div
       className={`player-context-menu__submenu-group${isPlaybackSubmenuOpen ? " is-open" : ""}${
@@ -169,8 +129,11 @@ function PlaybackOptionsSubmenu({
       </button>
       {isPlaybackSubmenuOpen && hasMedia ? (
         <div
+          ref={panelRef}
           className={`player-context-menu__submenu-panel${isSubmenuOpenLeft ? " is-open-left" : ""}`}
           role="menu"
+          style={panelStyle}
+          onWheel={keepWheelInsideSubmenu}
         >
           <MenuActionItem
             label="Speed Up"
@@ -269,6 +232,7 @@ function TrackSelectionSubmenu({
 }: TrackSelectionSubmenuProps): JSX.Element {
   const hasSelectableTrack = tracks.length > 0;
   const disabled = !hasMedia || !hasSelectableTrack;
+  const { panelRef, panelStyle } = useSubmenuViewportStyle(isOpen && !disabled);
 
   return (
     <div
@@ -307,8 +271,11 @@ function TrackSelectionSubmenu({
       </button>
       {isOpen && !disabled ? (
         <div
+          ref={panelRef}
           className={`player-context-menu__submenu-panel${isSubmenuOpenLeft ? " is-open-left" : ""}`}
           role="menu"
+          style={panelStyle}
+          onWheel={keepWheelInsideSubmenu}
         >
           {includeOffOption ? (
             <MenuActionItem

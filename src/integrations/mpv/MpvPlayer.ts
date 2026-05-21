@@ -22,6 +22,7 @@ import {
   clampMpvVolume,
 } from "./constants";
 import { createMpvConfig, getMpvResourcePaths } from "./config";
+import { STEREO_DOWNMIX_AUDIO_FILTER, STEREO_DOWNMIX_FILTER_LABEL } from "./stereoDownmix";
 import { applyObservedProperty } from "./stateUpdates";
 import {
   EMPTY_PLAYER_STATE,
@@ -35,9 +36,6 @@ type PlayerListener = (state: PlayerState) => void;
 type TrackType = MediaTrack["type"];
 type TrackSelection = number | "no";
 
-const STEREO_DOWNMIX_AUDIO_FILTER =
-  "lavfi=[acompressor=threshold=0.125:ratio=3:attack=8:release=150:knee=3:makeup=1.35:link=maximum,loudnorm=I=-18:LRA=10:TP=-1.5]";
-
 export class MpvPlayer {
   private state: PlayerState = { ...EMPTY_PLAYER_STATE };
 
@@ -47,7 +45,6 @@ export class MpvPlayer {
   private audioTrackChange: Promise<void> | null = null;
   private subtitleTrackChange: Promise<void> | null = null;
   private fsrToggle: Promise<boolean> | null = null;
-  private stereoDownmixToggle: Promise<boolean> | null = null;
   private upscaleShaderBundles: string[][] = [];
   private appliedUpscaleShaderPaths: string[] = [];
   private stereoDownmixEnabled = false;
@@ -103,10 +100,8 @@ export class MpvPlayer {
     this.unlisten?.();
     this.unlisten = null;
     this.fsrToggle = null;
-    this.stereoDownmixToggle = null;
     this.upscaleShaderBundles = [];
     this.appliedUpscaleShaderPaths = [];
-    this.stereoDownmixEnabled = false;
     this.started = false;
     this.currentSource = null;
     this.artworkCaptureToken += 1;
@@ -134,6 +129,26 @@ export class MpvPlayer {
       await this.restartWithCurrentMedia();
     } catch (error) {
       this.svpEnabled = previous;
+      throw error;
+    }
+  }
+
+  async setStereoDownmixEnabled(enabled: boolean): Promise<void> {
+    if (this.stereoDownmixEnabled === enabled) {
+      return;
+    }
+
+    const previous = this.stereoDownmixEnabled;
+    this.stereoDownmixEnabled = enabled;
+
+    if (!this.started) {
+      return;
+    }
+
+    try {
+      await this.applyStereoDownmixSettings(enabled);
+    } catch (error) {
+      this.stereoDownmixEnabled = previous;
       throw error;
     }
   }
@@ -188,7 +203,10 @@ export class MpvPlayer {
     }
 
     const resourcePaths = await getMpvResourcePaths();
-    const config = await createMpvConfig(resourcePaths, { svpEnabled: this.svpEnabled });
+    const config = await createMpvConfig(resourcePaths, {
+      stereoDownmixEnabled: this.stereoDownmixEnabled,
+      svpEnabled: this.svpEnabled,
+    });
     await init(config);
     this.upscaleShaderBundles = resourcePaths.upscaleShaderBundles;
     this.appliedUpscaleShaderPaths = [];
@@ -346,21 +364,6 @@ export class MpvPlayer {
     return task;
   }
 
-  async toggleStereoDownmix(): Promise<boolean> {
-    if (this.stereoDownmixToggle) {
-      return this.stereoDownmixToggle;
-    }
-
-    const task = this.runStereoDownmixToggle().finally(() => {
-      if (this.stereoDownmixToggle === task) {
-        this.stereoDownmixToggle = null;
-      }
-    });
-
-    this.stereoDownmixToggle = task;
-    return task;
-  }
-
   private async runAudioTrackCycle(): Promise<void> {
     const audioTracks = getTracksByType(this.state, "audio");
     if (audioTracks.length < 2) {
@@ -471,20 +474,15 @@ export class MpvPlayer {
     return null;
   }
 
-  private async runStereoDownmixToggle(): Promise<boolean> {
-    const nextEnabled = !this.stereoDownmixEnabled;
-
-    await setProperty("audio-channels", nextEnabled ? "stereo" : "auto-safe");
-    await setProperty("ad-lavc-downmix", nextEnabled ? "yes" : "no");
+  private async applyStereoDownmixSettings(enabled: boolean): Promise<void> {
+    await setProperty("audio-channels", enabled ? "stereo" : "auto-safe");
+    await setProperty("ad-lavc-downmix", enabled ? "yes" : "no");
     await setProperty("audio-normalize-downmix", "yes");
-    if (nextEnabled) {
-      await setProperty("af", STEREO_DOWNMIX_AUDIO_FILTER);
+    if (enabled) {
+      await command("af", ["add", STEREO_DOWNMIX_AUDIO_FILTER]);
     } else {
-      await command("af", ["clr"]);
+      await command("af", ["remove", `@${STEREO_DOWNMIX_FILTER_LABEL}`]);
     }
-
-    this.stereoDownmixEnabled = nextEnabled;
-    return nextEnabled;
   }
 
   private async waitForTrackSelection(type: TrackType, target: TrackSelection): Promise<void> {

@@ -152,13 +152,33 @@ export function usePlayerController(): PlayerScreenProps {
   const isCursorHidden = isChromeHidden;
   const { isSvpAvailable, isSvpEnabled, isSwitchingSvp, preparePlayerStart, toggleSvp } =
     useSvpIntegration({ player, setError, setToast });
+  const {
+    isFsrEnabled,
+    isStereoDownmixEnabled,
+    preparePlayerStart: preparePlayerEnhancementsStart,
+    toggleFsr,
+    toggleStereoDownmix,
+    adjustVolume,
+    adjustGamma,
+    increaseGamma,
+    decreaseGamma,
+  } = usePlayerEnhancementActions({
+    player,
+    hasMedia,
+    filename,
+    setError,
+    setToast,
+  });
 
   usePlayerLifecycle({
     player,
     appWindow,
     setError,
     syncWindowState,
-    beforeStart: preparePlayerStart,
+    beforeStart: async () => {
+      await preparePlayerStart();
+      await preparePlayerEnhancementsStart();
+    },
   });
   useToastAutoHide(toast, setToast);
   useBlurActiveControlWhenChromeHidden(isChromeHidden);
@@ -185,23 +205,6 @@ export function usePlayerController(): PlayerScreenProps {
     setError,
     setToast,
   });
-  const {
-    isFsrEnabled,
-    isStereoDownmixEnabled,
-    toggleFsr,
-    toggleStereoDownmix,
-    adjustVolume,
-    adjustGamma,
-    increaseGamma,
-    decreaseGamma,
-  } = usePlayerEnhancementActions({
-    player,
-    hasMedia,
-    filename,
-    setError,
-    setToast,
-  });
-
   const toggleFullscreen = useCallback(async (): Promise<void> => {
     const next = !(await appWindow.isFullscreen());
     await appWindow.setFullscreen(next);

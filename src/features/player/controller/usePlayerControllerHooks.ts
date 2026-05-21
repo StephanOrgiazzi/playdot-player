@@ -30,6 +30,7 @@ import { hasMedia as hasLoadedMedia } from "../model/playerSelectors";
 import { usePlayerStateSelector } from "../model/playerStore";
 
 const FSR_PREFERENCE_STORAGE_KEY = "playdot-player.player.fsr-enabled";
+const STEREO_DOWNMIX_PREFERENCE_STORAGE_KEY = "playdot-player.player.stereo-downmix-enabled";
 const GAMMA_STEP = 1;
 
 type SetError = (value: string) => void;
@@ -384,6 +385,7 @@ export function usePlayerEnhancementActions({
   isStereoDownmixEnabled: boolean;
   toggleFsr: () => Promise<void>;
   toggleStereoDownmix: () => Promise<void>;
+  preparePlayerStart: () => Promise<void>;
   adjustVolume: (delta: number) => Promise<void>;
   adjustGamma: (delta: number) => Promise<void>;
   increaseGamma: () => Promise<void>;
@@ -392,9 +394,18 @@ export function usePlayerEnhancementActions({
   const [fsrPreferenceEnabled, setFsrPreferenceEnabled] = useState<boolean>(() =>
     getPersistedBoolean(FSR_PREFERENCE_STORAGE_KEY),
   );
+  const [stereoDownmixPreferenceEnabled, setStereoDownmixPreferenceEnabled] = useState<boolean>(
+    () => getPersistedBoolean(STEREO_DOWNMIX_PREFERENCE_STORAGE_KEY, false),
+  );
   const [isFsrEnabled, setIsFsrEnabled] = useState(false);
-  const [isStereoDownmixEnabled, setIsStereoDownmixEnabled] = useState(false);
+  const [isStereoDownmixEnabled, setIsStereoDownmixEnabled] = useState(
+    stereoDownmixPreferenceEnabled,
+  );
   const gammaLevelRef = useRef(0);
+  const preparePlayerStart = useCallback(async (): Promise<void> => {
+    await player.setStereoDownmixEnabled(stereoDownmixPreferenceEnabled);
+    setIsStereoDownmixEnabled(stereoDownmixPreferenceEnabled);
+  }, [player, stereoDownmixPreferenceEnabled]);
   const toggleFsr = useCallback(async (): Promise<void> => {
     if (!hasMedia) {
       return;
@@ -421,14 +432,18 @@ export function usePlayerEnhancementActions({
     }
 
     try {
-      const enabled = await player.toggleStereoDownmix();
+      const nextPreferenceEnabled = !stereoDownmixPreferenceEnabled;
+
+      await player.setStereoDownmixEnabled(nextPreferenceEnabled);
       setError("");
-      setIsStereoDownmixEnabled(enabled);
-      setToast(createStereoDownmixToast(enabled));
+      setStereoDownmixPreferenceEnabled(nextPreferenceEnabled);
+      setIsStereoDownmixEnabled(nextPreferenceEnabled);
+      persistBoolean(STEREO_DOWNMIX_PREFERENCE_STORAGE_KEY, nextPreferenceEnabled);
+      setToast(createStereoDownmixToast(nextPreferenceEnabled));
     } catch (error) {
       setError(getErrorMessage(error, "Failed to toggle stereo downmix"));
     }
-  }, [hasMedia, player, setError, setToast]);
+  }, [hasMedia, player, setError, setToast, stereoDownmixPreferenceEnabled]);
   const adjustGamma = useCallback(
     async (delta: number): Promise<void> => {
       if (!hasMedia || delta === 0) {
@@ -461,6 +476,7 @@ export function usePlayerEnhancementActions({
   return {
     isFsrEnabled,
     isStereoDownmixEnabled,
+    preparePlayerStart,
     toggleFsr,
     toggleStereoDownmix,
     adjustVolume,

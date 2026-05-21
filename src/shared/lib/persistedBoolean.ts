@@ -1,8 +1,8 @@
-export function getPersistedBoolean(key: string): boolean {
+export function getPersistedBoolean(key: string, fallback = true): boolean {
   try {
-    return (window.localStorage.getItem(key) ?? "true") === "true";
+    return (window.localStorage.getItem(key) ?? `${fallback}`) === "true";
   } catch {
-    return true;
+    return fallback;
   }
 }
 

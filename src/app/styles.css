@@ -506,6 +506,8 @@ button {
   left: calc(100% + 8px);
   z-index: 1;
   display: grid;
+  align-content: start;
+  box-sizing: border-box;
   min-width: 248px;
   padding: 6px;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -513,7 +515,20 @@ button {
   background: rgba(16, 16, 16, 0.96);
   backdrop-filter: blur(18px);
   box-shadow: 0 22px 48px rgba(0, 0, 0, 0.45);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   animation: context-menu-enter 110ms ease-out;
+}
+
+.player-context-menu__submenu-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.player-context-menu__submenu-panel::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.26);
+  background-clip: padding-box;
 }
 
 .player-context-menu__submenu-panel.is-open-left {
