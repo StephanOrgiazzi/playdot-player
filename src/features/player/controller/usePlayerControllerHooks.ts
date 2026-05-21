@@ -402,6 +402,7 @@ export function usePlayerEnhancementActions({
     stereoDownmixPreferenceEnabled,
   );
   const gammaLevelRef = useRef(0);
+  const isSwitchingStereoDownmixRef = useRef(false);
   const preparePlayerStart = useCallback(async (): Promise<void> => {
     await player.setStereoDownmixEnabled(stereoDownmixPreferenceEnabled);
     setIsStereoDownmixEnabled(stereoDownmixPreferenceEnabled);
@@ -427,10 +428,11 @@ export function usePlayerEnhancementActions({
     [hasMedia, player, setToast],
   );
   const toggleStereoDownmix = useCallback(async (): Promise<void> => {
-    if (!hasMedia) {
+    if (!hasMedia || isSwitchingStereoDownmixRef.current) {
       return;
     }
 
+    isSwitchingStereoDownmixRef.current = true;
     try {
       const nextPreferenceEnabled = !stereoDownmixPreferenceEnabled;
 
@@ -442,6 +444,8 @@ export function usePlayerEnhancementActions({
       setToast(createStereoDownmixToast(nextPreferenceEnabled));
     } catch (error) {
       setError(getErrorMessage(error, "Failed to toggle stereo downmix"));
+    } finally {
+      isSwitchingStereoDownmixRef.current = false;
     }
   }, [hasMedia, player, setError, setToast, stereoDownmixPreferenceEnabled]);
   const adjustGamma = useCallback(

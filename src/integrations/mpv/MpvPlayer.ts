@@ -22,7 +22,6 @@ import {
   clampMpvVolume,
 } from "./constants";
 import { createMpvConfig, getMpvResourcePaths } from "./config";
-import { STEREO_DOWNMIX_AUDIO_FILTER, STEREO_DOWNMIX_FILTER_LABEL } from "./stereoDownmix";
 import { applyObservedProperty } from "./stateUpdates";
 import {
   EMPTY_PLAYER_STATE,
@@ -478,11 +477,6 @@ export class MpvPlayer {
     await setProperty("audio-channels", enabled ? "stereo" : "auto-safe");
     await setProperty("ad-lavc-downmix", enabled ? "yes" : "no");
     await setProperty("audio-normalize-downmix", "yes");
-    if (enabled) {
-      await command("af", ["add", STEREO_DOWNMIX_AUDIO_FILTER]);
-    } else {
-      await command("af", ["remove", `@${STEREO_DOWNMIX_FILTER_LABEL}`]);
-    }
   }
 
   private async waitForTrackSelection(type: TrackType, target: TrackSelection): Promise<void> {
