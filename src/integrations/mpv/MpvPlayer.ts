@@ -19,9 +19,11 @@ import {
   DEFAULT_PLAYBACK_SPEED,
   OBSERVED_PROPERTIES,
   SUBTITLE_SCALE,
+  VIDEO_TRANSFER_PROPERTY,
   clampMpvVolume,
 } from "./constants";
 import { createMpvConfig, getMpvResourcePaths } from "./config";
+import { MpvThumbnailer } from "./MpvThumbnailer";
 import { applyObservedProperty } from "./stateUpdates";
 import {
   EMPTY_PLAYER_STATE,
@@ -37,6 +39,7 @@ type TrackSelection = number | "no";
 
 export class MpvPlayer {
   private state: PlayerState = { ...EMPTY_PLAYER_STATE };
+  private thumbnailer = new MpvThumbnailer();
 
   private listeners = new Set<PlayerListener>();
   private emitFrameId: number | null = null;
@@ -82,11 +85,24 @@ export class MpvPlayer {
     }
   }
 
+  private async setPlayerFlag(name: "pause" | "mute", value: boolean): Promise<void> {
+    this.state = { ...this.state, [name === "pause" ? "paused" : "mute"]: value };
+    this.emit();
+    await setProperty(name, value);
+  }
+
   subscribe(listener: PlayerListener): () => void {
     this.listeners.add(listener);
     listener(this.state);
     return () => this.listeners.delete(listener);
   }
+
+  subscribeThumbnail = (listener: (url: string) => void): (() => void) =>
+    this.thumbnailer.subscribe(listener);
+
+  requestThumbnail = this.thumbnailer.request.bind(this.thumbnailer);
+
+  clearThumbnail = this.thumbnailer.clear.bind(this.thumbnailer);
 
   async start(): Promise<void> {
     await this.initialize();
@@ -109,7 +125,7 @@ export class MpvPlayer {
       return;
     }
 
-    await destroy().catch(() => undefined);
+    await Promise.all([destroy().catch(() => undefined), this.thumbnailer.stop()]);
   }
 
   async setSvpEnabled(enabled: boolean): Promise<void> {
@@ -152,12 +168,12 @@ export class MpvPlayer {
     }
   }
 
-  async loadFile(path: string): Promise<void> {
+  async loadFile(path: string, updateThumbnailSource = true): Promise<void> {
     this.currentSource = path;
-    const audioArtworkUrl = isLikelyAudioSource(path)
-      ? await readAudioArtworkUrl(path).catch(() => "")
-      : "";
+    const isAudioSource = isLikelyAudioSource(path);
+    const audioArtworkUrl = isAudioSource ? await readAudioArtworkUrl(path).catch(() => "") : "";
 
+    this.thumbnailer.setSource(updateThumbnailSource && !isAudioSource ? path : null);
     this.prepareAudioArtworkLoad(audioArtworkUrl);
     if (audioArtworkUrl) {
       await setVideoMarginRatio(AUDIO_ARTWORK_HIDDEN_VIDEO_MARGIN_RATIO).catch(() => undefined);
@@ -173,15 +189,15 @@ export class MpvPlayer {
   }
 
   async togglePlayPause(): Promise<void> {
-    await setProperty("pause", this.state.paused ? "no" : "yes");
+    await this.setPlayerFlag("pause", !this.state.paused);
   }
 
   async play(): Promise<void> {
-    await setProperty("pause", "no");
+    await this.setPlayerFlag("pause", false);
   }
 
   async pause(): Promise<void> {
-    await setProperty("pause", "yes");
+    await this.setPlayerFlag("pause", true);
   }
 
   async seekAbsolute(seconds: number): Promise<void> {
@@ -217,6 +233,10 @@ export class MpvPlayer {
     this.unlisten = await observeProperties(
       OBSERVED_PROPERTIES,
       (event: MpvObservedPropertyEvent) => {
+        if (event.name === VIDEO_TRANSFER_PROPERTY) {
+          this.thumbnailer.setTransferFunction(typeof event.data === "string" ? event.data : null);
+        }
+
         const nextState = applyObservedProperty(this.state, event);
         if (nextState === this.state) {
           return;
@@ -270,7 +290,7 @@ export class MpvPlayer {
   }
 
   async toggleMute(): Promise<void> {
-    await setProperty("mute", !this.state.mute);
+    await this.setPlayerFlag("mute", !this.state.mute);
   }
 
   async adjustVolume(delta: number): Promise<void> {
@@ -562,6 +582,7 @@ export class MpvPlayer {
     const currentTime = this.state.timePos;
     const wasPaused = this.state.paused;
 
+    this.thumbnailer.clear();
     await this.stop();
     await this.initialize();
 
@@ -572,7 +593,7 @@ export class MpvPlayer {
     this.currentSource = currentSource;
     const shouldWaitForFileLoaded = currentTime > 0 || wasPaused;
     const fileLoaded = shouldWaitForFileLoaded ? this.waitForEvent("file-loaded") : null;
-    await this.loadFile(currentSource);
+    await this.loadFile(currentSource, false);
     if (fileLoaded) {
       await fileLoaded;
     }
@@ -584,5 +605,7 @@ export class MpvPlayer {
     if (wasPaused) {
       await this.pause().catch(() => undefined);
     }
+
+    this.thumbnailer.setSource(isLikelyAudioSource(currentSource) ? null : currentSource);
   }
 }

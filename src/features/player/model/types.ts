@@ -59,6 +59,9 @@ export type PlayerScreenProps = {
   increaseSubtitleScale: AsyncAction;
   decreaseSubtitleScale: AsyncAction;
   setTimelinePosition: (value: number) => Promise<void>;
+  requestTimelineThumbnail: (value: number) => void;
+  clearTimelineThumbnail: () => void;
+  subscribeTimelineThumbnail: (listener: (url: string) => void) => () => void;
   setVolume: (value: number) => Promise<void>;
   minimizeWindow: AsyncAction;
   closeWindow: AsyncAction;
@@ -88,5 +91,8 @@ export type PlayerControlsProps = Pick<
   | "seekForward"
   | "toggleMute"
   | "setTimelinePosition"
+  | "requestTimelineThumbnail"
+  | "clearTimelineThumbnail"
+  | "subscribeTimelineThumbnail"
   | "setVolume"
 >;

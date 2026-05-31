@@ -210,6 +210,15 @@ export function usePlayerController(): PlayerScreenProps {
     await appWindow.setFullscreen(next);
     await syncWindowState();
   }, [syncWindowState]);
+  const requestTimelineThumbnail = useCallback((value: number): void => {
+    player.requestThumbnail(value);
+  }, []);
+  const clearTimelineThumbnail = useCallback((): void => {
+    player.clearThumbnail();
+  }, []);
+  const subscribeTimelineThumbnail = useCallback((listener: (url: string) => void) => {
+    return player.subscribeThumbnail(listener);
+  }, []);
   const { handleTitlebarMouseDown, handleTitlePillClick } = useTitlebarInteractions({
     isFullscreen,
     pickAndOpenMediaFile,
@@ -316,6 +325,9 @@ export function usePlayerController(): PlayerScreenProps {
     increaseSubtitleScale,
     decreaseSubtitleScale,
     setTimelinePosition,
+    requestTimelineThumbnail,
+    clearTimelineThumbnail,
+    subscribeTimelineThumbnail,
     setVolume,
     minimizeWindow,
     closeWindow,

@@ -178,6 +178,9 @@ export function PlayerScreen(props: PlayerScreenProps) {
           seekForward={props.seekForward}
           toggleMute={props.toggleMute}
           setTimelinePosition={props.setTimelinePosition}
+          requestTimelineThumbnail={props.requestTimelineThumbnail}
+          clearTimelineThumbnail={props.clearTimelineThumbnail}
+          subscribeTimelineThumbnail={props.subscribeTimelineThumbnail}
           setVolume={props.setVolume}
         />
       </section>

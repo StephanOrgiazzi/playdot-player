@@ -786,6 +786,9 @@ button {
   position: absolute;
   left: clamp(18px, var(--preview-position), calc(100% - 18px));
   bottom: calc(100% + 4px);
+  display: grid;
+  justify-items: center;
+  gap: 5px;
   padding: 2px 7px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;
@@ -797,6 +800,27 @@ button {
   white-space: nowrap;
   pointer-events: none;
   transform: translateX(-50%);
+}
+
+.timeline-preview.has-thumbnail {
+  left: clamp(125px, var(--preview-position), calc(100% - 125px));
+  padding: 5px 5px 4px;
+  border-radius: 10px;
+  background: rgba(12, 12, 12, 0.94);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45);
+}
+
+.timeline-preview__image {
+  display: block;
+  width: 240px;
+  height: 135px;
+  border-radius: 6px;
+  background: #000;
+  object-fit: cover;
+}
+
+.timeline-preview__time {
+  padding-inline: 3px;
 }
 
 .volume {

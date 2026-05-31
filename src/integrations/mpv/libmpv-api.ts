@@ -48,14 +48,20 @@ function invokeMpv<T>(
   command: string,
   payload: Record<string, InvokePayloadValue> = {},
   windowLabel?: string,
+  instanceLabel?: string,
 ): Promise<T> {
   return invoke<T>(`plugin:libmpv|${command}`, {
     ...payload,
     windowLabel: getWindowLabel(windowLabel),
+    ...(instanceLabel ? { instanceLabel } : {}),
   });
 }
 
-export async function init(config?: MpvConfig, windowLabel?: string): Promise<string> {
+export async function init(
+  config?: MpvConfig,
+  windowLabel?: string,
+  instanceLabel?: string,
+): Promise<string> {
   return invokeMpv<string>(
     "init",
     {
@@ -65,17 +71,19 @@ export async function init(config?: MpvConfig, windowLabel?: string): Promise<st
       },
     },
     windowLabel,
+    instanceLabel,
   );
 }
 
-export async function destroy(windowLabel?: string): Promise<void> {
-  return invokeMpv("destroy", {}, windowLabel);
+export async function destroy(windowLabel?: string, instanceLabel?: string): Promise<void> {
+  return invokeMpv("destroy", {}, windowLabel, instanceLabel);
 }
 
 export async function setProperty(
   name: string,
   value: MpvNodeValue,
   windowLabel?: string,
+  instanceLabel?: string,
 ): Promise<void> {
   return invokeMpv(
     "set_property",
@@ -84,6 +92,7 @@ export async function setProperty(
       value,
     },
     windowLabel,
+    instanceLabel,
   );
 }
 
@@ -91,6 +100,7 @@ export async function command(
   name: string,
   args: (string | boolean | number)[] = [],
   windowLabel?: string,
+  instanceLabel?: string,
 ): Promise<void> {
   return invokeMpv(
     "command",
@@ -99,6 +109,7 @@ export async function command(
       args,
     },
     windowLabel,
+    instanceLabel,
   );
 }
 
@@ -130,6 +141,7 @@ export async function observeProperties(
 export async function setVideoMarginRatio(
   ratio: VideoMarginRatio,
   windowLabel?: string,
+  instanceLabel?: string,
 ): Promise<void> {
   return invokeMpv(
     "set_video_margin_ratio",
@@ -137,5 +149,6 @@ export async function setVideoMarginRatio(
       ratio,
     },
     windowLabel,
+    instanceLabel,
   );
 }

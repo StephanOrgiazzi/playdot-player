@@ -1,6 +1,7 @@
 mod audio_artwork;
 mod launch;
 mod svp;
+mod thumbnail_frame;
 
 use tauri::{Emitter, Manager};
 
@@ -30,7 +31,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             audio_artwork::extract_audio_artwork,
             launch::get_startup_media_argument,
-            svp::resolve_svp_integration
+            svp::resolve_svp_integration,
+            thumbnail_frame::create_thumbnail_target,
+            thumbnail_frame::discard_thumbnail_frame,
+            thumbnail_frame::promote_thumbnail_frame,
+            thumbnail_frame::remove_thumbnail_target
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

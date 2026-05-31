@@ -19,7 +19,14 @@ type TimelinePreview = {
   time: string;
 };
 
-type UseTimelineControlArgs = Pick<PlayerControlsProps, "hasMedia" | "setTimelinePosition"> & {
+type UseTimelineControlArgs = Pick<
+  PlayerControlsProps,
+  | "hasMedia"
+  | "setTimelinePosition"
+  | "requestTimelineThumbnail"
+  | "clearTimelineThumbnail"
+  | "subscribeTimelineThumbnail"
+> & {
   duration: number;
   timePos: number;
 };
@@ -31,6 +38,7 @@ type TimelineControl = {
   timelineProgressPercent: string;
   timelineValue: number;
   progressMax: number;
+  thumbnailUrl: string;
   clearTimelinePreview: () => void;
   handleTimelineChange: (event: ChangeEvent<HTMLInputElement>) => void;
   handleTimelinePointerDown: (event: ReactPointerEvent<HTMLInputElement>) => void;
@@ -47,6 +55,7 @@ type TimelineRowProps = {
   isTimelineScrubbing: boolean;
   hasMedia: boolean;
   timelinePreview: TimelinePreview | null;
+  thumbnailUrl: string;
   clearTimelinePreview: () => void;
   handleTimelineChange: (event: ChangeEvent<HTMLInputElement>) => void;
   handleTimelinePointerDown: (event: ReactPointerEvent<HTMLInputElement>) => void;
@@ -58,9 +67,13 @@ function useTimelineControl({
   duration,
   hasMedia,
   setTimelinePosition,
+  requestTimelineThumbnail,
+  clearTimelineThumbnail,
+  subscribeTimelineThumbnail,
   timePos,
 }: UseTimelineControlArgs): TimelineControl {
   const [timelineHoverPreview, setTimelineHoverPreview] = useState<TimelinePreview | null>(null);
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [isTimelineScrubbing, setIsTimelineScrubbing] = useState(false);
   const [timelineDragValue, setTimelineDragValue] = useState<number | null>(null);
   const timelineDragValueRef = useRef<number | null>(null);
@@ -142,13 +155,21 @@ function useTimelineControl({
         ...createTimelinePreview(previewValue),
         leftPercent,
       });
+      requestTimelineThumbnail(previewValue);
     },
-    [createTimelinePreview, getTimelinePointerMetrics, getTimelineValueFromClientX, hasMedia],
+    [
+      createTimelinePreview,
+      getTimelinePointerMetrics,
+      getTimelineValueFromClientX,
+      hasMedia,
+      requestTimelineThumbnail,
+    ],
   );
 
   const clearTimelinePreview = useCallback((): void => {
     setTimelineHoverPreview(null);
-  }, []);
+    clearTimelineThumbnail();
+  }, [clearTimelineThumbnail]);
 
   const commitTimelineScrub = useCallback((): void => {
     setTimelineScrubbingState(false);
@@ -170,9 +191,16 @@ function useTimelineControl({
       const nextValue = getTimelineValueFromClientX(event.currentTarget, event.clientX);
       setTimelineScrubbingState(true);
       setTimelineDragState(nextValue);
+      requestTimelineThumbnail(nextValue);
       event.currentTarget.setPointerCapture(event.pointerId);
     },
-    [getTimelineValueFromClientX, hasMedia, setTimelineDragState, setTimelineScrubbingState],
+    [
+      getTimelineValueFromClientX,
+      hasMedia,
+      requestTimelineThumbnail,
+      setTimelineDragState,
+      setTimelineScrubbingState,
+    ],
   );
 
   const handleTimelinePointerMove = useCallback(
@@ -183,8 +211,15 @@ function useTimelineControl({
 
       const nextValue = getTimelineValueFromClientX(event.currentTarget, event.clientX);
       setTimelineDragState(nextValue);
+      requestTimelineThumbnail(nextValue);
     },
-    [getTimelineValueFromClientX, hasMedia, isTimelineScrubbing, setTimelineDragState],
+    [
+      getTimelineValueFromClientX,
+      hasMedia,
+      isTimelineScrubbing,
+      requestTimelineThumbnail,
+      setTimelineDragState,
+    ],
   );
 
   const handleTimelineChange = useCallback(
@@ -235,11 +270,24 @@ function useTimelineControl({
   }, [isTimelineScrubbing, setTimelineDragState, timePos, timelineDragValue]);
 
   useEffect(() => {
+    return subscribeTimelineThumbnail(setThumbnailUrl);
+  }, [subscribeTimelineThumbnail]);
+
+  useEffect(() => {
     if (!hasMedia && timelineDragValue !== null) {
       setTimelineScrubbingState(false);
       setTimelineDragState(null);
     }
-  }, [hasMedia, setTimelineDragState, setTimelineScrubbingState, timelineDragValue]);
+    if (!hasMedia) {
+      clearTimelineThumbnail();
+    }
+  }, [
+    clearTimelineThumbnail,
+    hasMedia,
+    setTimelineDragState,
+    setTimelineScrubbingState,
+    timelineDragValue,
+  ]);
 
   const timelineValue =
     timelineDragValue === null ? Math.min(timePos, progressMax) : timelineDragValue;
@@ -260,6 +308,7 @@ function useTimelineControl({
     timelineProgressPercent,
     timelineValue,
     progressMax,
+    thumbnailUrl,
     clearTimelinePreview,
     handleTimelineChange,
     handleTimelinePointerDown,
@@ -277,6 +326,7 @@ function TimelineRow({
   isTimelineScrubbing,
   hasMedia,
   timelinePreview,
+  thumbnailUrl,
   clearTimelinePreview,
   handleTimelineChange,
   handleTimelinePointerDown,
@@ -305,16 +355,19 @@ function TimelineRow({
           onBlur={clearTimelinePreview}
         />
         {timelinePreview ? (
-          <span
-            className="timeline-preview"
+          <div
+            className={`timeline-preview${thumbnailUrl ? " has-thumbnail" : ""}`}
             style={
               {
                 "--preview-position": `${timelinePreview.leftPercent}%`,
               } as CSSProperties
             }
           >
-            {timelinePreview.time}
-          </span>
+            {thumbnailUrl ? (
+              <img className="timeline-preview__image" src={thumbnailUrl} alt="" />
+            ) : null}
+            <span className="timeline-preview__time">{timelinePreview.time}</span>
+          </div>
         ) : null}
       </div>
       <span className="time-readout">{totalTime}</span>
@@ -327,7 +380,19 @@ function TimelineRowContainer({
   hasMedia,
   totalTime,
   setTimelinePosition,
-}: Pick<PlayerControlsProps, "duration" | "hasMedia" | "totalTime" | "setTimelinePosition">) {
+  requestTimelineThumbnail,
+  clearTimelineThumbnail,
+  subscribeTimelineThumbnail,
+}: Pick<
+  PlayerControlsProps,
+  | "duration"
+  | "hasMedia"
+  | "totalTime"
+  | "setTimelinePosition"
+  | "requestTimelineThumbnail"
+  | "clearTimelineThumbnail"
+  | "subscribeTimelineThumbnail"
+>) {
   const timePos = usePlayerStateSelector((state) => state.timePos);
   const {
     displayedCurrentTime,
@@ -336,6 +401,7 @@ function TimelineRowContainer({
     timelineProgressPercent,
     timelineValue,
     progressMax,
+    thumbnailUrl,
     clearTimelinePreview,
     handleTimelineChange,
     handleTimelinePointerDown,
@@ -345,6 +411,9 @@ function TimelineRowContainer({
     duration,
     hasMedia,
     setTimelinePosition,
+    requestTimelineThumbnail,
+    clearTimelineThumbnail,
+    subscribeTimelineThumbnail,
     timePos,
   });
 
@@ -358,6 +427,7 @@ function TimelineRowContainer({
       isTimelineScrubbing={isTimelineScrubbing}
       hasMedia={hasMedia}
       timelinePreview={timelinePreview}
+      thumbnailUrl={thumbnailUrl}
       clearTimelinePreview={clearTimelinePreview}
       handleTimelineChange={handleTimelineChange}
       handleTimelinePointerDown={handleTimelinePointerDown}
@@ -410,6 +480,9 @@ export function PlayerControls({
   seekForward,
   toggleMute,
   setTimelinePosition,
+  requestTimelineThumbnail,
+  clearTimelineThumbnail,
+  subscribeTimelineThumbnail,
   setVolume,
 }: PlayerControlsProps) {
   return (
@@ -423,6 +496,9 @@ export function PlayerControls({
         hasMedia={hasMedia}
         totalTime={totalTime}
         setTimelinePosition={setTimelinePosition}
+        requestTimelineThumbnail={requestTimelineThumbnail}
+        clearTimelineThumbnail={clearTimelineThumbnail}
+        subscribeTimelineThumbnail={subscribeTimelineThumbnail}
       />
 
       <div className="dock-row dock-row--bottom">

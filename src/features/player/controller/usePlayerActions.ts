@@ -158,7 +158,10 @@ export function usePlayerActions({
     [player],
   );
   const minimizeWindow = useCallback((): Promise<void> => appWindow.minimize(), [appWindow]);
-  const closeWindow = useCallback((): Promise<void> => appWindow.close(), [appWindow]);
+  const closeWindow = useCallback(async (): Promise<void> => {
+    await player.stop();
+    await appWindow.close();
+  }, [appWindow, player]);
 
   return {
     handleVideoDoubleClick,

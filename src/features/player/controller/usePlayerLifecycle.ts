@@ -91,7 +91,10 @@ export function usePlayerLifecycle({
       setPlayerState(next);
       if (!autoCloseStarted && next.filename && next.eofReached) {
         autoCloseStarted = true;
-        void appWindow.close();
+        void player
+          .stop()
+          .catch(() => undefined)
+          .then(() => appWindow.close());
       }
     });
 
