@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import SevenZip from "7z-wasm";
@@ -65,9 +66,48 @@ async function downloadFile(url, destinationPath) {
   await pipeline(bodyStream, fileStream);
 }
 
+function runCommand(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: "ignore", windowsHide: true });
+
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      reject(new Error(`${command} exited with code ${code}`));
+    });
+  });
+}
+
+async function extractArchiveWithNative7z(archivePath, extractDir) {
+  const args = ["x", archivePath, `-o${extractDir}`, "-y"];
+  try {
+    await runCommand("7z", args);
+  } catch (firstError) {
+    try {
+      await runCommand("7za", args);
+    } catch {
+      throw firstError;
+    }
+  }
+}
+
 async function extractArchive(archivePath, extractDir) {
   await fs.promises.rm(extractDir, { recursive: true, force: true });
   await fs.promises.mkdir(extractDir, { recursive: true });
+
+  if (os.platform() === "win32") {
+    try {
+      await extractArchiveWithNative7z(archivePath, extractDir);
+      return;
+    } catch {
+      await fs.promises.rm(extractDir, { recursive: true, force: true });
+      await fs.promises.mkdir(extractDir, { recursive: true });
+    }
+  }
 
   const archiveName = path.basename(archivePath);
   const archiveDir = path.dirname(archivePath);
@@ -126,6 +166,54 @@ async function findFile(searchDir, fileName) {
   return null;
 }
 
+async function copyRuntimeDllsFromExtract(searchDir) {
+  const entries = await fs.promises.readdir(searchDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(searchDir, entry.name);
+
+    if (entry.isDirectory()) {
+      await copyRuntimeDllsFromExtract(fullPath);
+      continue;
+    }
+
+    if (!entry.isFile() || !entry.name.toLowerCase().endsWith(".dll")) {
+      continue;
+    }
+
+    await fs.promises.copyFile(fullPath, path.join(targetDir, entry.name));
+  }
+}
+
+async function copyFileIfTargetExists(sourcePath, destinationPath) {
+  try {
+    await fs.promises.access(path.dirname(destinationPath));
+  } catch {
+    return;
+  }
+
+  await fs.promises.copyFile(sourcePath, destinationPath);
+}
+
+async function refreshExistingCargoResourceCopies() {
+  const entries = await fs.promises.readdir(targetDir, { withFileTypes: true });
+  const targetProfiles = ["debug", "release"];
+
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.toLowerCase().endsWith(".dll")) {
+      continue;
+    }
+
+    const sourcePath = path.join(targetDir, entry.name);
+    for (const profile of targetProfiles) {
+      await copyFileIfTargetExists(
+        sourcePath,
+        path.join(projectRoot, "src-tauri", "target", profile, "lib", entry.name),
+      );
+    }
+  }
+}
+
 /**
  * @param {string} shaText
  * @param {(fileName: string) => boolean} predicate
@@ -145,6 +233,24 @@ function pickReleaseFile(shaText, predicate) {
   }
 
   return null;
+}
+
+/**
+ * @param {string} shaText
+ * @param {string} archName
+ */
+function pickMpvDevArchive(shaText, archName) {
+  const isDevArchiveForArch = (fileName) =>
+    fileName.startsWith(`mpv-dev-${archName}-`) &&
+    fileName.endsWith(".7z") &&
+    !fileName.includes("-v3-");
+
+  return (
+    pickReleaseFile(
+      shaText,
+      (fileName) => fileName.includes(`mpv-dev-lgpl-${archName}`) && !fileName.includes("v3"),
+    ) ?? pickReleaseFile(shaText, isDevArchiveForArch)
+  );
 }
 
 /**
@@ -169,6 +275,10 @@ async function extractFileFromRelease(baseUrl, releaseFileName, desiredFileName)
 
   const destinationPath = path.join(targetDir, desiredFileName);
   await fs.promises.copyFile(foundFile, destinationPath);
+
+  if (desiredFileName === "libmpv-2.dll") {
+    await copyRuntimeDllsFromExtract(extractDir);
+  }
 }
 
 async function main() {
@@ -194,16 +304,14 @@ async function main() {
     await extractFileFromRelease(wrapperBaseUrl, wrapperArchive, wrapperLibName);
 
     const mpvSha = await fetchText(`${mpvBaseUrl}/sha256.txt`);
-    const mpvArchive = pickReleaseFile(
-      mpvSha,
-      (fileName) => fileName.includes(`mpv-dev-lgpl-${archName}`) && !fileName.includes("v3"),
-    );
+    const mpvArchive = pickMpvDevArchive(mpvSha, archName);
 
     if (!mpvArchive) {
       throw new Error(`libmpv archive not found for windows ${archName}`);
     }
 
     await extractFileFromRelease(mpvBaseUrl, mpvArchive, "libmpv-2.dll");
+    await refreshExistingCargoResourceCopies();
     console.log(`Libraries are ready in ${targetDir}`);
   } finally {
     await fs.promises.rm(tempDir, { recursive: true, force: true });
