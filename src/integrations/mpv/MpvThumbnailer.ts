@@ -5,7 +5,8 @@ const THUMBNAIL_INSTANCE_LABEL = "thumbnail-worker";
 const EXACT_SEEK_DELAY_MS = 120;
 const FRAME_POLL_INTERVAL_MS = 18;
 const MAX_FRAME_POLLS = 20;
-const HDR_TRANSFER_NAMES = ["pq", "st2084", "smpte2084", "hlg", "arib-std-b67"] as const;
+const PQ_TRANSFER_NAMES = ["pq", "st2084", "smpte2084"] as const;
+const HLG_TRANSFER_NAMES = ["hlg", "arib-std-b67"] as const;
 
 type ThumbnailTarget = {
   rawPath: string;
@@ -22,11 +23,25 @@ type PendingSeek = {
 type WorkerPreparation = "existing" | "started";
 
 type ThumbnailListener = (url: string) => void;
+type HdrTransferFunction = "smpte2084" | "arib-std-b67";
 
 function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => {
     globalThis.setTimeout(resolve, milliseconds);
   });
+}
+
+function getHdrTransferFunction(transferFunction: string | null): HdrTransferFunction | null {
+  const normalizedTransfer = transferFunction?.toLowerCase() ?? "";
+  if (PQ_TRANSFER_NAMES.some((name) => normalizedTransfer.includes(name))) {
+    return "smpte2084";
+  }
+
+  if (HLG_TRANSFER_NAMES.some((name) => normalizedTransfer.includes(name))) {
+    return "arib-std-b67";
+  }
+
+  return null;
 }
 
 export class MpvThumbnailer {
@@ -39,7 +54,7 @@ export class MpvThumbnailer {
   private pendingSeek: PendingSeek | null = null;
   private rendering = false;
   private workerStarted = false;
-  private toneMappingEnabled = false;
+  private hdrTransferFunction: HdrTransferFunction | null = null;
   private exactSeekTimer: number | null = null;
   private frameRevision = 0;
   private lifecycleToken = 0;
@@ -59,20 +74,19 @@ export class MpvThumbnailer {
     }
 
     this.source = source;
-    this.toneMappingEnabled = false;
+    this.hdrTransferFunction = null;
     this.lifecycleToken += 1;
     this.clear();
     this.queueTeardown();
   }
 
   setTransferFunction(transferFunction: string | null): void {
-    const normalizedTransfer = transferFunction?.toLowerCase() ?? "";
-    const toneMappingEnabled = HDR_TRANSFER_NAMES.some((name) => normalizedTransfer.includes(name));
-    if (toneMappingEnabled === this.toneMappingEnabled) {
+    const hdrTransferFunction = getHdrTransferFunction(transferFunction);
+    if (hdrTransferFunction === this.hdrTransferFunction) {
       return;
     }
 
-    this.toneMappingEnabled = toneMappingEnabled;
+    this.hdrTransferFunction = hdrTransferFunction;
     this.lifecycleToken += 1;
     this.clear();
     this.queueTeardown();
@@ -235,8 +249,8 @@ export class MpvThumbnailer {
 
   private createConfig(target: ThumbnailTarget, initialSeek: PendingSeek): MpvConfig {
     const resizeFilter = `scale=w=${target.width}:h=${target.height}:force_original_aspect_ratio=decrease,pad=w=${target.width}:h=${target.height}:x=(ow-iw)/2:y=(oh-ih)/2,format=bgra`;
-    const colorFilter = this.toneMappingEnabled
-      ? "zscale=t=linear:npl=100,format=gbrpf32le,tonemap=tonemap=mobius:desat=0,zscale=p=bt709:t=bt709:m=bt709:r=full,"
+    const colorFilter = this.hdrTransferFunction
+      ? `setparams=colorspace=bt2020nc:color_primaries=bt2020:color_trc=${this.hdrTransferFunction},zscale=t=linear:npl=100,format=gbrpf32le,tonemap=tonemap=mobius:desat=0,zscale=p=bt709:t=bt709:m=bt709:r=full,`
       : "";
 
     return {
