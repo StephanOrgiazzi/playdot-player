@@ -13,6 +13,7 @@ export const SUBTITLE_BORDER_COLOR = "#000000";
 export const SUBTITLE_BORDER_SIZE = 0.1;
 export const SUBTITLE_SHADOW_OFFSET = 1.5;
 export const VIDEO_TRANSFER_PROPERTY = "video-params/gamma";
+export const VIDEO_COLOR_MATRIX_PROPERTY = "video-params/colormatrix";
 
 const SUBTITLE_PRIMARY_COLOUR = "&H00FFFFFF";
 const SUBTITLE_OUTLINE_COLOUR = "&H00000000";
@@ -42,6 +43,7 @@ export const OBSERVED_PROPERTIES = [
   ["sid", "int64", "none"],
   ["track-list", "node"],
   [VIDEO_TRANSFER_PROPERTY, "string", "none"],
+  [VIDEO_COLOR_MATRIX_PROPERTY, "string", "none"],
 ] as const satisfies MpvObservableProperty[];
 
 export function clampMpvVolume(value: number): number {

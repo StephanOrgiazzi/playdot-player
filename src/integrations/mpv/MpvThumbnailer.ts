@@ -1,5 +1,6 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import { command, destroy, init, type MpvConfig } from "./libmpv-api";
+import { command, destroy, init, type MpvConfig, type MpvNodeValue } from "./libmpv-api";
+import { VIDEO_COLOR_MATRIX_PROPERTY, VIDEO_TRANSFER_PROPERTY } from "./constants";
 
 const THUMBNAIL_INSTANCE_LABEL = "thumbnail-worker";
 const EXACT_SEEK_DELAY_MS = 120;
@@ -24,6 +25,7 @@ type WorkerPreparation = "existing" | "started";
 
 type ThumbnailListener = (url: string) => void;
 type HdrTransferFunction = "smpte2084" | "arib-std-b67";
+type HdrColorMatrix = "bt2020nc" | "ictcp";
 
 function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => {
@@ -44,6 +46,10 @@ function getHdrTransferFunction(transferFunction: string | null): HdrTransferFun
   return null;
 }
 
+function getHdrColorMatrix(colorMatrix: string | null): HdrColorMatrix {
+  return colorMatrix?.toLowerCase() === "dolbyvision" ? "ictcp" : "bt2020nc";
+}
+
 export class MpvThumbnailer {
   private source: string | null = null;
   private startedSource: string | null = null;
@@ -55,6 +61,7 @@ export class MpvThumbnailer {
   private rendering = false;
   private workerStarted = false;
   private hdrTransferFunction: HdrTransferFunction | null = null;
+  private hdrColorMatrix: HdrColorMatrix = "bt2020nc";
   private exactSeekTimer: number | null = null;
   private frameRevision = 0;
   private lifecycleToken = 0;
@@ -75,6 +82,7 @@ export class MpvThumbnailer {
 
     this.source = source;
     this.hdrTransferFunction = null;
+    this.hdrColorMatrix = "bt2020nc";
     this.lifecycleToken += 1;
     this.clear();
     this.queueTeardown();
@@ -90,6 +98,24 @@ export class MpvThumbnailer {
     this.lifecycleToken += 1;
     this.clear();
     this.queueTeardown();
+  }
+
+  setColorMatrix(colorMatrix: string | null): void {
+    const hdrColorMatrix = getHdrColorMatrix(colorMatrix);
+    if (hdrColorMatrix === this.hdrColorMatrix) {
+      return;
+    }
+
+    this.hdrColorMatrix = hdrColorMatrix;
+    this.lifecycleToken += 1;
+    this.clear();
+    this.queueTeardown();
+  }
+
+  setVideoParam(name: string, value: MpvNodeValue | undefined): void {
+    const videoParam = typeof value === "string" ? value : null;
+    if (name === VIDEO_TRANSFER_PROPERTY) this.setTransferFunction(videoParam);
+    if (name === VIDEO_COLOR_MATRIX_PROPERTY) this.setColorMatrix(videoParam);
   }
 
   request(seconds: number): void {
@@ -250,7 +276,7 @@ export class MpvThumbnailer {
   private createConfig(target: ThumbnailTarget, initialSeek: PendingSeek): MpvConfig {
     const resizeFilter = `scale=w=${target.width}:h=${target.height}:force_original_aspect_ratio=decrease,pad=w=${target.width}:h=${target.height}:x=(ow-iw)/2:y=(oh-ih)/2,format=bgra`;
     const colorFilter = this.hdrTransferFunction
-      ? `setparams=colorspace=bt2020nc:color_primaries=bt2020:color_trc=${this.hdrTransferFunction},zscale=t=linear:npl=100,format=gbrpf32le,tonemap=tonemap=mobius:desat=0,zscale=p=bt709:t=bt709:m=bt709:r=full,`
+      ? `setparams=colorspace=${this.hdrColorMatrix}:color_primaries=bt2020:color_trc=${this.hdrTransferFunction},zscale=t=linear:npl=100,format=gbrpf32le,tonemap=tonemap=mobius:desat=0,zscale=p=bt709:t=bt709:m=bt709:r=full,`
       : "";
 
     return {

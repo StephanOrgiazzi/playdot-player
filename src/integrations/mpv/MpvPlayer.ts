@@ -4,7 +4,6 @@ import {
   init,
   listenEvents,
   observeProperties,
-  type MpvObservedPropertyEvent,
   setVideoMarginRatio,
   setProperty,
 } from "./libmpv-api";
@@ -19,7 +18,6 @@ import {
   DEFAULT_PLAYBACK_SPEED,
   OBSERVED_PROPERTIES,
   SUBTITLE_SCALE,
-  VIDEO_TRANSFER_PROPERTY,
   clampMpvVolume,
 } from "./constants";
 import { createMpvConfig, getMpvResourcePaths } from "./config";
@@ -34,7 +32,6 @@ import { getSelectedTrackByType, getTracksByType } from "@features/player/model/
 import { toError } from "@shared/lib/error";
 
 type PlayerListener = (state: PlayerState) => void;
-type TrackType = MediaTrack["type"];
 type TrackSelection = number | "no";
 
 export class MpvPlayer {
@@ -230,22 +227,17 @@ export class MpvPlayer {
     this.state = { ...this.state, initialized: true };
     this.emit();
 
-    this.unlisten = await observeProperties(
-      OBSERVED_PROPERTIES,
-      (event: MpvObservedPropertyEvent) => {
-        if (event.name === VIDEO_TRANSFER_PROPERTY) {
-          this.thumbnailer.setTransferFunction(typeof event.data === "string" ? event.data : null);
-        }
+    this.unlisten = await observeProperties(OBSERVED_PROPERTIES, (event) => {
+      this.thumbnailer.setVideoParam(event.name, event.data);
 
-        const nextState = applyObservedProperty(this.state, event);
-        if (nextState === this.state) {
-          return;
-        }
+      const nextState = applyObservedProperty(this.state, event);
+      if (nextState === this.state) {
+        return;
+      }
 
-        this.state = nextState;
-        this.emit();
-      },
-    );
+      this.state = nextState;
+      this.emit();
+    });
   }
 
   private prepareAudioArtworkLoad(audioArtworkUrl: string): void {
@@ -499,7 +491,10 @@ export class MpvPlayer {
     await setProperty("audio-normalize-downmix", "yes");
   }
 
-  private async waitForTrackSelection(type: TrackType, target: TrackSelection): Promise<void> {
+  private async waitForTrackSelection(
+    type: MediaTrack["type"],
+    target: TrackSelection,
+  ): Promise<void> {
     if (this.matchesTrackSelection(type, target)) {
       return;
     }
@@ -523,7 +518,7 @@ export class MpvPlayer {
     });
   }
 
-  private matchesTrackSelection(type: TrackType, target: TrackSelection): boolean {
+  private matchesTrackSelection(type: MediaTrack["type"], target: TrackSelection): boolean {
     const selectedTrack = getSelectedTrackByType(this.state, type);
 
     if (target === "no") {
