@@ -201,7 +201,7 @@ export class MpvPlayer {
   }
 
   async seekAbsolute(seconds: number): Promise<void> {
-    await command("seek", [Math.max(0, seconds), "absolute", "exact"]);
+    await command("seek", [Math.max(0, seconds), "absolute+exact"]);
   }
 
   async seekRelative(seconds: number): Promise<void> {

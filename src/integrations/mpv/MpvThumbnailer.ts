@@ -92,10 +92,7 @@ export class MpvThumbnailer {
   clear(): void {
     this.active = false;
     this.pendingSeek = null;
-    if (this.exactSeekTimer !== null) {
-      globalThis.clearTimeout(this.exactSeekTimer);
-      this.exactSeekTimer = null;
-    }
+    this.clearExactSeekTimer();
     this.emit("");
   }
 
@@ -119,9 +116,7 @@ export class MpvThumbnailer {
   }
 
   private scheduleExactSeek(seconds: number): void {
-    if (this.exactSeekTimer !== null) {
-      globalThis.clearTimeout(this.exactSeekTimer);
-    }
+    this.clearExactSeekTimer();
 
     this.exactSeekTimer = globalThis.setTimeout(() => {
       this.exactSeekTimer = null;
@@ -132,6 +127,15 @@ export class MpvThumbnailer {
       this.pendingSeek = { seconds: Math.max(0, seconds), exact: true };
       void this.flush();
     }, EXACT_SEEK_DELAY_MS);
+  }
+
+  private clearExactSeekTimer(): void {
+    if (this.exactSeekTimer === null) {
+      return;
+    }
+
+    globalThis.clearTimeout(this.exactSeekTimer);
+    this.exactSeekTimer = null;
   }
 
   private async flush(): Promise<void> {

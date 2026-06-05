@@ -14,6 +14,8 @@ import { usePlayerStateSelector } from "../model/playerStore";
 import type { PlayerControlsProps } from "../model/types";
 import { ToolCluster, TransportCluster, VolumeCluster } from "./PlayerControlClusters";
 
+const POINTER_NATIVE_CHANGE_BLOCK_MS = 80;
+
 type TimelinePreview = {
   leftPercent: number;
   time: string;
@@ -78,6 +80,8 @@ function useTimelineControl({
   const [timelineDragValue, setTimelineDragValue] = useState<number | null>(null);
   const timelineDragValueRef = useRef<number | null>(null);
   const isTimelinePointerScrubbingRef = useRef(false);
+  const ignoreNativeTimelineChangeRef = useRef(false);
+  const nativeTimelineChangeTimerRef = useRef<number | null>(null);
   const progressMax = duration > 0 ? duration : 1;
   const progressPercent =
     duration > 0 ? `${(Math.min(timePos, progressMax) / progressMax) * 100}%` : "0%";
@@ -95,6 +99,18 @@ function useTimelineControl({
   const setTimelineScrubbingState = useCallback((value: boolean): void => {
     isTimelinePointerScrubbingRef.current = value;
     setIsTimelineScrubbing(value);
+  }, []);
+
+  const ignoreNativeTimelineChangesBriefly = useCallback((): void => {
+    ignoreNativeTimelineChangeRef.current = true;
+    if (nativeTimelineChangeTimerRef.current !== null) {
+      window.clearTimeout(nativeTimelineChangeTimerRef.current);
+    }
+
+    nativeTimelineChangeTimerRef.current = window.setTimeout(() => {
+      ignoreNativeTimelineChangeRef.current = false;
+      nativeTimelineChangeTimerRef.current = null;
+    }, POINTER_NATIVE_CHANGE_BLOCK_MS);
   }, []);
 
   const getTimelinePointerMetrics = useCallback(
@@ -172,6 +188,7 @@ function useTimelineControl({
   }, [clearTimelineThumbnail]);
 
   const commitTimelineScrub = useCallback((): void => {
+    ignoreNativeTimelineChangesBriefly();
     setTimelineScrubbingState(false);
 
     const nextValue = timelineDragValueRef.current;
@@ -180,13 +197,16 @@ function useTimelineControl({
     }
 
     void setTimelinePosition(nextValue);
-  }, [setTimelinePosition, setTimelineScrubbingState]);
+  }, [ignoreNativeTimelineChangesBriefly, setTimelinePosition, setTimelineScrubbingState]);
 
   const handleTimelinePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLInputElement>): void => {
       if (!hasMedia) {
         return;
       }
+
+      event.preventDefault();
+      event.currentTarget.focus({ preventScroll: true });
 
       const nextValue = getTimelineValueFromClientX(event.currentTarget, event.clientX);
       setTimelineScrubbingState(true);
@@ -228,7 +248,7 @@ function useTimelineControl({
         return;
       }
 
-      if (isTimelinePointerScrubbingRef.current) {
+      if (isTimelinePointerScrubbingRef.current || ignoreNativeTimelineChangeRef.current) {
         return;
       }
 
