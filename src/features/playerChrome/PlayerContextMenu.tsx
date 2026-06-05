@@ -207,6 +207,7 @@ function PlaybackOptionsSubmenu({
 
 type TrackSelectionSubmenuProps = {
   buttonLabel: string;
+  shortcut: string;
   hasMedia: boolean;
   isSubmenuOpenLeft: boolean;
   isOpen: boolean;
@@ -220,6 +221,7 @@ type TrackSelectionSubmenuProps = {
 
 function TrackSelectionSubmenu({
   buttonLabel,
+  shortcut,
   hasMedia,
   isSubmenuOpenLeft,
   isOpen,
@@ -268,6 +270,7 @@ function TrackSelectionSubmenu({
         }}
       >
         <span className="player-context-menu__item-label">{buttonLabel}</span>
+        <span className="player-context-menu__item-shortcut">{shortcut}</span>
       </button>
       {isOpen && !disabled ? (
         <div
@@ -402,6 +405,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
         />
         <MenuActionItem
           label="Upscale"
+          shortcut="U"
           disabled={!hasMedia}
           onClick={(): void => {
             runAction(toggleFsr);
@@ -436,6 +440,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
         <div className="player-context-menu__separator" aria-hidden="true" />
         <TrackSelectionSubmenu
           buttonLabel={audioTrackLabel}
+          shortcut="A"
           hasMedia={hasMedia}
           isSubmenuOpenLeft={isSubmenuOpenLeft}
           isOpen={isAudioTracksSubmenuOpen}
@@ -447,6 +452,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
         />
         <TrackSelectionSubmenu
           buttonLabel={subtitleTrackLabel}
+          shortcut="S"
           hasMedia={hasMedia}
           isSubmenuOpenLeft={isSubmenuOpenLeft}
           isOpen={isSubtitleTracksSubmenuOpen}
