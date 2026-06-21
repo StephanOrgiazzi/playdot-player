@@ -3,6 +3,13 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export type MpvFormat = "string" | "flag" | "int64" | "double" | "node";
+export type MpvFormatValue = {
+  string: string;
+  flag: boolean;
+  int64: number;
+  double: number;
+  node: MpvNodeValue;
+};
 export type MpvNodeValue =
   | string
   | boolean
@@ -96,9 +103,26 @@ export async function setProperty(
   );
 }
 
+export async function getProperty<T extends MpvFormat>(
+  name: string,
+  format: T,
+  windowLabel?: string,
+  instanceLabel?: string,
+): Promise<MpvFormatValue[T] | null> {
+  return invokeMpv(
+    "get_property",
+    {
+      name,
+      format,
+    },
+    windowLabel,
+    instanceLabel,
+  );
+}
+
 export async function command(
   name: string,
-  args: (string | boolean | number)[] = [],
+  args: MpvNodeValue[] = [],
   windowLabel?: string,
   instanceLabel?: string,
 ): Promise<void> {

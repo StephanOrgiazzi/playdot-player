@@ -1,5 +1,5 @@
 import type { PlayerState } from "@features/player/model/playerState";
-import type { MpvObservedPropertyEvent } from "./libmpv-api";
+import type { MpvNodeValue, MpvObservedPropertyEvent } from "./libmpv-api";
 import { parseTracks } from "./tracks";
 
 function tracksAreEqual(
@@ -32,6 +32,10 @@ function tracksAreEqual(
   });
 }
 
+function getNumberOrZero(value: MpvNodeValue | undefined): number {
+  return typeof value === "number" ? value : 0;
+}
+
 export function applyObservedProperty(
   state: PlayerState,
   event: MpvObservedPropertyEvent,
@@ -41,16 +45,36 @@ export function applyObservedProperty(
       const paused = Boolean(event.data);
       return paused === state.paused ? state : { ...state, paused };
     }
+    case "paused-for-cache": {
+      const pausedForCache = Boolean(event.data);
+      return pausedForCache === state.pausedForCache ? state : { ...state, pausedForCache };
+    }
+    case "core-idle": {
+      const coreIdle = Boolean(event.data);
+      return coreIdle === state.coreIdle ? state : { ...state, coreIdle };
+    }
+    case "cache-buffering-state": {
+      const cacheBufferingState = getNumberOrZero(event.data);
+      return cacheBufferingState === state.cacheBufferingState
+        ? state
+        : { ...state, cacheBufferingState };
+    }
+    case "demuxer-cache-state": {
+      const demuxerCacheState = event.data ?? null;
+      return Object.is(demuxerCacheState, state.demuxerCacheState)
+        ? state
+        : { ...state, demuxerCacheState };
+    }
     case "eof-reached": {
       const eofReached = Boolean(event.data);
       return eofReached === state.eofReached ? state : { ...state, eofReached };
     }
     case "time-pos": {
-      const timePos = typeof event.data === "number" ? event.data : 0;
+      const timePos = getNumberOrZero(event.data);
       return timePos === state.timePos ? state : { ...state, timePos };
     }
     case "duration": {
-      const duration = typeof event.data === "number" ? event.data : 0;
+      const duration = getNumberOrZero(event.data);
       return duration === state.duration ? state : { ...state, duration };
     }
     case "volume": {

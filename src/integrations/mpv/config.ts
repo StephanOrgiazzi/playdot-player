@@ -27,6 +27,34 @@ type MpvFeatureFlags = {
   svpEnabled?: boolean;
 };
 
+type MpvPerFileOptions = Readonly<Record<string, string>>;
+
+const NETWORK_SOURCE_PROTOCOLS = /^(?:https?|ftp|ftps|rtmps?|rtsp|rtsps|srt|udp|tcp|smb):\/\//i;
+
+export const MPV_STREAM_LOAD_OPTIONS = {
+  cache: "yes",
+  "cache-secs": "120",
+  "cache-pause": "yes",
+  "cache-pause-wait": "5",
+  "cache-pause-initial": "yes",
+  "demuxer-readahead-secs": "60",
+  "demuxer-max-bytes": "256MiB",
+  "network-timeout": "20",
+  "curl-max-retries": "8",
+  "curl-connect-timeout": "10",
+  "curl-buffer-size": "8MiB",
+  "stream-lavf-o":
+    "reconnect=1,reconnect_at_eof=1,reconnect_streamed=1,reconnect_delay_max=10,timeout=20000000",
+} as const satisfies MpvPerFileOptions;
+
+export function isMpvNetworkSource(source: string): boolean {
+  return NETWORK_SOURCE_PROTOCOLS.test(source.trim());
+}
+
+export function getMpvLoadOptionsForSource(source: string): MpvPerFileOptions | null {
+  return isMpvNetworkSource(source) ? MPV_STREAM_LOAD_OPTIONS : null;
+}
+
 async function getBundledUpscaleShaderBundles(resourcesPath: string | null): Promise<string[][]> {
   const [resolvedFsrPath, resolvedAdaptiveLumaPath] = await Promise.all([
     resolveResource("../shaders/FSR.glsl").catch(() => null),

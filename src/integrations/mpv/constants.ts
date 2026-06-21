@@ -6,7 +6,7 @@ export const UI_VOLUME_MAX = 100;
 export const DEFAULT_PLAYBACK_SPEED = 1;
 export const SUBTITLE_SCALE = 1;
 export const SUBTITLE_FONT = "Inter ExtraBold";
-export const SUBTITLE_FONT_SIZE = 62;
+export const SUBTITLE_FONT_SIZE = 66;
 export const SUBTITLE_BLEND = "no";
 export const SUBTITLE_BLUR = 1.25;
 export const SUBTITLE_BORDER_COLOR = "#000000";
@@ -32,6 +32,10 @@ export const SUBTITLE_ASS_STYLE = `FontName=${SUBTITLE_FONT},FontSize=${SUBTITLE
 
 export const OBSERVED_PROPERTIES = [
   ["pause", "flag"],
+  ["paused-for-cache", "flag"],
+  ["core-idle", "flag"],
+  ["cache-buffering-state", "double", "none"],
+  ["demuxer-cache-state", "node", "none"],
   ["eof-reached", "flag", "none"],
   ["time-pos", "double", "none"],
   ["duration", "double", "none"],

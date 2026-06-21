@@ -1,8 +1,8 @@
 import {
   command,
   destroy,
+  getProperty,
   init,
-  listenEvents,
   observeProperties,
   setVideoMarginRatio,
   setProperty,
@@ -20,19 +20,24 @@ import {
   SUBTITLE_SCALE,
   clampMpvVolume,
 } from "./constants";
-import { createMpvConfig, getMpvResourcePaths } from "./config";
+import { createMpvConfig, getMpvLoadOptionsForSource, getMpvResourcePaths } from "./config";
+import { waitForMpvEvent } from "./events";
+import { toggleFsrShaders } from "./fsr";
 import { MpvThumbnailer } from "./MpvThumbnailer";
+import { getNextPauseForTransportToggle } from "./playbackControl";
 import { applyObservedProperty } from "./stateUpdates";
+import {
+  getNextAudioTrackSelection,
+  getNextSubtitleTrackSelection,
+  matchesTrackSelection,
+  type TrackSelection,
+} from "./tracks";
 import {
   EMPTY_PLAYER_STATE,
   type MediaTrack,
   type PlayerState,
 } from "@features/player/model/playerState";
-import { getSelectedTrackByType, getTracksByType } from "@features/player/model/playerSelectors";
-import { toError } from "@shared/lib/error";
-
 type PlayerListener = (state: PlayerState) => void;
-type TrackSelection = number | "no";
 
 export class MpvPlayer {
   private state: PlayerState = { ...EMPTY_PLAYER_STATE };
@@ -82,10 +87,22 @@ export class MpvPlayer {
     }
   }
 
+  private async readPlayerFlag(name: "pause" | "mute"): Promise<boolean | null> {
+    return getProperty(name, "flag").catch(() => null);
+  }
+
   private async setPlayerFlag(name: "pause" | "mute", value: boolean): Promise<void> {
-    this.state = { ...this.state, [name === "pause" ? "paused" : "mute"]: value };
-    this.emit();
     await setProperty(name, value);
+
+    const confirmedValue = await this.readPlayerFlag(name);
+    const stateKey = name === "pause" ? "paused" : "mute";
+    const nextValue = confirmedValue ?? value;
+    if (this.state[stateKey] === nextValue) {
+      return;
+    }
+
+    this.state = { ...this.state, [stateKey]: nextValue };
+    this.emit();
   }
 
   subscribe(listener: PlayerListener): () => void {
@@ -179,14 +196,17 @@ export class MpvPlayer {
       await setVideoMarginRatio({ left: 0, right: 0, top: 0, bottom: 0 }).catch(() => undefined);
     }
 
-    await command("loadfile", [path]);
+    const loadOptions = getMpvLoadOptionsForSource(path);
+    await command("loadfile", loadOptions ? [path, "replace", -1, loadOptions] : [path]);
     await this.resetPerMediaDefaults();
 
     await this.play();
   }
 
   async togglePlayPause(): Promise<void> {
-    await this.setPlayerFlag("pause", !this.state.paused);
+    const confirmedPaused = await this.readPlayerFlag("pause");
+    const nextPause = getNextPauseForTransportToggle(this.state, confirmedPaused);
+    await this.setPlayerFlag("pause", nextPause);
   }
 
   async play(): Promise<void> {
@@ -376,113 +396,32 @@ export class MpvPlayer {
   }
 
   private async runAudioTrackCycle(): Promise<void> {
-    const audioTracks = getTracksByType(this.state, "audio");
-    if (audioTracks.length < 2) {
+    const nextTrackId = getNextAudioTrackSelection(this.state);
+    if (nextTrackId === null) {
       return;
     }
 
-    const selectedTrack = getSelectedTrackByType(this.state, "audio");
-    const selectedIndex = selectedTrack
-      ? audioTracks.findIndex((track) => track.id === selectedTrack.id)
-      : -1;
-    const nextTrack = audioTracks[(selectedIndex + 1 + audioTracks.length) % audioTracks.length];
-    if (!nextTrack) {
-      return;
-    }
-
-    if (nextTrack.id === selectedTrack?.id) {
-      return;
-    }
-
-    await this.setAudioTrack(nextTrack.id);
-    await this.waitForTrackSelection("audio", nextTrack.id);
+    await this.setAudioTrack(nextTrackId);
+    await this.waitForTrackSelection("audio", nextTrackId);
   }
 
   private async runSubtitleTrackCycle(): Promise<void> {
-    const subtitleTracks = getTracksByType(this.state, "sub");
-    if (subtitleTracks.length === 0) {
+    const nextSelection = getNextSubtitleTrackSelection(this.state);
+    if (nextSelection === null) {
       return;
     }
-
-    const selectedTrack = getSelectedTrackByType(this.state, "sub");
-
-    if (!selectedTrack) {
-      const firstSubtitleTrack = subtitleTracks[0];
-      if (!firstSubtitleTrack) {
-        return;
-      }
-
-      await this.setSubtitleTrack(firstSubtitleTrack.id);
-      await this.waitForTrackSelection("sub", firstSubtitleTrack.id);
-      return;
-    }
-
-    const selectedIndex = subtitleTracks.findIndex((track) => track.id === selectedTrack.id);
-    const nextSubtitleTrack = subtitleTracks[selectedIndex + 1];
-    const nextSelection: TrackSelection =
-      selectedIndex >= subtitleTracks.length - 1 || !nextSubtitleTrack
-        ? "no"
-        : nextSubtitleTrack.id;
 
     await this.setSubtitleTrack(nextSelection);
     await this.waitForTrackSelection("sub", nextSelection);
   }
 
   private async runFsrToggle(): Promise<boolean> {
-    if (this.appliedUpscaleShaderPaths.length > 0) {
-      for (const shaderPath of [...this.appliedUpscaleShaderPaths].reverse()) {
-        await command("change-list", ["glsl-shaders", "remove", shaderPath]);
-      }
-      this.appliedUpscaleShaderPaths = [];
-      return false;
-    }
-
-    const shaderPaths = await this.enableFsr();
-    if (!shaderPaths) {
-      throw new Error("FSR shader resource is unavailable");
-    }
-
-    return true;
-  }
-
-  private async enableFsr(): Promise<string[] | null> {
-    const preferredBundle = this.appliedUpscaleShaderPaths;
-    const orderedBundles =
-      preferredBundle.length > 0
-        ? [
-            preferredBundle,
-            ...this.upscaleShaderBundles.filter(
-              (bundle) => bundle.join("\n") !== preferredBundle.join("\n"),
-            ),
-          ]
-        : this.upscaleShaderBundles;
-    let lastError: Error | null = null;
-
-    for (const bundle of orderedBundles) {
-      const appliedBundlePaths: string[] = [];
-      try {
-        for (const shaderPath of bundle) {
-          await command("change-list", ["glsl-shaders", "append", shaderPath]);
-          appliedBundlePaths.push(shaderPath);
-        }
-
-        this.appliedUpscaleShaderPaths = appliedBundlePaths;
-        return appliedBundlePaths;
-      } catch (error) {
-        lastError = toError(error);
-        for (const shaderPath of [...appliedBundlePaths].reverse()) {
-          await command("change-list", ["glsl-shaders", "remove", shaderPath]).catch(
-            () => undefined,
-          );
-        }
-      }
-    }
-
-    if (lastError) {
-      throw lastError;
-    }
-
-    return null;
+    const result = await toggleFsrShaders(
+      this.appliedUpscaleShaderPaths,
+      this.upscaleShaderBundles,
+    );
+    this.appliedUpscaleShaderPaths = result.appliedShaderPaths;
+    return result.enabled;
   }
 
   private async applyStereoDownmixSettings(enabled: boolean): Promise<void> {
@@ -519,52 +458,7 @@ export class MpvPlayer {
   }
 
   private matchesTrackSelection(type: MediaTrack["type"], target: TrackSelection): boolean {
-    const selectedTrack = getSelectedTrackByType(this.state, type);
-
-    if (target === "no") {
-      return selectedTrack === undefined;
-    }
-
-    return selectedTrack?.id === target;
-  }
-
-  private async waitForEvent(eventName: string, timeoutMs = 5000): Promise<boolean> {
-    return await new Promise<boolean>((resolve) => {
-      let settled = false;
-      let unlisten: (() => void) | null = null;
-
-      const finish = (matched: boolean): void => {
-        if (settled) {
-          return;
-        }
-
-        settled = true;
-        globalThis.clearTimeout(timeout);
-        unlisten?.();
-        resolve(matched);
-      };
-
-      const timeout = globalThis.setTimeout(() => {
-        finish(false);
-      }, timeoutMs);
-
-      void listenEvents((event) => {
-        if (event.event === eventName) {
-          finish(true);
-        }
-      })
-        .then((nextUnlisten) => {
-          if (settled) {
-            nextUnlisten();
-            return;
-          }
-
-          unlisten = nextUnlisten;
-        })
-        .catch(() => {
-          finish(false);
-        });
-    });
+    return matchesTrackSelection(this.state, type, target);
   }
 
   private async resetPerMediaDefaults(): Promise<void> {
@@ -587,7 +481,7 @@ export class MpvPlayer {
 
     this.currentSource = currentSource;
     const shouldWaitForFileLoaded = currentTime > 0 || wasPaused;
-    const fileLoaded = shouldWaitForFileLoaded ? this.waitForEvent("file-loaded") : null;
+    const fileLoaded = shouldWaitForFileLoaded ? waitForMpvEvent("file-loaded") : null;
     await this.loadFile(currentSource, false);
     if (fileLoaded) {
       await fileLoaded;

@@ -1,5 +1,8 @@
-import type { MediaTrack } from "@features/player/model/playerState";
+import { getSelectedTrackByType, getTracksByType } from "@features/player/model/playerSelectors";
+import type { MediaTrack, PlayerState } from "@features/player/model/playerState";
 import type { MpvNodeValue } from "./libmpv-api";
+
+export type TrackSelection = number | "no";
 
 function isMpvNodeObject(value: MpvNodeValue): value is { readonly [key: string]: MpvNodeValue } {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -48,4 +51,52 @@ export function parseTracks(node: MpvNodeValue | undefined): MediaTrack[] {
       return track;
     })
     .filter((track): track is MediaTrack => track !== null);
+}
+
+export function getNextAudioTrackSelection(state: PlayerState): number | null {
+  const audioTracks = getTracksByType(state, "audio");
+  if (audioTracks.length < 2) {
+    return null;
+  }
+
+  const selectedTrack = getSelectedTrackByType(state, "audio");
+  const selectedIndex = selectedTrack
+    ? audioTracks.findIndex((track) => track.id === selectedTrack.id)
+    : -1;
+  const nextTrack = audioTracks[(selectedIndex + 1 + audioTracks.length) % audioTracks.length];
+
+  return nextTrack?.id === selectedTrack?.id ? null : (nextTrack?.id ?? null);
+}
+
+export function getNextSubtitleTrackSelection(state: PlayerState): TrackSelection | null {
+  const subtitleTracks = getTracksByType(state, "sub");
+  if (subtitleTracks.length === 0) {
+    return null;
+  }
+
+  const selectedTrack = getSelectedTrackByType(state, "sub");
+  if (!selectedTrack) {
+    return subtitleTracks[0]?.id ?? null;
+  }
+
+  const selectedIndex = subtitleTracks.findIndex((track) => track.id === selectedTrack.id);
+  const nextSubtitleTrack = subtitleTracks[selectedIndex + 1];
+
+  return selectedIndex >= subtitleTracks.length - 1 || !nextSubtitleTrack
+    ? "no"
+    : nextSubtitleTrack.id;
+}
+
+export function matchesTrackSelection(
+  state: PlayerState,
+  type: MediaTrack["type"],
+  target: TrackSelection,
+): boolean {
+  const selectedTrack = getSelectedTrackByType(state, type);
+
+  if (target === "no") {
+    return selectedTrack === undefined;
+  }
+
+  return selectedTrack?.id === target;
 }
