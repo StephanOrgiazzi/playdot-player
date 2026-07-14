@@ -8,8 +8,6 @@ export type TrackSelectionAction = (id: number | "no") => Promise<void>;
 
 export type PlayerScreenProps = {
   initialized: boolean;
-  paused: boolean;
-  duration: number;
   filename: string;
   error: string;
   toast: ToastState | null;
@@ -25,9 +23,9 @@ export type PlayerScreenProps = {
   isCyclingAudio: boolean;
   isCyclingSubtitles: boolean;
   hasMedia: boolean;
+  hasVideo: boolean;
   audioTracks: MediaTrack[];
   subtitleTracks: MediaTrack[];
-  totalTime: string;
   audioSummary: string;
   subtitleSummary: string;
   isAudioArtworkActive: boolean;
@@ -71,8 +69,6 @@ export type PlayerScreenProps = {
 
 export type PlayerControlsProps = Pick<
   PlayerScreenProps,
-  | "paused"
-  | "duration"
   | "hasMedia"
   | "isFullscreen"
   | "isChromeHidden"
@@ -80,7 +76,6 @@ export type PlayerControlsProps = Pick<
   | "isCyclingSubtitles"
   | "audioTracks"
   | "subtitleTracks"
-  | "totalTime"
   | "audioSummary"
   | "subtitleSummary"
   | "cycleAudioTrack"

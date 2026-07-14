@@ -1,5 +1,5 @@
-import { DEFAULT_PLAYBACK_SPEED, MPV_VOLUME_DEFAULT } from "@integrations/mpv/constants";
-import type { MpvNodeValue } from "@integrations/mpv/libmpv-api";
+export const DEFAULT_PLAYBACK_SPEED = 1;
+export const DEFAULT_PLAYER_VOLUME = 150;
 
 export type MediaTrack = {
   id: number;
@@ -16,8 +16,6 @@ export type PlayerState = {
   paused: boolean;
   pausedForCache: boolean;
   coreIdle: boolean;
-  cacheBufferingState: number;
-  demuxerCacheState: MpvNodeValue | null;
   eofReached: boolean;
   timePos: number;
   duration: number;
@@ -37,12 +35,10 @@ export const EMPTY_PLAYER_STATE: PlayerState = {
   paused: true,
   pausedForCache: false,
   coreIdle: false,
-  cacheBufferingState: 0,
-  demuxerCacheState: null,
   eofReached: false,
   timePos: 0,
   duration: 0,
-  volume: MPV_VOLUME_DEFAULT,
+  volume: DEFAULT_PLAYER_VOLUME,
   mute: false,
   playbackSpeed: DEFAULT_PLAYBACK_SPEED,
   filename: "",

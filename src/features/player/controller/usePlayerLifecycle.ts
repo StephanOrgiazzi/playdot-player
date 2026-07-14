@@ -4,7 +4,6 @@ import { listen } from "@tauri-apps/api/event";
 import type { Window } from "@tauri-apps/api/window";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
 import { getErrorMessage } from "@shared/lib/error";
-import { resetPlayerState, setPlayerState } from "../model/playerStore";
 
 type StateSetter<T> = Dispatch<SetStateAction<T>>;
 
@@ -31,7 +30,6 @@ export function usePlayerLifecycle({
 
   useEffect(() => {
     let mounted = true;
-    resetPlayerState();
 
     const loadMediaSource = async (source: string, fallbackMessage: string): Promise<void> => {
       try {
@@ -88,7 +86,6 @@ export function usePlayerLifecycle({
         return;
       }
 
-      setPlayerState(next);
       if (!autoCloseStarted && next.filename && next.eofReached) {
         autoCloseStarted = true;
         void player
@@ -130,7 +127,6 @@ export function usePlayerLifecycle({
     return () => {
       mounted = false;
       unsub();
-      resetPlayerState();
       void dragPromise.then((unlisten) => {
         unlisten();
       });

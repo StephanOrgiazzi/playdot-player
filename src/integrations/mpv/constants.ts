@@ -1,9 +1,9 @@
 import type { MpvObservableProperty } from "./libmpv-api";
+import { DEFAULT_PLAYER_VOLUME } from "@features/player/model/playerState";
 
 export const MPV_VOLUME_MAX = 150;
-export const MPV_VOLUME_DEFAULT = 150;
+export const MPV_VOLUME_DEFAULT = DEFAULT_PLAYER_VOLUME;
 export const UI_VOLUME_MAX = 100;
-export const DEFAULT_PLAYBACK_SPEED = 1;
 export const SUBTITLE_SCALE = 1;
 export const SUBTITLE_FONT = "Inter ExtraBold";
 export const SUBTITLE_FONT_SIZE = 66;
@@ -12,8 +12,6 @@ export const SUBTITLE_BLUR = 1.25;
 export const SUBTITLE_BORDER_COLOR = "#000000";
 export const SUBTITLE_BORDER_SIZE = 0.1;
 export const SUBTITLE_SHADOW_OFFSET = 1.5;
-export const VIDEO_TRANSFER_PROPERTY = "video-params/gamma";
-export const VIDEO_COLOR_MATRIX_PROPERTY = "video-params/colormatrix";
 
 const SUBTITLE_PRIMARY_COLOUR = "&H00FFFFFF";
 const SUBTITLE_OUTLINE_COLOUR = "&H00000000";
@@ -34,8 +32,6 @@ export const OBSERVED_PROPERTIES = [
   ["pause", "flag"],
   ["paused-for-cache", "flag"],
   ["core-idle", "flag"],
-  ["cache-buffering-state", "double", "none"],
-  ["demuxer-cache-state", "node", "none"],
   ["eof-reached", "flag", "none"],
   ["time-pos", "double", "none"],
   ["duration", "double", "none"],
@@ -46,8 +42,6 @@ export const OBSERVED_PROPERTIES = [
   ["aid", "int64", "none"],
   ["sid", "int64", "none"],
   ["track-list", "node"],
-  [VIDEO_TRANSFER_PROPERTY, "string", "none"],
-  [VIDEO_COLOR_MATRIX_PROPERTY, "string", "none"],
 ] as const satisfies MpvObservableProperty[];
 
 export function clampMpvVolume(value: number): number {

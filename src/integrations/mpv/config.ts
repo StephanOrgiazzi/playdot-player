@@ -1,7 +1,5 @@
 import { join, resolveResource, resourceDir } from "@tauri-apps/api/path";
 import { getSvpMpvInitialOptions } from "@integrations/svp/mpv";
-import { getAudioNormalizerMpvInitialOptions } from "./audioNormalizer";
-import { getStereoDownmixMpvInitialOptions } from "./stereoDownmix";
 import type { MpvConfig } from "./libmpv-api";
 import {
   MPV_VOLUME_DEFAULT,
@@ -31,7 +29,11 @@ type MpvFeatureFlags = {
 
 type MpvPerFileOptions = Readonly<Record<string, string>>;
 
+export const AUDIO_NORMALIZER_FILTER =
+  "lavfi=[acompressor=threshold=0.05:ratio=6:attack=10:release=500:makeup=4:knee=4,alimiter=limit=0.95:attack=5:release=50]";
+
 const NETWORK_SOURCE_PROTOCOLS = /^(?:https?|ftp|ftps|rtmps?|rtsp|rtsps|srt|udp|tcp|smb):\/\//i;
+const UPSCALE_SHADER_FALLBACK_DIRECTORIES = [["lib", "shaders"], ["shaders"], ["_up_", "shaders"]];
 
 export const MPV_STREAM_LOAD_OPTIONS = {
   cache: "yes",
@@ -57,6 +59,29 @@ export function getMpvLoadOptionsForSource(source: string): MpvPerFileOptions | 
   return isMpvNetworkSource(source) ? MPV_STREAM_LOAD_OPTIONS : null;
 }
 
+export function getStereoDownmixMpvOptions(
+  enabled: boolean,
+): NonNullable<MpvConfig["initialOptions"]> {
+  return {
+    "audio-channels": enabled ? "stereo" : "auto-safe",
+    "audio-normalize-downmix": "yes",
+    "ad-lavc-downmix": enabled ? "yes" : "no",
+  };
+}
+
+async function getUpscaleShaderCandidates(
+  resourcesPath: string,
+  filename: string,
+): Promise<string[]> {
+  const candidates = await Promise.all(
+    UPSCALE_SHADER_FALLBACK_DIRECTORIES.map((segments) =>
+      join(resourcesPath, ...segments, filename).catch(() => null),
+    ),
+  );
+
+  return [...new Set(candidates.filter((candidate): candidate is string => candidate !== null))];
+}
+
 async function getBundledUpscaleShaderBundles(resourcesPath: string | null): Promise<string[][]> {
   const [resolvedFsrPath, resolvedAdaptiveLumaPath] = await Promise.all([
     resolveResource("../shaders/FSR.glsl").catch(() => null),
@@ -71,43 +96,14 @@ async function getBundledUpscaleShaderBundles(resourcesPath: string | null): Pro
     return [];
   }
 
-  const fallbackCandidateSegments = [["lib", "shaders"], ["shaders"], ["_up_", "shaders"]];
-
-  const [fsrCandidatesRaw, adaptiveLumaCandidatesRaw] = await Promise.all([
-    Promise.all(
-      fallbackCandidateSegments.map(async (segments) =>
-        join(resourcesPath, ...segments, "FSR.glsl").catch(() => null),
-      ),
-    ),
-    Promise.all(
-      fallbackCandidateSegments.map(async (segments) =>
-        join(resourcesPath, ...segments, "adaptive-luma-ultra.glsl").catch(() => null),
-      ),
-    ),
+  const [fsrCandidates, adaptiveLumaCandidates] = await Promise.all([
+    getUpscaleShaderCandidates(resourcesPath, "FSR.glsl"),
+    getUpscaleShaderCandidates(resourcesPath, "adaptive-luma-ultra.glsl"),
   ]);
 
-  const fsrCandidates = [
-    ...new Set(fsrCandidatesRaw.filter((candidate): candidate is string => candidate !== null)),
-  ];
-  const adaptiveLumaCandidates = [
-    ...new Set(
-      adaptiveLumaCandidatesRaw.filter((candidate): candidate is string => candidate !== null),
-    ),
-  ];
-
-  const validBundles: string[][] = [];
-  for (const fsrPath of fsrCandidates) {
-    for (const adaptiveLumaPath of adaptiveLumaCandidates) {
-      validBundles.push([fsrPath, adaptiveLumaPath]);
-    }
-  }
-
-  const uniqueBundles = new Map<string, string[]>();
-  for (const bundle of validBundles) {
-    uniqueBundles.set(bundle.join("\n"), bundle);
-  }
-
-  return [...uniqueBundles.values()];
+  return fsrCandidates.flatMap((fsrPath) =>
+    adaptiveLumaCandidates.map((adaptiveLumaPath) => [fsrPath, adaptiveLumaPath]),
+  );
 }
 
 async function readMpvResourcePaths(): Promise<MpvResourcePaths> {
@@ -140,8 +136,6 @@ export async function createMpvConfig(
     stereoDownmixEnabled = false,
     svpEnabled = false,
   } = featureFlags ?? {};
-  const audioNormalizerInitialOptions = getAudioNormalizerMpvInitialOptions(audioNormalizerEnabled);
-  const stereoDownmixInitialOptions = getStereoDownmixMpvInitialOptions(stereoDownmixEnabled);
   const svpInitialOptions = getSvpMpvInitialOptions(svpEnabled);
 
   return {
@@ -168,8 +162,8 @@ export async function createMpvConfig(
       "replaygain-fallback": "0",
       "replaygain-clip": "no",
       "ad-lavc-ac3drc": 0,
-      ...audioNormalizerInitialOptions,
-      ...stereoDownmixInitialOptions,
+      ...(audioNormalizerEnabled ? { af: AUDIO_NORMALIZER_FILTER } : {}),
+      ...getStereoDownmixMpvOptions(stereoDownmixEnabled),
       "sub-font": SUBTITLE_FONT,
       "sub-font-size": SUBTITLE_FONT_SIZE,
       "sub-scale": SUBTITLE_SCALE,

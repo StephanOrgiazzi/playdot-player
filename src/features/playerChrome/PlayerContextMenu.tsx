@@ -17,6 +17,7 @@ import { useSubmenuViewportStyle } from "./useSubmenuViewportStyle";
 type PlayerContextMenuProps = {
   position: { x: number; y: number };
   hasMedia: boolean;
+  hasVideo: boolean;
   isFsrEnabled: boolean;
   isAudioNormalizerEnabled: boolean;
   isStereoDownmixEnabled: boolean;
@@ -63,6 +64,7 @@ function keepWheelInsideSubmenu(event: WheelEvent<HTMLDivElement>): void {
 
 type PlaybackOptionsSubmenuProps = {
   hasMedia: boolean;
+  hasVideo: boolean;
   isSubmenuOpenLeft: boolean;
   isPlaybackSubmenuOpen: boolean;
   runAction: (action: AsyncAction) => void;
@@ -79,6 +81,7 @@ type PlaybackOptionsSubmenuProps = {
 
 function PlaybackOptionsSubmenu({
   hasMedia,
+  hasVideo,
   isSubmenuOpenLeft,
   isPlaybackSubmenuOpen,
   runAction,
@@ -153,54 +156,52 @@ function PlaybackOptionsSubmenu({
               runAction(slowDownPlayback);
             }}
           />
-          <MenuActionItem
-            label="Zoom In"
-            shortcut="Ctrl++"
-            disabled={!hasMedia}
-            onClick={(): void => {
-              runAction(zoomIn);
-            }}
-          />
-          <MenuActionItem
-            label="Zoom Out"
-            shortcut="Ctrl+-"
-            disabled={!hasMedia}
-            onClick={(): void => {
-              runAction(zoomOut);
-            }}
-          />
-          <MenuActionItem
-            label="Increase Gamma"
-            shortcut="Alt+Right"
-            disabled={!hasMedia}
-            onClick={(): void => {
-              runAction(increaseGamma);
-            }}
-          />
-          <MenuActionItem
-            label="Decrease Gamma"
-            shortcut="Alt+Left"
-            disabled={!hasMedia}
-            onClick={(): void => {
-              runAction(decreaseGamma);
-            }}
-          />
-          <MenuActionItem
-            label="Increase Subtitle Size"
-            shortcut="Ctrl+Up"
-            disabled={!hasMedia}
-            onClick={(): void => {
-              runAction(increaseSubtitleScale);
-            }}
-          />
-          <MenuActionItem
-            label="Decrease Subtitle Size"
-            shortcut="Ctrl+Down"
-            disabled={!hasMedia}
-            onClick={(): void => {
-              runAction(decreaseSubtitleScale);
-            }}
-          />
+          {hasVideo ? (
+            <>
+              <MenuActionItem
+                label="Zoom In"
+                shortcut="Ctrl++"
+                onClick={(): void => {
+                  runAction(zoomIn);
+                }}
+              />
+              <MenuActionItem
+                label="Zoom Out"
+                shortcut="Ctrl+-"
+                onClick={(): void => {
+                  runAction(zoomOut);
+                }}
+              />
+              <MenuActionItem
+                label="Increase Gamma"
+                shortcut="Alt+Right"
+                onClick={(): void => {
+                  runAction(increaseGamma);
+                }}
+              />
+              <MenuActionItem
+                label="Decrease Gamma"
+                shortcut="Alt+Left"
+                onClick={(): void => {
+                  runAction(decreaseGamma);
+                }}
+              />
+              <MenuActionItem
+                label="Increase Subtitle Size"
+                shortcut="Ctrl+Up"
+                onClick={(): void => {
+                  runAction(increaseSubtitleScale);
+                }}
+              />
+              <MenuActionItem
+                label="Decrease Subtitle Size"
+                shortcut="Ctrl+Down"
+                onClick={(): void => {
+                  runAction(decreaseSubtitleScale);
+                }}
+              />
+            </>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -324,6 +325,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
     {
       position,
       hasMedia,
+      hasVideo,
       isFsrEnabled,
       isAudioNormalizerEnabled,
       isStereoDownmixEnabled,
@@ -394,6 +396,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
         <div className="player-context-menu__separator" aria-hidden="true" />
         <PlaybackOptionsSubmenu
           hasMedia={hasMedia}
+          hasVideo={hasVideo}
           isSubmenuOpenLeft={isSubmenuOpenLeft}
           isPlaybackSubmenuOpen={isPlaybackSubmenuOpen}
           runAction={runAction}
@@ -407,15 +410,16 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
           increaseSubtitleScale={increaseSubtitleScale}
           decreaseSubtitleScale={decreaseSubtitleScale}
         />
-        <MenuActionItem
-          label="Upscale"
-          shortcut="U"
-          disabled={!hasMedia}
-          onClick={(): void => {
-            runAction(toggleFsr);
-          }}
-          icon={isFsrEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null}
-        />
+        {hasVideo ? (
+          <MenuActionItem
+            label="Upscale"
+            shortcut="U"
+            onClick={(): void => {
+              runAction(toggleFsr);
+            }}
+            icon={isFsrEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null}
+          />
+        ) : null}
         <MenuActionItem
           label="Audio Normalizer"
           shortcut="N"
@@ -442,7 +446,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
             isStereoDownmixEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null
           }
         />
-        {isSvpAvailable ? (
+        {hasVideo && isSvpAvailable ? (
           <MenuActionItem
             label="Use Installed SVP"
             role="menuitemcheckbox"
@@ -467,19 +471,21 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
           runAction={runAction}
           setIsOpen={setIsAudioTracksSubmenuOpen}
         />
-        <TrackSelectionSubmenu
-          buttonLabel={subtitleTrackLabel}
-          shortcut="S"
-          hasMedia={hasMedia}
-          isSubmenuOpenLeft={isSubmenuOpenLeft}
-          isOpen={isSubtitleTracksSubmenuOpen}
-          tracks={subtitleTracks}
-          selectedTrackId={subtitleTracks.find((track) => track.selected)?.id ?? null}
-          includeOffOption
-          onSelect={selectSubtitleTrack}
-          runAction={runAction}
-          setIsOpen={setIsSubtitleTracksSubmenuOpen}
-        />
+        {hasVideo ? (
+          <TrackSelectionSubmenu
+            buttonLabel={subtitleTrackLabel}
+            shortcut="S"
+            hasMedia={hasMedia}
+            isSubmenuOpenLeft={isSubmenuOpenLeft}
+            isOpen={isSubtitleTracksSubmenuOpen}
+            tracks={subtitleTracks}
+            selectedTrackId={subtitleTracks.find((track) => track.selected)?.id ?? null}
+            includeOffOption
+            onSelect={selectSubtitleTrack}
+            runAction={runAction}
+            setIsOpen={setIsSubtitleTracksSubmenuOpen}
+          />
+        ) : null}
         <div className="player-context-menu__separator" aria-hidden="true" />
         <button
           className="player-context-menu__item"

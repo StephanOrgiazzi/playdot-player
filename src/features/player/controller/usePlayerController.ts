@@ -9,8 +9,8 @@ import { useTitlebarDrag } from "@features/playerChrome/useTitlebarDrag";
 import { useGlobalShortcuts } from "@features/shortcuts/useGlobalShortcuts";
 import type { ToastState } from "@features/toaster/types";
 import { useToastAutoHide } from "@features/toaster/useToastEffects";
-import { MpvPlayer } from "@integrations/mpv/MpvPlayer";
 import { useSvpIntegration } from "@integrations/svp/useSvpIntegration";
+import { player } from "./playerSession";
 import { usePlayerActions } from "./usePlayerActions";
 import {
   useMediaOpenActions,
@@ -21,7 +21,6 @@ import {
 import { usePlayerLifecycle } from "./usePlayerLifecycle";
 import type { PlayerScreenProps } from "../model/types";
 
-const player = new MpvPlayer();
 const appWindow = getCurrentWindow();
 const appWebview = getCurrentWebview();
 const withPlayerFocusRestore = async <T>(task: () => Promise<T>): Promise<T> => {
@@ -130,11 +129,9 @@ export function usePlayerController(): PlayerScreenProps {
     useControlDockHoverState();
   const {
     initialized,
-    paused,
-    duration,
     filename,
     hasMedia,
-    totalTime,
+    hasVideo,
     audioTracks,
     subtitleTracks,
     selectedAudioTrack,
@@ -277,8 +274,6 @@ export function usePlayerController(): PlayerScreenProps {
 
   return {
     initialized,
-    paused,
-    duration,
     filename,
     error,
     toast,
@@ -294,9 +289,9 @@ export function usePlayerController(): PlayerScreenProps {
     isCyclingAudio,
     isCyclingSubtitles,
     hasMedia,
+    hasVideo,
     audioTracks,
     subtitleTracks,
-    totalTime,
     audioSummary,
     subtitleSummary,
     isAudioArtworkActive,

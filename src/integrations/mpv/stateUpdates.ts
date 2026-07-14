@@ -53,18 +53,6 @@ export function applyObservedProperty(
       const coreIdle = Boolean(event.data);
       return coreIdle === state.coreIdle ? state : { ...state, coreIdle };
     }
-    case "cache-buffering-state": {
-      const cacheBufferingState = getNumberOrZero(event.data);
-      return cacheBufferingState === state.cacheBufferingState
-        ? state
-        : { ...state, cacheBufferingState };
-    }
-    case "demuxer-cache-state": {
-      const demuxerCacheState = event.data ?? null;
-      return Object.is(demuxerCacheState, state.demuxerCacheState)
-        ? state
-        : { ...state, demuxerCacheState };
-    }
     case "eof-reached": {
       const eofReached = Boolean(event.data);
       return eofReached === state.eofReached ? state : { ...state, eofReached };

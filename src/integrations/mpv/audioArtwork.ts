@@ -37,7 +37,7 @@ export function nextAnimationFrame(): Promise<void> {
   });
 }
 
-export async function readAudioArtworkUrl(source: string): Promise<string> {
+export async function readAudioArtworkUrl(source: string | null): Promise<string> {
   const path = await invoke<string | null>("extract_audio_artwork", { source });
   return path ? convertFileSrc(path) : "";
 }

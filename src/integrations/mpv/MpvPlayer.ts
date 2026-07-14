@@ -13,19 +13,17 @@ import {
   nextAnimationFrame,
   readAudioArtworkUrl,
 } from "./audioArtwork";
-import { AUDIO_NORMALIZER_FILTER } from "./audioNormalizer";
-import { normalizePlaybackSpeed } from "./playback";
+import { OBSERVED_PROPERTIES, SUBTITLE_SCALE, clampMpvVolume } from "./constants";
 import {
-  DEFAULT_PLAYBACK_SPEED,
-  OBSERVED_PROPERTIES,
-  SUBTITLE_SCALE,
-  clampMpvVolume,
-} from "./constants";
-import { createMpvConfig, getMpvLoadOptionsForSource, getMpvResourcePaths } from "./config";
+  AUDIO_NORMALIZER_FILTER,
+  createMpvConfig,
+  getMpvLoadOptionsForSource,
+  getMpvResourcePaths,
+  getStereoDownmixMpvOptions,
+} from "./config";
 import { waitForMpvEvent } from "./events";
 import { toggleFsrShaders } from "./fsr";
 import { MpvThumbnailer } from "./MpvThumbnailer";
-import { getNextPauseForTransportToggle } from "./playbackControl";
 import { applyObservedProperty } from "./stateUpdates";
 import {
   getNextAudioTrackSelection,
@@ -34,11 +32,13 @@ import {
   type TrackSelection,
 } from "./tracks";
 import {
+  DEFAULT_PLAYBACK_SPEED,
   EMPTY_PLAYER_STATE,
   type MediaTrack,
   type PlayerState,
 } from "@features/player/model/playerState";
 type PlayerListener = (state: PlayerState) => void;
+const MIN_PLAYBACK_SPEED = 0.01;
 
 export class MpvPlayer {
   private state: PlayerState = { ...EMPTY_PLAYER_STATE };
@@ -57,7 +57,6 @@ export class MpvPlayer {
   private svpEnabled = false;
   private started = false;
   private currentSource: string | null = null;
-  private artworkCaptureToken = 0;
 
   private clearPendingEmit(): void {
     if (this.emitFrameId === null) {
@@ -113,6 +112,10 @@ export class MpvPlayer {
     return () => this.listeners.delete(listener);
   }
 
+  getSnapshot(): PlayerState {
+    return this.state;
+  }
+
   subscribeThumbnail = (listener: (url: string) => void): (() => void) =>
     this.thumbnailer.subscribe(listener);
 
@@ -135,7 +138,9 @@ export class MpvPlayer {
     this.appliedUpscaleShaderPaths = [];
     this.started = false;
     this.currentSource = null;
-    this.artworkCaptureToken += 1;
+    await readAudioArtworkUrl(null).catch(() => "");
+    this.state = { ...EMPTY_PLAYER_STATE };
+    this.emitImmediately();
 
     if (!shouldDestroy) {
       return;
@@ -207,7 +212,7 @@ export class MpvPlayer {
   async loadFile(path: string, updateThumbnailSource = true): Promise<void> {
     this.currentSource = path;
     const isAudioSource = isLikelyAudioSource(path);
-    const audioArtworkUrl = isAudioSource ? await readAudioArtworkUrl(path).catch(() => "") : "";
+    const audioArtworkUrl = await readAudioArtworkUrl(isAudioSource ? path : null).catch(() => "");
 
     this.thumbnailer.setSource(updateThumbnailSource && !isAudioSource ? path : null);
     this.prepareAudioArtworkLoad(audioArtworkUrl);
@@ -227,15 +232,16 @@ export class MpvPlayer {
 
   async togglePlayPause(): Promise<void> {
     const confirmedPaused = await this.readPlayerFlag("pause");
-    const nextPause = getNextPauseForTransportToggle(this.state, confirmedPaused);
+    const playbackBlocked = this.state.pausedForCache || this.state.coreIdle;
+    const nextPause = playbackBlocked ? false : !(confirmedPaused ?? this.state.paused);
     await this.setPlayerFlag("pause", nextPause);
   }
 
-  async play(): Promise<void> {
+  private async play(): Promise<void> {
     await this.setPlayerFlag("pause", false);
   }
 
-  async pause(): Promise<void> {
+  private async pause(): Promise<void> {
     await this.setPlayerFlag("pause", true);
   }
 
@@ -245,10 +251,6 @@ export class MpvPlayer {
 
   async seekRelative(seconds: number): Promise<void> {
     await command("seek", [seconds, "relative"]);
-  }
-
-  async frameStep(): Promise<void> {
-    await command("frame-step");
   }
 
   private async initialize(): Promise<void> {
@@ -271,8 +273,6 @@ export class MpvPlayer {
     this.emit();
 
     this.unlisten = await observeProperties(OBSERVED_PROPERTIES, (event) => {
-      this.thumbnailer.setVideoParam(event.name, event.data);
-
       const nextState = applyObservedProperty(this.state, event);
       if (nextState === this.state) {
         return;
@@ -284,7 +284,6 @@ export class MpvPlayer {
   }
 
   private prepareAudioArtworkLoad(audioArtworkUrl: string): void {
-    this.artworkCaptureToken += 1;
     const isAudioArtworkActive = audioArtworkUrl.length > 0;
     const nextState = {
       ...this.state,
@@ -328,10 +327,6 @@ export class MpvPlayer {
     await this.setPlayerFlag("mute", !this.state.mute);
   }
 
-  async adjustVolume(delta: number): Promise<void> {
-    await this.setVolume(this.state.volume + delta);
-  }
-
   getVolume(): number {
     return this.state.volume;
   }
@@ -342,7 +337,7 @@ export class MpvPlayer {
 
   async adjustPlaybackSpeed(multiplier: number): Promise<number> {
     const currentSpeed = this.state.playbackSpeed || DEFAULT_PLAYBACK_SPEED;
-    const nextSpeed = normalizePlaybackSpeed(currentSpeed * multiplier);
+    const nextSpeed = Math.max(MIN_PLAYBACK_SPEED, Number((currentSpeed * multiplier).toFixed(3)));
 
     if (nextSpeed !== this.state.playbackSpeed) {
       this.state = { ...this.state, playbackSpeed: nextSpeed };
@@ -448,9 +443,9 @@ export class MpvPlayer {
   }
 
   private async applyStereoDownmixSettings(enabled: boolean): Promise<void> {
-    await setProperty("audio-channels", enabled ? "stereo" : "auto-safe");
-    await setProperty("ad-lavc-downmix", enabled ? "yes" : "no");
-    await setProperty("audio-normalize-downmix", "yes");
+    for (const [name, value] of Object.entries(getStereoDownmixMpvOptions(enabled))) {
+      await setProperty(name, value);
+    }
   }
 
   private async waitForTrackSelection(

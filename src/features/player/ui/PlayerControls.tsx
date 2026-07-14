@@ -10,7 +10,7 @@ import {
 } from "react";
 import { UI_VOLUME_MAX, getUiVolumeFromMpvVolume } from "@integrations/mpv/constants";
 import { formatTime } from "@shared/lib/format";
-import { usePlayerStateSelector } from "../model/playerStore";
+import { usePlayerStateSelector } from "../controller/playerSession";
 import type { PlayerControlsProps } from "../model/types";
 import { ToolCluster, TransportCluster, VolumeCluster } from "./PlayerControlClusters";
 
@@ -396,24 +396,22 @@ function TimelineRow({
 }
 
 function TimelineRowContainer({
-  duration,
   hasMedia,
-  totalTime,
   setTimelinePosition,
   requestTimelineThumbnail,
   clearTimelineThumbnail,
   subscribeTimelineThumbnail,
 }: Pick<
   PlayerControlsProps,
-  | "duration"
   | "hasMedia"
-  | "totalTime"
   | "setTimelinePosition"
   | "requestTimelineThumbnail"
   | "clearTimelineThumbnail"
   | "subscribeTimelineThumbnail"
 >) {
+  const duration = usePlayerStateSelector((state) => state.duration);
   const timePos = usePlayerStateSelector((state) => state.timePos);
+  const totalTime = formatTime(duration);
   const {
     displayedCurrentTime,
     isTimelineScrubbing,
@@ -478,8 +476,6 @@ function VolumeClusterContainer({
 }
 
 export function PlayerControls({
-  paused,
-  duration,
   hasMedia,
   isFullscreen,
   isChromeHidden,
@@ -487,7 +483,6 @@ export function PlayerControls({
   isCyclingSubtitles,
   audioTracks,
   subtitleTracks,
-  totalTime,
   audioSummary,
   subtitleSummary,
   cycleAudioTrack,
@@ -505,6 +500,8 @@ export function PlayerControls({
   subscribeTimelineThumbnail,
   setVolume,
 }: PlayerControlsProps) {
+  const paused = usePlayerStateSelector((state) => state.paused);
+
   return (
     <section
       className={`control-dock${isChromeHidden ? " is-hidden" : ""}`}
@@ -512,9 +509,7 @@ export function PlayerControls({
       onMouseLeave={handleControlDockMouseLeave}
     >
       <TimelineRowContainer
-        duration={duration}
         hasMedia={hasMedia}
-        totalTime={totalTime}
         setTimelinePosition={setTimelinePosition}
         requestTimelineThumbnail={requestTimelineThumbnail}
         clearTimelineThumbnail={clearTimelineThumbnail}

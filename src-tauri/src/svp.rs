@@ -33,7 +33,7 @@ pub fn resolve_svp_integration(requested_enabled: bool) -> SvpIntegrationState {
 fn prepend_env_path(name: &str, value: &Path) {
     let value = value.as_os_str();
     let existing = env::var_os(name).unwrap_or_default();
-    let already_present = env::split_paths(&existing).any(|segment| segment == PathBuf::from(value));
+    let already_present = env::split_paths(&existing).any(|segment| segment.as_os_str() == value);
 
     if already_present {
         return;
@@ -100,13 +100,7 @@ mod windows {
                     "python310.dll",
                 ],
             )
-            && has_any_existing_path(
-                dir,
-                &[
-                    "SVPManager.exe",
-                    "SVP Manager.exe",
-                ],
-            )
+            && has_any_existing_path(dir, &["SVPManager.exe", "SVP Manager.exe"])
     }
 
     fn has_any_existing_path(root: &Path, relative_paths: &[&str]) -> bool {

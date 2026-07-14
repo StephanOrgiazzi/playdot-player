@@ -23,11 +23,10 @@ import {
 } from "@integrations/mpv/constants";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
 import { getErrorMessage } from "@shared/lib/error";
-import { formatTime } from "@shared/lib/format";
 import { getPersistedBoolean, persistBoolean } from "@shared/lib/persistedBoolean";
 import { getPlayerTrackDerivedState } from "../model/playerDerived";
 import { hasMedia as hasLoadedMedia } from "../model/playerSelectors";
-import { usePlayerStateSelector } from "../model/playerStore";
+import { usePlayerStateSelector } from "./playerSession";
 import { useAudioNormalizer } from "./useAudioNormalizer";
 
 const FSR_PREFERENCE_STORAGE_KEY = "playdot-player.player.fsr-enabled";
@@ -175,11 +174,9 @@ function useSavedFsrPreferenceSync({
 
 export function usePlayerMediaState(): {
   initialized: boolean;
-  paused: boolean;
-  duration: number;
   filename: string;
   hasMedia: boolean;
-  totalTime: string;
+  hasVideo: boolean;
   audioTracks: ReturnType<typeof getPlayerTrackDerivedState>["audioTracks"];
   subtitleTracks: ReturnType<typeof getPlayerTrackDerivedState>["subtitleTracks"];
   selectedAudioTrack: ReturnType<typeof getPlayerTrackDerivedState>["selectedAudioTrack"];
@@ -190,8 +187,6 @@ export function usePlayerMediaState(): {
   audioArtworkUrl: string;
 } {
   const initialized = usePlayerStateSelector((state) => state.initialized);
-  const paused = usePlayerStateSelector((state) => state.paused);
-  const duration = usePlayerStateSelector((state) => state.duration);
   const filename = usePlayerStateSelector((state) => state.filename);
   const selectedAudioTrackId = usePlayerStateSelector((state) => state.selectedAudioTrackId);
   const selectedSubtitleTrackId = usePlayerStateSelector((state) => state.selectedSubtitleTrackId);
@@ -210,11 +205,9 @@ export function usePlayerMediaState(): {
 
   return {
     initialized,
-    paused,
-    duration,
     filename,
     hasMedia: hasLoadedMedia({ filename }),
-    totalTime: formatTime(duration),
+    hasVideo: tracks.some((track) => track.type === "video" && !track.albumart),
     audioTracks: derivedState.audioTracks,
     subtitleTracks: derivedState.subtitleTracks,
     selectedAudioTrack: derivedState.selectedAudioTrack,

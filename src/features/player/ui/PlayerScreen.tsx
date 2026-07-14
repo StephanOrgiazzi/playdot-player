@@ -118,6 +118,7 @@ export function PlayerScreen(props: PlayerScreenProps) {
             ref={contextMenuRef}
             position={contextMenuPosition}
             hasMedia={props.hasMedia}
+            hasVideo={props.hasVideo}
             isFsrEnabled={props.isFsrEnabled}
             isAudioNormalizerEnabled={props.isAudioNormalizerEnabled}
             isStereoDownmixEnabled={props.isStereoDownmixEnabled}
@@ -158,8 +159,6 @@ export function PlayerScreen(props: PlayerScreenProps) {
           onSubmit={submitUrlDialog}
         />
         <PlayerControls
-          paused={props.paused}
-          duration={props.duration}
           hasMedia={props.hasMedia}
           isFullscreen={props.isFullscreen}
           isChromeHidden={props.isChromeHidden}
@@ -167,7 +166,6 @@ export function PlayerScreen(props: PlayerScreenProps) {
           isCyclingSubtitles={props.isCyclingSubtitles}
           audioTracks={props.audioTracks}
           subtitleTracks={props.subtitleTracks}
-          totalTime={props.totalTime}
           audioSummary={props.audioSummary}
           subtitleSummary={props.subtitleSummary}
           cycleAudioTrack={props.cycleAudioTrack}
