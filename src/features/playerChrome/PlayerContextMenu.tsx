@@ -420,19 +420,22 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
             icon={isFsrEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null}
           />
         ) : null}
-        <MenuActionItem
-          label="Audio Normalizer"
-          shortcut="N"
-          role="menuitemcheckbox"
-          ariaChecked={isAudioNormalizerEnabled}
-          disabled={!hasMedia}
-          onClick={(): void => {
-            runAction(toggleAudioNormalizer);
-          }}
-          icon={
-            isAudioNormalizerEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null
-          }
-        />
+        {hasVideo ? (
+          <MenuActionItem
+            label="Audio Normalizer"
+            shortcut="N"
+            role="menuitemcheckbox"
+            ariaChecked={isAudioNormalizerEnabled}
+            onClick={(): void => {
+              runAction(toggleAudioNormalizer);
+            }}
+            icon={
+              isAudioNormalizerEnabled ? (
+                <PlayerIcon name="check" className="icon icon--xs" />
+              ) : null
+            }
+          />
+        ) : null}
         <MenuActionItem
           label="Stereo Downmix"
           shortcut="D"
