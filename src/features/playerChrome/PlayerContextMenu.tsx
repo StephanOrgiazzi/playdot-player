@@ -18,6 +18,7 @@ type PlayerContextMenuProps = {
   position: { x: number; y: number };
   hasMedia: boolean;
   isFsrEnabled: boolean;
+  isAudioNormalizerEnabled: boolean;
   isStereoDownmixEnabled: boolean;
   isSvpAvailable: boolean;
   isSvpEnabled: boolean;
@@ -39,6 +40,7 @@ type PlayerContextMenuProps = {
   selectAudioTrack: TrackSelectionAction;
   selectSubtitleTrack: TrackSelectionAction;
   toggleFsr: AsyncAction;
+  toggleAudioNormalizer: AsyncAction;
   toggleStereoDownmix: AsyncAction;
   toggleSvp: AsyncAction;
   toggleFullscreen: AsyncAction;
@@ -323,6 +325,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
       position,
       hasMedia,
       isFsrEnabled,
+      isAudioNormalizerEnabled,
       isStereoDownmixEnabled,
       isSvpAvailable,
       isSvpEnabled,
@@ -344,6 +347,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
       selectAudioTrack,
       selectSubtitleTrack,
       toggleFsr,
+      toggleAudioNormalizer,
       toggleStereoDownmix,
       toggleSvp,
       toggleFullscreen,
@@ -411,6 +415,19 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
             runAction(toggleFsr);
           }}
           icon={isFsrEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null}
+        />
+        <MenuActionItem
+          label="Audio Normalizer"
+          shortcut="N"
+          role="menuitemcheckbox"
+          ariaChecked={isAudioNormalizerEnabled}
+          disabled={!hasMedia}
+          onClick={(): void => {
+            runAction(toggleAudioNormalizer);
+          }}
+          icon={
+            isAudioNormalizerEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null
+          }
         />
         <MenuActionItem
           label="Stereo Downmix"

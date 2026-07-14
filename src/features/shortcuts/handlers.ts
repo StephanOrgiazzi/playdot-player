@@ -28,6 +28,7 @@ const CTRL_MEDIA_SHORTCUTS: Partial<Record<string, KeyShortcutAction>> = {
 const MEDIA_SHORTCUTS: Partial<Record<string, KeyShortcutAction>> = {
   a: "cycleAudioTrack",
   d: "toggleStereoDownmix",
+  n: "toggleAudioNormalizer",
   s: "cycleSubtitleTrack",
   u: "toggleFsr",
   m: "toggleMute",

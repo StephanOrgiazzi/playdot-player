@@ -119,6 +119,7 @@ export function PlayerScreen(props: PlayerScreenProps) {
             position={contextMenuPosition}
             hasMedia={props.hasMedia}
             isFsrEnabled={props.isFsrEnabled}
+            isAudioNormalizerEnabled={props.isAudioNormalizerEnabled}
             isStereoDownmixEnabled={props.isStereoDownmixEnabled}
             isSvpAvailable={props.isSvpAvailable}
             isSvpEnabled={props.isSvpEnabled}
@@ -140,6 +141,7 @@ export function PlayerScreen(props: PlayerScreenProps) {
             selectAudioTrack={props.selectAudioTrack}
             selectSubtitleTrack={props.selectSubtitleTrack}
             toggleFsr={props.toggleFsr}
+            toggleAudioNormalizer={props.toggleAudioNormalizer}
             toggleStereoDownmix={props.toggleStereoDownmix}
             toggleSvp={props.toggleSvp}
             toggleFullscreen={props.toggleFullscreen}

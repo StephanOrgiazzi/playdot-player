@@ -13,6 +13,7 @@ import {
   nextAnimationFrame,
   readAudioArtworkUrl,
 } from "./audioArtwork";
+import { AUDIO_NORMALIZER_FILTER } from "./audioNormalizer";
 import { normalizePlaybackSpeed } from "./playback";
 import {
   DEFAULT_PLAYBACK_SPEED,
@@ -51,6 +52,7 @@ export class MpvPlayer {
   private fsrToggle: Promise<boolean> | null = null;
   private upscaleShaderBundles: string[][] = [];
   private appliedUpscaleShaderPaths: string[] = [];
+  private audioNormalizerEnabled = false;
   private stereoDownmixEnabled = false;
   private svpEnabled = false;
   private started = false;
@@ -182,6 +184,26 @@ export class MpvPlayer {
     }
   }
 
+  async setAudioNormalizerEnabled(enabled: boolean): Promise<void> {
+    if (this.audioNormalizerEnabled === enabled) {
+      return;
+    }
+
+    const previous = this.audioNormalizerEnabled;
+    this.audioNormalizerEnabled = enabled;
+
+    if (!this.started) {
+      return;
+    }
+
+    try {
+      await setProperty("af", enabled ? AUDIO_NORMALIZER_FILTER : "");
+    } catch (error) {
+      this.audioNormalizerEnabled = previous;
+      throw error;
+    }
+  }
+
   async loadFile(path: string, updateThumbnailSource = true): Promise<void> {
     this.currentSource = path;
     const isAudioSource = isLikelyAudioSource(path);
@@ -236,6 +258,7 @@ export class MpvPlayer {
 
     const resourcePaths = await getMpvResourcePaths();
     const config = await createMpvConfig(resourcePaths, {
+      audioNormalizerEnabled: this.audioNormalizerEnabled,
       stereoDownmixEnabled: this.stereoDownmixEnabled,
       svpEnabled: this.svpEnabled,
     });

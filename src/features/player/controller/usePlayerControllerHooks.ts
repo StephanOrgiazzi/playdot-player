@@ -28,6 +28,7 @@ import { getPersistedBoolean, persistBoolean } from "@shared/lib/persistedBoolea
 import { getPlayerTrackDerivedState } from "../model/playerDerived";
 import { hasMedia as hasLoadedMedia } from "../model/playerSelectors";
 import { usePlayerStateSelector } from "../model/playerStore";
+import { useAudioNormalizer } from "./useAudioNormalizer";
 
 const FSR_PREFERENCE_STORAGE_KEY = "playdot-player.player.fsr-enabled";
 const STEREO_DOWNMIX_PREFERENCE_STORAGE_KEY = "playdot-player.player.stereo-downmix-enabled";
@@ -382,8 +383,10 @@ export function usePlayerEnhancementActions({
   setToast: SetToast;
 }): {
   isFsrEnabled: boolean;
+  isAudioNormalizerEnabled: boolean;
   isStereoDownmixEnabled: boolean;
   toggleFsr: () => Promise<void>;
+  toggleAudioNormalizer: () => Promise<void>;
   toggleStereoDownmix: () => Promise<void>;
   preparePlayerStart: () => Promise<void>;
   adjustVolume: (delta: number) => Promise<void>;
@@ -391,6 +394,12 @@ export function usePlayerEnhancementActions({
   increaseGamma: () => Promise<void>;
   decreaseGamma: () => Promise<void>;
 } {
+  const { isAudioNormalizerEnabled, toggleAudioNormalizer } = useAudioNormalizer({
+    player,
+    hasMedia,
+    setError,
+    setToast,
+  });
   const [fsrPreferenceEnabled, setFsrPreferenceEnabled] = useState<boolean>(() =>
     getPersistedBoolean(FSR_PREFERENCE_STORAGE_KEY),
   );
@@ -479,9 +488,11 @@ export function usePlayerEnhancementActions({
 
   return {
     isFsrEnabled,
+    isAudioNormalizerEnabled,
     isStereoDownmixEnabled,
     preparePlayerStart,
     toggleFsr,
+    toggleAudioNormalizer,
     toggleStereoDownmix,
     adjustVolume,
     adjustGamma,

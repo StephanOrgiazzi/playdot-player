@@ -15,6 +15,7 @@ export type PlayerScreenProps = {
   toast: ToastState | null;
   isFullscreen: boolean;
   isFsrEnabled: boolean;
+  isAudioNormalizerEnabled: boolean;
   isStereoDownmixEnabled: boolean;
   isSvpAvailable: boolean;
   isSvpEnabled: boolean;
@@ -38,6 +39,7 @@ export type PlayerScreenProps = {
   selectAudioTrack: TrackSelectionAction;
   selectSubtitleTrack: TrackSelectionAction;
   toggleFsr: AsyncAction;
+  toggleAudioNormalizer: AsyncAction;
   toggleStereoDownmix: AsyncAction;
   toggleSvp: AsyncAction;
   toggleFullscreen: AsyncAction;

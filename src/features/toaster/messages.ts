@@ -52,6 +52,10 @@ export function createStereoDownmixToast(enabled: boolean): ToastState {
   return createToast(enabled ? "Stereo Downmix ON" : "Stereo Downmix OFF");
 }
 
+export function createAudioNormalizerToast(enabled: boolean): ToastState {
+  return createToast(enabled ? "Audio Normalizer ON" : "Audio Normalizer OFF");
+}
+
 export function createSvpToast(enabled: boolean): ToastState {
   return createToast(enabled ? "SVP ON" : "SVP OFF");
 }

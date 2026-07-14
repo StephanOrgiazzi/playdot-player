@@ -1,5 +1,6 @@
 import { join, resolveResource, resourceDir } from "@tauri-apps/api/path";
 import { getSvpMpvInitialOptions } from "@integrations/svp/mpv";
+import { getAudioNormalizerMpvInitialOptions } from "./audioNormalizer";
 import { getStereoDownmixMpvInitialOptions } from "./stereoDownmix";
 import type { MpvConfig } from "./libmpv-api";
 import {
@@ -23,6 +24,7 @@ type MpvResourcePaths = {
 };
 
 type MpvFeatureFlags = {
+  audioNormalizerEnabled?: boolean;
   stereoDownmixEnabled?: boolean;
   svpEnabled?: boolean;
 };
@@ -133,7 +135,12 @@ export async function createMpvConfig(
   featureFlags?: MpvFeatureFlags,
 ): Promise<MpvConfig> {
   const { subtitleFontsDir } = resourcePaths ?? (await getMpvResourcePaths());
-  const { stereoDownmixEnabled = false, svpEnabled = false } = featureFlags ?? {};
+  const {
+    audioNormalizerEnabled = false,
+    stereoDownmixEnabled = false,
+    svpEnabled = false,
+  } = featureFlags ?? {};
+  const audioNormalizerInitialOptions = getAudioNormalizerMpvInitialOptions(audioNormalizerEnabled);
   const stereoDownmixInitialOptions = getStereoDownmixMpvInitialOptions(stereoDownmixEnabled);
   const svpInitialOptions = getSvpMpvInitialOptions(svpEnabled);
 
@@ -161,6 +168,7 @@ export async function createMpvConfig(
       "replaygain-fallback": "0",
       "replaygain-clip": "no",
       "ad-lavc-ac3drc": 0,
+      ...audioNormalizerInitialOptions,
       ...stereoDownmixInitialOptions,
       "sub-font": SUBTITLE_FONT,
       "sub-font-size": SUBTITLE_FONT_SIZE,
