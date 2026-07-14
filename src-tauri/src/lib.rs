@@ -13,6 +13,11 @@ pub fn run() {
                 let _ = webview.window().show();
             }
         })
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::CloseRequested { .. }) {
+                let _ = window.hide();
+            }
+        })
         .plugin(tauri_plugin_single_instance::init(|app, arguments, cwd| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.unminimize();

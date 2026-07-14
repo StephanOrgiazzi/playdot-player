@@ -86,17 +86,3 @@ export function getNextSubtitleTrackSelection(state: PlayerState): TrackSelectio
     ? "no"
     : nextSubtitleTrack.id;
 }
-
-export function matchesTrackSelection(
-  state: PlayerState,
-  type: MediaTrack["type"],
-  target: TrackSelection,
-): boolean {
-  const selectedTrack = getSelectedTrackByType(state, type);
-
-  if (target === "no") {
-    return selectedTrack === undefined;
-  }
-
-  return selectedTrack?.id === target;
-}
