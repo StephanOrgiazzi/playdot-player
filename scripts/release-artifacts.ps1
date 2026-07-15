@@ -6,7 +6,7 @@ $nsisRoot = Join-Path $bundleRoot "nsis"
 $outputRoot = Join-Path $projectRoot "release"
 
 if (-not (Test-Path -LiteralPath $nsisRoot)) {
-  throw "NSIS output not found at '$nsisRoot'. Run 'npm run release:win' first."
+  throw "NSIS output not found at '$nsisRoot'. Run 'bun run release:win' first."
 }
 
 $installer = Get-ChildItem -LiteralPath $nsisRoot -File -Filter "*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1

@@ -118,23 +118,23 @@ Current feature set includes:
 ## Quick Start (Development)
 
 ```bash
-npm install
-npm run setup-lib
-npm run app:dev
+bun install
+bun run setup-lib
+bun run app:dev
 ```
 
 Notes:
 
-- `npm run setup-lib` prepares `src-tauri/lib/` with the required `mpv` runtime files
-- `npm run app:dev` starts the `Vite` frontend and the `Tauri` desktop app together
+- `bun run setup-lib` prepares `src-tauri/lib/` with the required `mpv` runtime files
+- `bun run app:dev` starts the `Vite` frontend and the `Tauri` desktop app together
 - _This project is intended for Windows development and packaging_
 
 ## Quality Checks
 
 ```bash
-npm run lint
-npm run format
-npm run build
+bun run lint
+bun run format
+bun run build
 ```
 
 ## Build and Release
@@ -142,13 +142,13 @@ npm run build
 Build the app:
 
 ```bash
-npm run tauri:build
+bun run tauri:build
 ```
 
 Create the Windows installer and release artifacts:
 
 ```bash
-npm run release
+bun run release
 ```
 
 Outputs are written under `src-tauri/target/release/bundle/` and `release/`.
@@ -157,12 +157,12 @@ Outputs are written under `src-tauri/target/release/bundle/` and `release/`.
 
 | Command               | Description                             |
 | --------------------- | --------------------------------------- |
-| `npm run app:dev`     | Run full Tauri desktop development mode |
-| `npm run build`       | Type-check and build the frontend       |
-| `npm run lint`        | Run `oxlint` with the project rules     |
-| `npm run tauri:build` | Build desktop bundles                   |
-| `npm run setup-lib`   | Prepare bundled libmpv runtime files    |
-| `npm run release`     | Build installer and local artifacts     |
+| `bun run app:dev`     | Run full Tauri desktop development mode |
+| `bun run build`       | Type-check and build the frontend       |
+| `bun run lint`        | Run `oxlint` with the project rules     |
+| `bun run tauri:build` | Build desktop bundles                   |
+| `bun run setup-lib`   | Prepare bundled libmpv runtime files    |
+| `bun run release`     | Build installer and local artifacts     |
 
 ## Open Source
 
