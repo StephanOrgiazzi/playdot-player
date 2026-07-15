@@ -42,6 +42,7 @@ export const OBSERVED_PROPERTIES = [
   ["aid", "int64", "none"],
   ["sid", "int64", "none"],
   ["track-list", "node"],
+  ["vf", "string"],
 ] as const satisfies MpvObservableProperty[];
 
 export function clampMpvVolume(value: number): number {

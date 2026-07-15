@@ -18,11 +18,9 @@ pub fn resolve_svp_integration(requested_enabled: bool) -> SvpIntegrationState {
         };
     };
 
-    if requested_enabled {
-        let mpv64_dir = install_dir.join("mpv64");
-        prepend_env_path("PATH", &mpv64_dir);
-        prepend_env_path("PYTHONPATH", &mpv64_dir);
-    }
+    let mpv64_dir = install_dir.join("mpv64");
+    prepend_env_path("PATH", &mpv64_dir);
+    prepend_env_path("PYTHONPATH", &mpv64_dir);
 
     SvpIntegrationState {
         available: true,
@@ -43,8 +41,8 @@ fn prepend_env_path(name: &str, value: &Path) {
     let next_value = env::join_paths(std::iter::once(PathBuf::from(value)).chain(paths));
 
     if let Ok(next_value) = next_value {
-        // SAFETY: This command runs on the main Tauri thread during startup or on explicit
-        // user action, before libmpv is reinitialized, so mutating process env here is safe.
+        // SAFETY: Integration resolution runs on the main Tauri thread before libmpv starts.
+        // Later calls find the same path already present and return without mutating it again.
         unsafe {
             env::set_var(name, next_value);
         }
@@ -91,14 +89,11 @@ mod windows {
         let mpv64_dir = dir.join("mpv64");
 
         mpv64_dir.is_dir()
+            && mpv64_dir.join("vapoursynth.dll").is_file()
+            && mpv64_dir.join("VSScript.dll").is_file()
             && has_any_existing_path(
                 &mpv64_dir,
-                &[
-                    "vapoursynth.dll",
-                    "python312.dll",
-                    "python311.dll",
-                    "python310.dll",
-                ],
+                &["python312.dll", "python311.dll", "python310.dll"],
             )
             && has_any_existing_path(dir, &["SVPManager.exe", "SVP Manager.exe"])
     }

@@ -39,6 +39,7 @@ export function useSvpIntegration({
   const applySvpPreference = useCallback(
     async (requestedEnabled: boolean): Promise<SvpIntegrationState> => {
       const resolved = await resolveSvpIntegration(requestedEnabled);
+      player.setSvpAvailable(resolved.available);
       await player.setSvpEnabled(resolved.enabled);
       setIsSvpAvailable(resolved.available);
       setIsSvpEnabled(resolved.enabled);

@@ -21,11 +21,11 @@ import {
   getMpvResourcePaths,
   getStereoDownmixMpvOptions,
 } from "./config";
-import { runAndWaitForMpvEvent } from "./events";
 import { toggleFsrShaders } from "./fsr";
 import { MpvThumbnailer } from "./MpvThumbnailer";
 import { applyObservedProperty } from "./stateUpdates";
 import { getNextAudioTrackSelection, getNextSubtitleTrackSelection } from "./tracks";
+import { syncSvpMpvFilter } from "@integrations/svp/mpv";
 import {
   DEFAULT_PLAYBACK_SPEED,
   EMPTY_PLAYER_STATE,
@@ -47,9 +47,10 @@ export class MpvPlayer {
   private appliedUpscaleShaderPaths: string[] = [];
   private audioNormalizerEnabled = false;
   private stereoDownmixEnabled = false;
+  private svpAvailable = false;
   private svpEnabled = false;
+  private svpFilterSync: Promise<void> | null = null;
   private started = false;
-  private currentSource: string | null = null;
 
   private clearPendingEmit(): void {
     if (this.emitFrameId === null) {
@@ -127,10 +128,10 @@ export class MpvPlayer {
     this.unlisten?.();
     this.unlisten = null;
     this.fsrToggle = null;
+    this.svpFilterSync = null;
     this.upscaleShaderBundles = [];
     this.appliedUpscaleShaderPaths = [];
     this.started = false;
-    this.currentSource = null;
     await readAudioArtworkUrl(null).catch(() => "");
     this.state = { ...EMPTY_PLAYER_STATE };
     this.emitImmediately();
@@ -147,19 +148,17 @@ export class MpvPlayer {
       return;
     }
 
-    const previous = this.svpEnabled;
     this.svpEnabled = enabled;
 
     if (!this.started) {
       return;
     }
 
-    try {
-      await this.restartWithCurrentMedia();
-    } catch (error) {
-      this.svpEnabled = previous;
-      throw error;
-    }
+    await this.syncSvpFilterState();
+  }
+
+  setSvpAvailable(available: boolean): void {
+    this.svpAvailable = available;
   }
 
   async setStereoDownmixEnabled(enabled: boolean): Promise<void> {
@@ -203,7 +202,6 @@ export class MpvPlayer {
   }
 
   async loadFile(path: string): Promise<void> {
-    this.currentSource = path;
     const isAudioSource = isLikelyAudioSource(path);
     const audioArtworkUrl = await readAudioArtworkUrl(isAudioSource ? path : null).catch(() => "");
 
@@ -230,10 +228,6 @@ export class MpvPlayer {
     await this.setPlayerFlag("pause", false);
   }
 
-  private async pause(): Promise<void> {
-    await this.setPlayerFlag("pause", true);
-  }
-
   async seekAbsolute(seconds: number): Promise<void> {
     await command("seek", [Math.max(0, seconds), "absolute+exact"]);
   }
@@ -251,7 +245,7 @@ export class MpvPlayer {
     const config = await createMpvConfig(resourcePaths, {
       audioNormalizerEnabled: this.audioNormalizerEnabled,
       stereoDownmixEnabled: this.stereoDownmixEnabled,
-      svpEnabled: this.svpEnabled,
+      svpAvailable: this.svpAvailable,
     });
     await init(config);
     this.upscaleShaderBundles = resourcePaths.upscaleShaderBundles;
@@ -262,6 +256,11 @@ export class MpvPlayer {
     this.emit();
 
     this.unlisten = await observeProperties(OBSERVED_PROPERTIES, (event) => {
+      if (event.name === "vf") {
+        void this.syncSvpFilterState().catch(() => undefined);
+        return;
+      }
+
       const nextState = applyObservedProperty(this.state, event);
       if (nextState === this.state) {
         return;
@@ -270,6 +269,24 @@ export class MpvPlayer {
       this.state = nextState;
       this.emit();
     });
+  }
+
+  private async syncSvpFilterState(): Promise<void> {
+    if (!this.svpAvailable || !this.started) {
+      return;
+    }
+
+    if (this.svpFilterSync) {
+      return this.svpFilterSync;
+    }
+
+    const task = syncSvpMpvFilter(this.svpEnabled).finally(() => {
+      if (this.svpFilterSync === task) {
+        this.svpFilterSync = null;
+      }
+    });
+    this.svpFilterSync = task;
+    return task;
   }
 
   private prepareAudioArtworkLoad(audioArtworkUrl: string): void {
@@ -437,41 +454,5 @@ export class MpvPlayer {
     await command("loadfile", loadOptions ? [path, "replace", -1, loadOptions] : [path]);
     await this.resetPerMediaDefaults();
     await this.play();
-  }
-
-  private async restartWithCurrentMedia(): Promise<void> {
-    const currentSource = this.currentSource;
-    const currentTime = this.state.timePos;
-    const wasPaused = this.state.paused;
-
-    this.thumbnailer.clear();
-    this.clearPendingEmit();
-    this.unlisten?.();
-    this.unlisten = null;
-    this.started = false;
-    await destroy().catch(() => undefined);
-    await this.initialize();
-
-    if (!currentSource) {
-      return;
-    }
-
-    this.currentSource = currentSource;
-    const shouldWaitForFileLoaded = currentTime > 0 || wasPaused;
-    if (shouldWaitForFileLoaded) {
-      await runAndWaitForMpvEvent("file-loaded", () => this.loadMpvFile(currentSource));
-    } else {
-      await this.loadMpvFile(currentSource);
-    }
-
-    if (currentTime > 0) {
-      await this.seekAbsolute(currentTime).catch(() => undefined);
-    }
-
-    if (wasPaused) {
-      await this.pause().catch(() => undefined);
-    }
-
-    this.thumbnailer.setSource(isLikelyAudioSource(currentSource) ? null : currentSource);
   }
 }

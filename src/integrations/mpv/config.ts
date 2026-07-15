@@ -24,7 +24,7 @@ type MpvResourcePaths = {
 type MpvFeatureFlags = {
   audioNormalizerEnabled?: boolean;
   stereoDownmixEnabled?: boolean;
-  svpEnabled?: boolean;
+  svpAvailable?: boolean;
 };
 
 type MpvPerFileOptions = Readonly<Record<string, string>>;
@@ -133,9 +133,9 @@ export async function createMpvConfig(
   const {
     audioNormalizerEnabled = false,
     stereoDownmixEnabled = false,
-    svpEnabled = false,
+    svpAvailable = false,
   } = featureFlags ?? {};
-  const svpInitialOptions = getSvpMpvInitialOptions(svpEnabled);
+  const svpInitialOptions = getSvpMpvInitialOptions(svpAvailable);
 
   return {
     initialOptions: {
@@ -144,23 +144,7 @@ export async function createMpvConfig(
       hwdec: "auto-safe",
       "target-colorspace-hint": "auto",
       "target-colorspace-hint-mode": "target",
-      scale: "ewa_lanczossoft",
-      "scale-antiring": 0.8,
-      cscale: "lanczos",
-      "cscale-antiring": 0.8,
-      dscale: "catmull_rom",
       deband: "yes",
-      "deband-iterations": 4,
-      "deband-threshold": 35,
-      "deband-range": 16,
-      "deband-grain": 0,
-      "tone-mapping": "bt.2446a",
-      "gamut-mapping-mode": "perceptual",
-      "hdr-compute-peak": "yes",
-      "video-output-levels": "auto",
-      dither: "fruit",
-      "dither-depth": "auto",
-      "temporal-dither": "yes",
       "keep-open": "yes",
       "force-window": "yes",
       pause: "yes",
