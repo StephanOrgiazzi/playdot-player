@@ -1,9 +1,9 @@
-import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useEffectEvent, type Dispatch, type SetStateAction } from "react";
+import { Effect, FiberSet, Queue, Semaphore } from "effect";
 import { getStartupMediaSource } from "@features/mediaOpen/startup";
 import { listen } from "@tauri-apps/api/event";
 import type { Window } from "@tauri-apps/api/window";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
-import { getErrorMessage } from "@shared/lib/error";
 
 type StateSetter<T> = Dispatch<SetStateAction<T>>;
 
@@ -15,6 +15,41 @@ type UsePlayerLifecycleOptions = {
   beforeStart?: () => Promise<void>;
 };
 
+type MediaSourceRequest = {
+  source: string;
+  failureMessage: string;
+};
+
+class PlayerLifecycleError extends Error {
+  readonly _tag = "PlayerLifecycleError";
+
+  constructor(
+    readonly operation: string,
+    message: string,
+    cause: object,
+  ) {
+    super(message, { cause });
+  }
+}
+
+const playerLifecycleSemaphore = Semaphore.makeUnsafe(1);
+
+function lifecyclePromise<A>(
+  operation: string,
+  message: string,
+  task: () => PromiseLike<A>,
+): Effect.Effect<A, PlayerLifecycleError> {
+  return Effect.tryPromise({
+    try: task,
+    catch: (cause) =>
+      new PlayerLifecycleError(
+        operation,
+        message,
+        cause instanceof Error ? cause : new Error(String(cause)),
+      ),
+  });
+}
+
 export function usePlayerLifecycle({
   player,
   appWindow,
@@ -22,118 +57,165 @@ export function usePlayerLifecycle({
   syncWindowState,
   beforeStart,
 }: UsePlayerLifecycleOptions): void {
-  const beforeStartRef = useRef(beforeStart);
-
-  useEffect(() => {
-    beforeStartRef.current = beforeStart;
-  }, [beforeStart]);
+  const runBeforeStart = useEffectEvent((): Promise<void> => beforeStart?.() ?? Promise.resolve());
 
   useEffect(() => {
     let mounted = true;
 
-    const loadMediaSource = async (source: string, fallbackMessage: string): Promise<void> => {
-      try {
-        await player.loadFile(source);
-        if (!mounted) {
-          return;
+    const reportFailure = (error: PlayerLifecycleError): Effect.Effect<void> =>
+      Effect.sync(() => {
+        if (mounted) {
+          setError(error.message);
+        }
+      }).pipe(Effect.andThen(Effect.logError(error.operation, error)));
+
+    const loadMediaSource = ({ source, failureMessage }: MediaSourceRequest): Effect.Effect<void> =>
+      lifecyclePromise("load media source", failureMessage, () => player.loadFile(source)).pipe(
+        Effect.tap(() =>
+          Effect.sync(() => {
+            if (mounted) {
+              setError("");
+            }
+          }),
+        ),
+        Effect.catch(reportFailure),
+      );
+
+    const optionalListener = (
+      acquisition: Effect.Effect<() => void, PlayerLifecycleError>,
+    ): Effect.Effect<() => void> =>
+      acquisition.pipe(
+        Effect.catch((error) => reportFailure(error).pipe(Effect.as(() => undefined))),
+      );
+
+    const stopPlayer = lifecyclePromise("stop player", "Failed to stop mpv", () =>
+      player.stop(),
+    ).pipe(Effect.catch((error) => Effect.logError(error.operation, error)));
+
+    const lifecycle = Effect.scoped(
+      Effect.gen(function* () {
+        yield* Effect.addFinalizer(() => stopPlayer);
+        const runScoped = yield* FiberSet.makeRuntime<never, void, never>();
+        const mediaSources = yield* Queue.sliding<MediaSourceRequest>(1);
+        const windowResizes = yield* Queue.sliding<void>(1);
+        const offerMediaSource = (request: MediaSourceRequest): void => {
+          Effect.runSync(Queue.offer(mediaSources, request));
+        };
+
+        let autoCloseStarted = false;
+        yield* Effect.acquireRelease(
+          Effect.sync(() =>
+            player.subscribe((next) => {
+              if (!mounted || autoCloseStarted || !next.filename || !next.eofReached) {
+                return;
+              }
+
+              autoCloseStarted = true;
+              runScoped(
+                lifecyclePromise("close window", "Failed to close window", () =>
+                  appWindow.close(),
+                ).pipe(Effect.catch((error) => Effect.logError(error.operation, error))),
+              );
+            }),
+          ),
+          (unsubscribe) => Effect.sync(unsubscribe),
+        );
+
+        yield* Effect.acquireRelease(
+          optionalListener(
+            lifecyclePromise("register drag listener", "Failed to listen for dropped media", () =>
+              appWindow.onDragDropEvent((event) => {
+                if (event.payload.type !== "drop") {
+                  return;
+                }
+
+                const [path] = event.payload.paths;
+                if (path) {
+                  offerMediaSource({ source: path, failureMessage: "Failed to play dropped file" });
+                }
+              }),
+            ),
+          ),
+          (unlisten) => Effect.sync(unlisten),
+        );
+
+        yield* Effect.acquireRelease(
+          optionalListener(
+            lifecyclePromise("register resize listener", "Failed to listen for window resize", () =>
+              appWindow.onResized(() => {
+                Effect.runSync(Queue.offer(windowResizes, undefined));
+              }),
+            ),
+          ),
+          (unlisten) => Effect.sync(unlisten),
+        );
+
+        yield* Effect.acquireRelease(
+          optionalListener(
+            lifecyclePromise(
+              "register media source listener",
+              "Failed to listen for media sources",
+              () =>
+                listen<string>("open-media-source", (event) => {
+                  offerMediaSource({
+                    source: event.payload,
+                    failureMessage: "Failed to open launch media",
+                  });
+                }),
+            ),
+          ),
+          (unlisten) => Effect.sync(unlisten),
+        );
+
+        const startupMediaSource = yield* lifecyclePromise(
+          "read startup media source",
+          "Failed to read launch media",
+          getStartupMediaSource,
+        ).pipe(Effect.catch(reportFailure));
+        if (startupMediaSource) {
+          offerMediaSource({
+            source: startupMediaSource,
+            failureMessage: "Failed to open launch media",
+          });
         }
 
-        setError("");
-      } catch (error) {
-        if (!mounted) {
-          return;
-        }
+        yield* Effect.uninterruptible(
+          lifecyclePromise(
+            "prepare player",
+            "Failed to prepare player integrations",
+            runBeforeStart,
+          ).pipe(
+            Effect.andThen(
+              lifecyclePromise("start player", "Failed to initialize mpv", () => player.start()),
+            ),
+          ),
+        );
 
-        setError(getErrorMessage(error, fallbackMessage));
-      }
-    };
+        yield* Effect.forkScoped(
+          Effect.forever(Queue.take(mediaSources).pipe(Effect.flatMap(loadMediaSource))),
+        );
+        yield* Effect.forkScoped(
+          Effect.forever(
+            Queue.take(windowResizes).pipe(
+              Effect.flatMap(() =>
+                lifecyclePromise(
+                  "synchronize window state",
+                  "Failed to synchronize window state",
+                  syncWindowState,
+                ).pipe(Effect.catch(reportFailure)),
+              ),
+            ),
+          ),
+        );
+        yield* Queue.offer(windowResizes, undefined);
+        yield* Effect.never;
+      }).pipe(Effect.catch(reportFailure)),
+    );
 
-    const playerReadyPromise = (async (): Promise<void> => {
-      try {
-        await beforeStartRef.current?.();
-        await player.start();
-      } catch (error) {
-        setError(getErrorMessage(error, "Failed to initialize mpv"));
-        throw error;
-      }
-    })();
-
-    const setup = async (): Promise<void> => {
-      const startupMediaSourcePromise = getStartupMediaSource();
-
-      try {
-        await playerReadyPromise;
-      } catch {
-        return;
-      }
-
-      try {
-        const startupMediaSource = await startupMediaSourcePromise;
-        if (!startupMediaSource) {
-          return;
-        }
-
-        await loadMediaSource(startupMediaSource, "Failed to open launch media");
-      } catch {
-        return;
-      }
-    };
-
-    void setup();
-    let autoCloseStarted = false;
-    const unsub = player.subscribe((next) => {
-      if (!mounted) {
-        return;
-      }
-
-      if (!autoCloseStarted && next.filename && next.eofReached) {
-        autoCloseStarted = true;
-        void appWindow.close();
-      }
-    });
-
-    const dragPromise = appWindow.onDragDropEvent(async (event) => {
-      if (event.payload.type !== "drop") {
-        return;
-      }
-
-      const [path] = event.payload.paths;
-      if (!path) {
-        return;
-      }
-
-      try {
-        await player.loadFile(path);
-        setError("");
-      } catch (error) {
-        setError(getErrorMessage(error, "Failed to play dropped file"));
-      }
-    });
-
-    const resizePromise = appWindow.onResized(() => {
-      void syncWindowState();
-    });
-    const openMediaSourcePromise = listen<string>("open-media-source", (event) => {
-      void playerReadyPromise
-        .then(() => loadMediaSource(event.payload, "Failed to open launch media"))
-        .catch(() => undefined);
-    });
-
-    void syncWindowState();
-
+    const interrupt = Effect.runCallback(playerLifecycleSemaphore.withPermit(lifecycle));
     return () => {
       mounted = false;
-      unsub();
-      void dragPromise.then((unlisten) => {
-        unlisten();
-      });
-      void resizePromise.then((unlisten) => {
-        unlisten();
-      });
-      void openMediaSourcePromise.then((unlisten) => {
-        unlisten();
-      });
-      void player.stop();
+      interrupt();
     };
   }, [appWindow, player, setError, syncWindowState]);
 }

@@ -58,7 +58,9 @@ export function PlayerScreen(props: PlayerScreenProps) {
               className="window-button"
               type="button"
               aria-label="Minimize"
-              onClick={props.minimizeWindow}
+              onClick={() => {
+                props.minimizeWindow();
+              }}
             >
               <PlayerIcon name="minimize" className="icon icon--xs" />
             </button>
@@ -66,7 +68,9 @@ export function PlayerScreen(props: PlayerScreenProps) {
               className="window-button"
               type="button"
               aria-label={props.isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-              onClick={props.toggleFullscreen}
+              onClick={() => {
+                props.toggleFullscreen();
+              }}
             >
               <PlayerIcon
                 name={props.isFullscreen ? "restore" : "maximize"}
@@ -77,7 +81,9 @@ export function PlayerScreen(props: PlayerScreenProps) {
               className="window-button window-button--close"
               type="button"
               aria-label="Close"
-              onClick={props.closeWindow}
+              onClick={() => {
+                props.closeWindow();
+              }}
             >
               <PlayerIcon name="close" className="icon icon--xs" />
             </button>
@@ -105,7 +111,13 @@ export function PlayerScreen(props: PlayerScreenProps) {
           <div className="hero-empty">
             <h1 className="hero-empty__title">PLAY.</h1>
             <p className="hero-empty__copy">Drop a file or paste a web media URL.</p>
-            <button className="hero-open-button" type="button" onClick={props.pickAndOpenMediaFile}>
+            <button
+              className="hero-open-button"
+              type="button"
+              onClick={() => {
+                props.pickAndOpenMediaFile();
+              }}
+            >
               Open media
             </button>
           </div>

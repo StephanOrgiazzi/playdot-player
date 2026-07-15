@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Effect, Queue } from "effect";
 import { setVideoMarginRatio, type VideoMarginRatio } from "@integrations/mpv/libmpv-api";
 
 type VideoViewportProps = {
@@ -13,9 +14,38 @@ const EMPTY_RATIO: Required<VideoMarginRatio> = {
   bottom: 0,
 };
 
+class VideoViewportError extends Error {
+  readonly _tag = "VideoViewportError";
+}
+
+function applyVideoMarginRatio(ratio: VideoMarginRatio): Effect.Effect<void, VideoViewportError> {
+  return Effect.tryPromise({
+    try: () => setVideoMarginRatio(ratio),
+    catch: (cause) => new VideoViewportError("Failed to update video viewport margins", { cause }),
+  });
+}
+
+const marginUpdates = Effect.runSync(Queue.sliding<Required<VideoMarginRatio>>(1));
+let marginWorkerStarted = false;
+
+function enqueueVideoMarginRatio(ratio: Required<VideoMarginRatio>): void {
+  if (!marginWorkerStarted) {
+    marginWorkerStarted = true;
+    const worker = Effect.forever(
+      Queue.take(marginUpdates).pipe(
+        Effect.flatMap(applyVideoMarginRatio),
+        Effect.retry({ times: 2 }),
+        Effect.catch((error) => Effect.logError(error)),
+      ),
+    );
+    Effect.runCallback(worker);
+  }
+
+  Effect.runSync(Queue.offer(marginUpdates, ratio));
+}
+
 export function VideoViewport({ initialized, onDoubleClick }: VideoViewportProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  const previousRatioRef = useRef<Required<VideoMarginRatio>>(EMPTY_RATIO);
 
   useEffect(() => {
     const element = viewportRef.current;
@@ -25,7 +55,6 @@ export function VideoViewport({ initialized, onDoubleClick }: VideoViewportProps
     }
 
     let frameId = 0;
-    let hasAppliedInitialRatio = false;
 
     const normalizeRatio = (value: number): number => {
       const clamped = Math.min(1, Math.max(0, value));
@@ -55,7 +84,7 @@ export function VideoViewport({ initialized, onDoubleClick }: VideoViewportProps
       };
     };
 
-    const updateRatio = async (): Promise<void> => {
+    const updateRatio = (): void => {
       const rect = getLayoutRect(element);
       const viewportWidth = Math.max(1, window.innerWidth);
       const viewportHeight = Math.max(1, window.innerHeight);
@@ -66,38 +95,13 @@ export function VideoViewport({ initialized, onDoubleClick }: VideoViewportProps
         bottom: normalizeRatio(1 - rect.bottom / viewportHeight),
       };
 
-      if (!hasAppliedInitialRatio) {
-        await setVideoMarginRatio(nextRatio);
-        previousRatioRef.current = nextRatio;
-        hasAppliedInitialRatio = true;
-        return;
-      }
-
-      const changedRatio: VideoMarginRatio = {};
-
-      if (nextRatio.left !== previousRatioRef.current.left) {
-        changedRatio.left = nextRatio.left;
-      }
-      if (nextRatio.right !== previousRatioRef.current.right) {
-        changedRatio.right = nextRatio.right;
-      }
-      if (nextRatio.top !== previousRatioRef.current.top) {
-        changedRatio.top = nextRatio.top;
-      }
-      if (nextRatio.bottom !== previousRatioRef.current.bottom) {
-        changedRatio.bottom = nextRatio.bottom;
-      }
-
-      if (Object.keys(changedRatio).length > 0) {
-        await setVideoMarginRatio(changedRatio);
-        previousRatioRef.current = nextRatio;
-      }
+      enqueueVideoMarginRatio(nextRatio);
     };
 
     const requestUpdate = (): void => {
       cancelAnimationFrame(frameId);
       frameId = window.requestAnimationFrame(() => {
-        void updateRatio();
+        updateRatio();
       });
     };
 
@@ -110,8 +114,7 @@ export function VideoViewport({ initialized, onDoubleClick }: VideoViewportProps
       cancelAnimationFrame(frameId);
       resizeObserver.disconnect();
       window.removeEventListener("resize", requestUpdate);
-      previousRatioRef.current = EMPTY_RATIO;
-      void setVideoMarginRatio(EMPTY_RATIO);
+      enqueueVideoMarginRatio(EMPTY_RATIO);
     };
   }, [initialized]);
 

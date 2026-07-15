@@ -196,7 +196,7 @@ function useTimelineControl({
       return;
     }
 
-    void setTimelinePosition(nextValue);
+    setTimelinePosition(nextValue);
   }, [ignoreNativeTimelineChangesBriefly, setTimelinePosition, setTimelineScrubbingState]);
 
   const handleTimelinePointerDown = useCallback(
@@ -254,7 +254,7 @@ function useTimelineControl({
 
       const nextValue = getClampedTimelineValue(Number(event.currentTarget.value));
       setTimelineDragState(nextValue);
-      void setTimelinePosition(nextValue);
+      setTimelinePosition(nextValue);
     },
     [getClampedTimelineValue, hasMedia, setTimelineDragState, setTimelinePosition],
   );

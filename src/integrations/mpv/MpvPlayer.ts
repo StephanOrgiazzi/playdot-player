@@ -21,7 +21,7 @@ import {
   getMpvResourcePaths,
   getStereoDownmixMpvOptions,
 } from "./config";
-import { waitForMpvEvent } from "./events";
+import { runAndWaitForMpvEvent } from "./events";
 import { toggleFsrShaders } from "./fsr";
 import { MpvThumbnailer } from "./MpvThumbnailer";
 import { applyObservedProperty } from "./stateUpdates";
@@ -458,10 +458,10 @@ export class MpvPlayer {
 
     this.currentSource = currentSource;
     const shouldWaitForFileLoaded = currentTime > 0 || wasPaused;
-    const fileLoaded = shouldWaitForFileLoaded ? waitForMpvEvent("file-loaded") : null;
-    await this.loadMpvFile(currentSource);
-    if (fileLoaded) {
-      await fileLoaded;
+    if (shouldWaitForFileLoaded) {
+      await runAndWaitForMpvEvent("file-loaded", () => this.loadMpvFile(currentSource));
+    } else {
+      await this.loadMpvFile(currentSource);
     }
 
     if (currentTime > 0) {

@@ -9,7 +9,7 @@ import {
 } from "react";
 import type { MediaTrack } from "@features/player/model/playerState";
 import { PlayerIcon } from "@features/player/ui/PlayerIcons";
-import type { AsyncAction, TrackSelectionAction } from "@features/player/model/types";
+import type { PlayerAction, TrackSelectionAction } from "@features/player/model/types";
 import { CONTEXT_MENU_SUBMENU_WIDTH, CONTEXT_MENU_WIDTH } from "./constants";
 import { MenuActionItem } from "./MenuActionItem";
 import { useSubmenuViewportStyle } from "./useSubmenuViewportStyle";
@@ -25,26 +25,26 @@ type PlayerContextMenuProps = {
   isSvpEnabled: boolean;
   isFullscreen: boolean;
   onClose: () => void;
-  showOpenUrlDialog: AsyncAction;
-  slowDownPlayback: AsyncAction;
-  speedUpPlayback: AsyncAction;
-  zoomIn: AsyncAction;
-  zoomOut: AsyncAction;
-  increaseGamma: AsyncAction;
-  decreaseGamma: AsyncAction;
-  increaseSubtitleScale: AsyncAction;
-  decreaseSubtitleScale: AsyncAction;
+  showOpenUrlDialog: PlayerAction;
+  slowDownPlayback: PlayerAction;
+  speedUpPlayback: PlayerAction;
+  zoomIn: PlayerAction;
+  zoomOut: PlayerAction;
+  increaseGamma: PlayerAction;
+  decreaseGamma: PlayerAction;
+  increaseSubtitleScale: PlayerAction;
+  decreaseSubtitleScale: PlayerAction;
   audioTrackLabel: string;
   subtitleTrackLabel: string;
   audioTracks: MediaTrack[];
   subtitleTracks: MediaTrack[];
   selectAudioTrack: TrackSelectionAction;
   selectSubtitleTrack: TrackSelectionAction;
-  toggleFsr: AsyncAction;
-  toggleAudioNormalizer: AsyncAction;
-  toggleStereoDownmix: AsyncAction;
-  toggleSvp: AsyncAction;
-  toggleFullscreen: AsyncAction;
+  toggleFsr: PlayerAction;
+  toggleAudioNormalizer: PlayerAction;
+  toggleStereoDownmix: PlayerAction;
+  toggleSvp: PlayerAction;
+  toggleFullscreen: PlayerAction;
 };
 
 function getTrackDisplayLabel(track: MediaTrack): string {
@@ -67,16 +67,16 @@ type PlaybackOptionsSubmenuProps = {
   hasVideo: boolean;
   isSubmenuOpenLeft: boolean;
   isPlaybackSubmenuOpen: boolean;
-  runAction: (action: AsyncAction) => void;
+  runAction: (action: PlayerAction) => void;
   setIsPlaybackSubmenuOpen: Dispatch<SetStateAction<boolean>>;
-  speedUpPlayback: AsyncAction;
-  slowDownPlayback: AsyncAction;
-  zoomIn: AsyncAction;
-  zoomOut: AsyncAction;
-  increaseGamma: AsyncAction;
-  decreaseGamma: AsyncAction;
-  increaseSubtitleScale: AsyncAction;
-  decreaseSubtitleScale: AsyncAction;
+  speedUpPlayback: PlayerAction;
+  slowDownPlayback: PlayerAction;
+  zoomIn: PlayerAction;
+  zoomOut: PlayerAction;
+  increaseGamma: PlayerAction;
+  decreaseGamma: PlayerAction;
+  increaseSubtitleScale: PlayerAction;
+  decreaseSubtitleScale: PlayerAction;
 };
 
 function PlaybackOptionsSubmenu({
@@ -218,7 +218,7 @@ type TrackSelectionSubmenuProps = {
   selectedTrackId: number | null;
   includeOffOption?: boolean;
   onSelect: TrackSelectionAction;
-  runAction: (action: AsyncAction) => void;
+  runAction: (action: PlayerAction) => void;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
 };
 
@@ -289,7 +289,9 @@ function TrackSelectionSubmenu({
               role="menuitemcheckbox"
               ariaChecked={selectedTrackId === null}
               onClick={(): void => {
-                runAction(() => onSelect("no"));
+                runAction(() => {
+                  onSelect("no");
+                });
               }}
               icon={
                 selectedTrackId === null ? (
@@ -305,7 +307,9 @@ function TrackSelectionSubmenu({
               role="menuitemcheckbox"
               ariaChecked={track.id === selectedTrackId}
               onClick={(): void => {
-                runAction(() => onSelect(track.id));
+                runAction(() => {
+                  onSelect(track.id);
+                });
               }}
               icon={
                 track.id === selectedTrackId ? (
@@ -365,9 +369,9 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
         : position.x + CONTEXT_MENU_WIDTH + CONTEXT_MENU_SUBMENU_WIDTH + 8 > window.innerWidth;
 
     const runAction = useCallback(
-      (action: AsyncAction): void => {
+      (action: PlayerAction): void => {
         onClose();
-        void action();
+        action();
       },
       [onClose],
     );

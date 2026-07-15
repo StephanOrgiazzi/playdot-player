@@ -1,4 +1,5 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { Cause, Data, Effect, Fiber } from "effect";
 import { command, destroy, init, type MpvConfig } from "./libmpv-api";
 
 const THUMBNAIL_INSTANCE_LABEL = "thumbnail-worker";
@@ -16,17 +17,25 @@ type ThumbnailTarget = {
 type PendingSeek = {
   seconds: number;
   exact: boolean;
+  revision: number;
 };
 
 type WorkerPreparation = "existing" | "started";
-
 type ThumbnailListener = (url: string) => void;
 
-function delay(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => {
-    globalThis.setTimeout(resolve, milliseconds);
+class ThumbnailError extends Data.TaggedError("ThumbnailError")<{
+  readonly operation: string;
+  readonly cause: Cause.UnknownError;
+}> {}
+
+const attempt = <A>(operation: string, task: () => Promise<A>): Effect.Effect<A, ThumbnailError> =>
+  Effect.tryPromise({
+    try: task,
+    catch: (cause) => new ThumbnailError({ operation, cause: new Cause.UnknownError(cause) }),
   });
-}
+
+const reportError = (error: ThumbnailError): Effect.Effect<void> =>
+  Effect.logError(`Thumbnail ${error.operation} failed`, error.cause);
 
 export class MpvThumbnailer {
   private source: string | null = null;
@@ -36,10 +45,11 @@ export class MpvThumbnailer {
   private currentUrl = "";
   private active = false;
   private pendingSeek: PendingSeek | null = null;
-  private rendering = false;
   private workerStarted = false;
-  private exactSeekTimer: number | null = null;
+  private exactSeekFiber: Fiber.Fiber<void> | null = null;
+  private renderFiber: Fiber.Fiber<void> | null = null;
   private frameRevision = 0;
+  private requestRevision = 0;
   private lifecycleToken = 0;
   private teardown: Promise<void> = Promise.resolve();
 
@@ -67,16 +77,19 @@ export class MpvThumbnailer {
       return;
     }
 
+    const normalizedSeconds = Math.max(0, seconds);
+    const revision = ++this.requestRevision;
     this.active = true;
-    this.pendingSeek = { seconds: Math.max(0, seconds), exact: false };
-    this.scheduleExactSeek(seconds);
-    void this.flush();
+    this.pendingSeek = { seconds: normalizedSeconds, exact: false, revision };
+    this.scheduleExactSeek(normalizedSeconds, revision);
+    this.startRender();
   }
 
   clear(): void {
+    this.requestRevision += 1;
     this.active = false;
     this.pendingSeek = null;
-    this.clearExactSeekTimer();
+    this.interruptExactSeek();
     this.emit("");
   }
 
@@ -99,122 +112,171 @@ export class MpvThumbnailer {
     }
   }
 
-  private scheduleExactSeek(seconds: number): void {
-    this.clearExactSeekTimer();
-
-    this.exactSeekTimer = globalThis.setTimeout(() => {
-      this.exactSeekTimer = null;
-      if (!this.active) {
-        return;
-      }
-
-      this.pendingSeek = { seconds: Math.max(0, seconds), exact: true };
-      void this.flush();
-    }, EXACT_SEEK_DELAY_MS);
+  private scheduleExactSeek(seconds: number, revision: number): void {
+    this.interruptExactSeek();
+    const fiber = Effect.runFork(
+      Effect.sleep(EXACT_SEEK_DELAY_MS).pipe(
+        Effect.andThen(
+          Effect.sync(() => {
+            if (this.exactSeekFiber === fiber) {
+              this.exactSeekFiber = null;
+            }
+            if (!this.active || revision !== this.requestRevision) {
+              return;
+            }
+            this.pendingSeek = { seconds, exact: true, revision };
+            this.startRender();
+          }),
+        ),
+      ),
+    );
+    this.exactSeekFiber = fiber;
   }
 
-  private clearExactSeekTimer(): void {
-    if (this.exactSeekTimer === null) {
+  private interruptExactSeek(): void {
+    if (this.exactSeekFiber) {
+      Effect.runFork(Fiber.interrupt(this.exactSeekFiber));
+      this.exactSeekFiber = null;
+    }
+  }
+
+  private startRender(): void {
+    if (this.renderFiber) {
       return;
     }
 
-    globalThis.clearTimeout(this.exactSeekTimer);
-    this.exactSeekTimer = null;
+    const render = this.flush().pipe(
+      Effect.matchEffect({
+        onFailure: reportError,
+        onSuccess: () => Effect.void,
+      }),
+      Effect.ensuring(
+        Effect.sync(() => {
+          this.renderFiber = null;
+          if (this.pendingSeek && this.active) {
+            this.startRender();
+          }
+        }),
+      ),
+    );
+    this.renderFiber = Effect.runFork(render);
   }
 
-  private async flush(): Promise<void> {
-    if (this.rendering) {
-      return;
-    }
-
-    this.rendering = true;
-    try {
+  private flush(): Effect.Effect<void, ThumbnailError> {
+    return Effect.gen({ self: this }, function* () {
       while (this.pendingSeek) {
         const pending = this.pendingSeek;
         this.pendingSeek = null;
         const token = this.lifecycleToken;
-        const url = await this.renderFrame(pending, token);
-        if (url && this.active && token === this.lifecycleToken) {
+        const url = yield* this.renderFrame(pending, token);
+        if (
+          url &&
+          this.active &&
+          token === this.lifecycleToken &&
+          pending.revision === this.requestRevision
+        ) {
           this.emit(url);
         }
+        if (token !== this.lifecycleToken) {
+          return;
+        }
       }
-    } finally {
-      this.rendering = false;
-      if (this.pendingSeek) {
-        void this.flush();
-      }
-    }
+    });
   }
 
-  private async renderFrame(pending: PendingSeek, token: number): Promise<string | null> {
-    const preparation = await this.ensureStarted(token, pending);
-    if (!preparation || !this.target) {
-      return null;
-    }
-
-    const target = this.target;
-    if (preparation === "existing") {
-      await invoke("discard_thumbnail_frame", { rawPath: target.rawPath }).catch(() => undefined);
-      await command(
-        "seek",
-        [pending.seconds, pending.exact ? "absolute+exact" : "absolute+keyframes"],
-        undefined,
-        THUMBNAIL_INSTANCE_LABEL,
-      ).catch(() => undefined);
-    }
-
-    for (let attempt = 0; attempt < MAX_FRAME_POLLS; attempt += 1) {
-      await delay(FRAME_POLL_INTERVAL_MS);
-      if (!this.active || token !== this.lifecycleToken) {
+  private renderFrame(
+    pending: PendingSeek,
+    token: number,
+  ): Effect.Effect<string | null, ThumbnailError> {
+    return Effect.gen({ self: this }, function* () {
+      const preparation = yield* this.ensureStarted(token, pending);
+      if (!preparation || !this.target) {
         return null;
       }
 
-      const ready = await invoke<boolean>("promote_thumbnail_frame", {
-        rawPath: target.rawPath,
-        imagePath: target.imagePath,
-      }).catch(() => false);
-      if (ready) {
-        this.frameRevision += 1;
-        return `${convertFileSrc(target.imagePath)}?frame=${this.frameRevision}`;
+      const target = this.target;
+      if (preparation === "existing") {
+        yield* attempt("frame discard", () =>
+          invoke("discard_thumbnail_frame", { rawPath: target.rawPath }),
+        );
+        yield* attempt("seek", () =>
+          command(
+            "seek",
+            [pending.seconds, pending.exact ? "absolute+exact" : "absolute+keyframes"],
+            undefined,
+            THUMBNAIL_INSTANCE_LABEL,
+          ),
+        );
       }
-    }
 
-    return null;
+      for (let poll = 0; poll < MAX_FRAME_POLLS; poll += 1) {
+        yield* Effect.sleep(FRAME_POLL_INTERVAL_MS);
+        if (!this.active || token !== this.lifecycleToken) {
+          return null;
+        }
+
+        const ready = yield* attempt("frame promotion", () =>
+          invoke<boolean>("promote_thumbnail_frame", {
+            rawPath: target.rawPath,
+            imagePath: target.imagePath,
+          }),
+        );
+        if (ready) {
+          this.frameRevision += 1;
+          return `${convertFileSrc(target.imagePath)}?frame=${this.frameRevision}`;
+        }
+      }
+
+      return null;
+    });
   }
 
-  private async ensureStarted(
+  private ensureStarted(
     token: number,
     initialSeek: PendingSeek,
-  ): Promise<WorkerPreparation | null> {
-    const source = this.source;
-    if (!source || token !== this.lifecycleToken) {
-      return null;
-    }
-    if (this.startedSource === source && this.target) {
-      return "existing";
-    }
+  ): Effect.Effect<WorkerPreparation | null, ThumbnailError> {
+    return Effect.gen({ self: this }, function* () {
+      const source = this.source;
+      const pendingTeardown = this.teardown;
+      if (!source || token !== this.lifecycleToken) {
+        return null;
+      }
+      if (this.startedSource === source && this.target) {
+        return "existing";
+      }
 
-    await this.teardown;
-    if (source !== this.source || token !== this.lifecycleToken) {
-      return null;
-    }
-
-    const target = await invoke<ThumbnailTarget>("create_thumbnail_target");
-    this.target = target;
-    try {
-      await init(this.createConfig(target, initialSeek), undefined, THUMBNAIL_INSTANCE_LABEL);
-      this.workerStarted = true;
-      await command("loadfile", [source], undefined, THUMBNAIL_INSTANCE_LABEL);
+      yield* Effect.promise(() => pendingTeardown);
       if (source !== this.source || token !== this.lifecycleToken) {
-        this.queueTeardown();
+        return null;
+      }
+
+      const target = yield* attempt("target creation", () =>
+        invoke<ThumbnailTarget>("create_thumbnail_target"),
+      );
+      this.target = target;
+      const startWorker = Effect.gen({ self: this }, function* () {
+        yield* attempt("worker initialization", () =>
+          init(this.createConfig(target, initialSeek), undefined, THUMBNAIL_INSTANCE_LABEL),
+        );
+        this.workerStarted = true;
+        yield* attempt("media loading", () =>
+          command("loadfile", [source], undefined, THUMBNAIL_INSTANCE_LABEL),
+        );
+      });
+
+      yield* startWorker.pipe(
+        Effect.tapError(() =>
+          Effect.sync(() => {
+            this.queueTeardown();
+          }),
+        ),
+      );
+      if (source !== this.source || token !== this.lifecycleToken) {
         return null;
       }
       this.startedSource = source;
       return "started";
-    } catch {
-      this.queueTeardown();
-      return null;
-    }
+    });
   }
 
   private createConfig(target: ThumbnailTarget, initialSeek: PendingSeek): MpvConfig {
@@ -247,22 +309,47 @@ export class MpvThumbnailer {
 
   private queueTeardown(): void {
     this.startedSource = null;
-    this.teardown = this.teardown.then(() => this.destroyWorker()).catch(() => undefined);
+    const previousTeardown = this.teardown;
+    const activeRender = this.renderFiber;
+    const teardown = Effect.gen({ self: this }, function* () {
+      yield* Effect.promise(() => previousTeardown);
+      if (activeRender) {
+        yield* Fiber.await(activeRender);
+      }
+      yield* this.destroyWorker();
+    });
+    this.teardown = Effect.runPromise(teardown);
   }
 
-  private async destroyWorker(): Promise<void> {
+  private destroyWorker(): Effect.Effect<void> {
     const target = this.target;
     this.target = null;
     this.startedSource = null;
-    if (this.workerStarted) {
-      this.workerStarted = false;
-      await destroy(undefined, THUMBNAIL_INSTANCE_LABEL).catch(() => undefined);
-    }
-    if (target) {
-      await invoke("remove_thumbnail_target", {
-        rawPath: target.rawPath,
-        imagePath: target.imagePath,
-      }).catch(() => undefined);
-    }
+
+    const destroyWorker = this.workerStarted
+      ? attempt("worker shutdown", () => destroy(undefined, THUMBNAIL_INSTANCE_LABEL)).pipe(
+          Effect.matchEffect({
+            onFailure: reportError,
+            onSuccess: () => Effect.void,
+          }),
+        )
+      : Effect.void;
+    this.workerStarted = false;
+
+    const removeTarget = target
+      ? attempt("target removal", () =>
+          invoke("remove_thumbnail_target", {
+            rawPath: target.rawPath,
+            imagePath: target.imagePath,
+          }),
+        ).pipe(
+          Effect.matchEffect({
+            onFailure: reportError,
+            onSuccess: () => Effect.void,
+          }),
+        )
+      : Effect.void;
+
+    return destroyWorker.pipe(Effect.andThen(removeTarget));
   }
 }

@@ -1,10 +1,13 @@
 import {
   useEffect,
+  useRef,
   useState,
   type CSSProperties,
   type RefObject,
   type MouseEvent as ReactMouseEvent,
+  type SubmitEvent as ReactSubmitEvent,
 } from "react";
+import { Effect } from "effect";
 
 type PlayerUrlDialogProps = {
   isOpen: boolean;
@@ -14,7 +17,7 @@ type PlayerUrlDialogProps = {
   urlDialogError: string;
   onInputChange: (value: string) => void;
   onClose: () => void;
-  onSubmit: () => Promise<void>;
+  onSubmit: () => void;
 };
 
 type InputContextMenuState = {
@@ -24,12 +27,18 @@ type InputContextMenuState = {
   selectionEnd: number;
 };
 
-async function copyText(text: string): Promise<void> {
-  await navigator.clipboard.writeText(text);
+class ClipboardError extends Error {
+  readonly _tag = "ClipboardError";
 }
 
-async function readClipboardText(): Promise<string> {
-  return navigator.clipboard.readText();
+function clipboardPromise<A>(
+  operation: string,
+  task: () => PromiseLike<A>,
+): Effect.Effect<A, ClipboardError> {
+  return Effect.tryPromise({
+    try: task,
+    catch: (cause) => new ClipboardError(`Failed to ${operation}`, { cause }),
+  });
 }
 
 function getClampedMenuPosition(event: ReactMouseEvent<HTMLInputElement>): {
@@ -59,11 +68,21 @@ export function PlayerUrlDialog({
   onSubmit,
 }: PlayerUrlDialogProps) {
   const [inputContextMenu, setInputContextMenu] = useState<InputContextMenuState | null>(null);
+  const isOpenRef = useRef(isOpen);
+  const interruptClipboardRef = useRef<(() => void) | null>(null);
+  isOpenRef.current = isOpen;
 
   useEffect(() => {
     if (!isOpen) {
       setInputContextMenu(null);
+      interruptClipboardRef.current?.();
+      interruptClipboardRef.current = null;
     }
+
+    return () => {
+      interruptClipboardRef.current?.();
+      interruptClipboardRef.current = null;
+    };
   }, [isOpen]);
 
   if (!isOpen) {
@@ -109,10 +128,16 @@ export function PlayerUrlDialog({
     }
 
     restoreInputSelection(inputContextMenu.selectionStart, inputContextMenu.selectionEnd);
-    void copyText(
-      urlInputValue.slice(inputContextMenu.selectionStart, inputContextMenu.selectionEnd),
-    ).catch(() => undefined);
     closeInputContextMenu();
+    const selectedText = urlInputValue.slice(
+      inputContextMenu.selectionStart,
+      inputContextMenu.selectionEnd,
+    );
+    Effect.runCallback(
+      clipboardPromise("copy URL text", () => navigator.clipboard.writeText(selectedText)).pipe(
+        Effect.catch((error) => Effect.logError(error)),
+      ),
+    );
   };
 
   const handlePaste = (): void => {
@@ -122,8 +147,16 @@ export function PlayerUrlDialog({
 
     const { selectionStart, selectionEnd } = inputContextMenu;
     closeInputContextMenu();
-    void readClipboardText()
-      .then((clipboardText) => {
+    interruptClipboardRef.current?.();
+    const paste = Effect.gen(function* () {
+      const clipboardText = yield* clipboardPromise("read clipboard text", () =>
+        navigator.clipboard.readText(),
+      );
+      yield* Effect.sync(() => {
+        if (!isOpenRef.current) {
+          return;
+        }
+
         const nextValue =
           urlInputValue.slice(0, selectionStart) +
           clipboardText +
@@ -132,10 +165,18 @@ export function PlayerUrlDialog({
 
         onInputChange(nextValue);
         window.requestAnimationFrame(() => {
-          restoreInputSelection(cursorPosition, cursorPosition);
+          if (isOpenRef.current) {
+            restoreInputSelection(cursorPosition, cursorPosition);
+          }
         });
-      })
-      .catch(() => undefined);
+      });
+    }).pipe(Effect.catch((error) => Effect.logError(error)));
+    interruptClipboardRef.current = Effect.runCallback(paste);
+  };
+
+  const handleSubmit = (event: ReactSubmitEvent<HTMLFormElement>): void => {
+    event.preventDefault();
+    onSubmit();
   };
 
   const inputContextMenuStyle: CSSProperties | undefined =
@@ -158,10 +199,7 @@ export function PlayerUrlDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="url-dialog-title"
-        onSubmit={(event): void => {
-          event.preventDefault();
-          void onSubmit();
-        }}
+        onSubmit={handleSubmit}
       >
         <h2 id="url-dialog-title" className="url-dialog__title">
           Open Web URL

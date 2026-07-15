@@ -45,7 +45,9 @@ export function VolumeCluster({
         className="dock-button"
         type="button"
         aria-label={isMuted ? "Unmute" : "Mute"}
-        onClick={toggleMute}
+        onClick={() => {
+          toggleMute();
+        }}
       >
         <span className="icon-stack">
           <PlayerIcon name="volume" className={`icon icon--md${isMuted ? " is-hidden" : ""}`} />
@@ -60,7 +62,10 @@ export function VolumeCluster({
         max={UI_VOLUME_MAX}
         step={1}
         value={displayVolume}
-        onChange={(event) => void setVolume(Number(event.currentTarget.value))}
+        onChange={(event) => {
+          const volume = Number(event.currentTarget.value);
+          setVolume(volume);
+        }}
       />
     </div>
   );
@@ -80,7 +85,9 @@ export function TransportCluster({
         type="button"
         aria-label="Back 5 seconds"
         disabled={!hasMedia}
-        onClick={seekBack}
+        onClick={() => {
+          seekBack();
+        }}
       >
         <PlayerIcon name="backward" className="icon icon--md icon--filled" />
       </button>
@@ -91,7 +98,9 @@ export function TransportCluster({
         type="button"
         aria-label={paused ? "Play" : "Pause"}
         disabled={!hasMedia}
-        onClick={togglePlayPause}
+        onClick={() => {
+          togglePlayPause();
+        }}
       >
         <span className="icon-stack">
           <PlayerIcon
@@ -109,7 +118,9 @@ export function TransportCluster({
         type="button"
         aria-label="Forward 5 seconds"
         disabled={!hasMedia}
-        onClick={seekForward}
+        onClick={() => {
+          seekForward();
+        }}
       >
         <PlayerIcon name="forward" className="icon icon--md icon--filled" />
       </button>
@@ -137,7 +148,9 @@ export function ToolCluster({
         aria-label={`Cycle audio track. Current: ${audioSummary}`}
         title={`Audio: ${audioSummary}`}
         disabled={audioTrackCount < 2 || isCyclingAudio}
-        onClick={cycleAudioTrack}
+        onClick={() => {
+          cycleAudioTrack();
+        }}
       >
         <PlayerIcon name="audio-track" className="icon icon--md" />
       </button>
@@ -147,7 +160,9 @@ export function ToolCluster({
         aria-label={`Cycle subtitles. Current: ${subtitleSummary}`}
         title={`Subtitles: ${subtitleSummary}`}
         disabled={subtitleTrackCount === 0 || isCyclingSubtitles}
-        onClick={cycleSubtitleTrack}
+        onClick={() => {
+          cycleSubtitleTrack();
+        }}
       >
         <PlayerIcon name="subtitles" className="icon icon--md" />
       </button>
@@ -155,7 +170,9 @@ export function ToolCluster({
         className="dock-button"
         type="button"
         aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-        onClick={toggleFullscreen}
+        onClick={() => {
+          toggleFullscreen();
+        }}
       >
         <span className="icon-stack">
           <PlayerIcon

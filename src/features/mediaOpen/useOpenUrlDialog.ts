@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { Effect } from "effect";
 import type { OpenWebUrlResult } from "./types";
+
+class OpenUrlSubmissionError extends Error {
+  readonly _tag = "OpenUrlSubmissionError";
+}
 
 export function useOpenUrlDialog(openWebUrl: (url: string) => Promise<OpenWebUrlResult>): {
   isOpen: boolean;
@@ -7,9 +12,9 @@ export function useOpenUrlDialog(openWebUrl: (url: string) => Promise<OpenWebUrl
   urlInputValue: string;
   error: string;
   inputRef: RefObject<HTMLInputElement | null>;
-  open: () => Promise<void>;
+  open: () => void;
   close: () => void;
-  submit: () => Promise<void>;
+  submit: () => void;
   setUrlInputValue: (value: string) => void;
 } {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,6 +22,7 @@ export function useOpenUrlDialog(openWebUrl: (url: string) => Promise<OpenWebUrl
   const [urlInputValue, setUrlInputValue] = useState("https://");
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const interruptSubmissionRef = useRef<(() => void) | null>(null);
 
   const close = useCallback((): void => {
     if (isOpening) {
@@ -27,14 +33,16 @@ export function useOpenUrlDialog(openWebUrl: (url: string) => Promise<OpenWebUrl
     setError("");
   }, [isOpening]);
 
-  const open = useCallback(async (): Promise<void> => {
+  const open = useCallback((): void => {
+    interruptSubmissionRef.current?.();
+    interruptSubmissionRef.current = null;
     setIsOpen(true);
     setIsOpening(false);
     setUrlInputValue("https://");
     setError("");
   }, []);
 
-  const submit = useCallback(async (): Promise<void> => {
+  const submit = useCallback((): void => {
     const enteredUrl = urlInputValue.trim();
     if (enteredUrl.length === 0) {
       setError("Enter a web URL.");
@@ -43,22 +51,41 @@ export function useOpenUrlDialog(openWebUrl: (url: string) => Promise<OpenWebUrl
 
     setIsOpening(true);
     setError("");
+    interruptSubmissionRef.current?.();
 
-    const result = await openWebUrl(enteredUrl);
-    setIsOpening(false);
+    const submission = Effect.tryPromise({
+      try: () => openWebUrl(enteredUrl),
+      catch: (cause) => new OpenUrlSubmissionError("Could not open that URL", { cause }),
+    }).pipe(
+      Effect.tap((result) =>
+        Effect.sync(() => {
+          setIsOpening(false);
+          if (result === "opened") {
+            setIsOpen(false);
+          } else if (result === "invalid") {
+            setError("Use a full http:// or https:// URL.");
+          } else {
+            setError("Could not open that URL. Check it and try again.");
+          }
+        }),
+      ),
+      Effect.catch((failure) =>
+        Effect.sync(() => {
+          setIsOpening(false);
+          setError("Could not open that URL. Check it and try again.");
+        }).pipe(Effect.andThen(Effect.logError(failure))),
+      ),
+    );
 
-    if (result === "opened") {
-      setIsOpen(false);
-      return;
-    }
-
-    if (result === "invalid") {
-      setError("Use a full http:// or https:// URL.");
-      return;
-    }
-
-    setError("Could not open that URL. Check it and try again.");
+    interruptSubmissionRef.current = Effect.runCallback(submission);
   }, [openWebUrl, urlInputValue]);
+
+  useEffect(
+    () => () => {
+      interruptSubmissionRef.current?.();
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!isOpen) {

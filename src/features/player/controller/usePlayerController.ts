@@ -20,6 +20,7 @@ import {
 } from "./usePlayerControllerHooks";
 import { usePlayerLifecycle } from "./usePlayerLifecycle";
 import type { PlayerScreenProps } from "../model/types";
+import { playerCommand, runPlayerCommand } from "./playerCommand";
 
 const appWindow = getCurrentWindow();
 const appWebview = getCurrentWebview();
@@ -56,7 +57,7 @@ function useTitlebarInteractions({
   pickAndOpenMediaFile,
 }: {
   isFullscreen: boolean;
-  pickAndOpenMediaFile: () => Promise<void>;
+  pickAndOpenMediaFile: () => void;
 }): {
   handleTitlebarMouseDown: (event: ReactMouseEvent<HTMLElement>) => void;
   handleTitlePillClick: () => void;
@@ -96,7 +97,7 @@ function useTitlebarInteractions({
       return;
     }
 
-    void pickAndOpenMediaFile();
+    pickAndOpenMediaFile();
   }, [pickAndOpenMediaFile]);
 
   return {
@@ -147,8 +148,13 @@ export function usePlayerController(): PlayerScreenProps {
     delayMs: AUTO_HIDE_DELAY_MS,
   });
   const isCursorHidden = isChromeHidden;
-  const { isSvpAvailable, isSvpEnabled, isSwitchingSvp, preparePlayerStart, toggleSvp } =
-    useSvpIntegration({ player, setError, setToast });
+  const {
+    isSvpAvailable,
+    isSvpEnabled,
+    isSwitchingSvp,
+    preparePlayerStart,
+    toggleSvp: toggleSvpTask,
+  } = useSvpIntegration({ player, setError, setToast });
   const {
     isFsrEnabled,
     isAudioNormalizerEnabled,
@@ -182,7 +188,11 @@ export function usePlayerController(): PlayerScreenProps {
   useToastAutoHide(toast, setToast);
   useBlurActiveControlWhenChromeHidden(isChromeHidden);
 
-  const { pickAndOpenMediaFile, openWebUrl, openPastedWebUrl } = useMediaOpenActions({
+  const {
+    pickAndOpenMediaFile: pickAndOpenMediaFileTask,
+    openWebUrl,
+    openPastedWebUrl: openPastedWebUrlTask,
+  } = useMediaOpenActions({
     player,
     setError,
     withPlayerFocusRestore,
@@ -204,11 +214,28 @@ export function usePlayerController(): PlayerScreenProps {
     setError,
     setToast,
   });
-  const toggleFullscreen = useCallback(async (): Promise<void> => {
-    const next = !(await appWindow.isFullscreen());
-    await appWindow.setFullscreen(next);
-    await syncWindowState();
-  }, [syncWindowState]);
+  const runCommand = useCallback((fallbackMessage: string, task: () => Promise<void>): void => {
+    runPlayerCommand(playerCommand(fallbackMessage, task), setError);
+  }, []);
+  const pickAndOpenMediaFile = useCallback((): void => {
+    runCommand("Failed to open media", pickAndOpenMediaFileTask);
+  }, [pickAndOpenMediaFileTask, runCommand]);
+  const openPastedWebUrl = useCallback(
+    (clipboardText: string): void => {
+      runCommand("Failed to open pasted web URL", () => openPastedWebUrlTask(clipboardText));
+    },
+    [openPastedWebUrlTask, runCommand],
+  );
+  const toggleSvp = useCallback((): void => {
+    runCommand("Failed to toggle SVP", toggleSvpTask);
+  }, [runCommand, toggleSvpTask]);
+  const toggleFullscreen = useCallback((): void => {
+    runCommand("Failed to toggle fullscreen", async () => {
+      const next = !(await appWindow.isFullscreen());
+      await appWindow.setFullscreen(next);
+      await syncWindowState();
+    });
+  }, [runCommand, syncWindowState]);
   const requestTimelineThumbnail = useCallback((value: number): void => {
     player.requestThumbnail(value);
   }, []);
@@ -244,6 +271,7 @@ export function usePlayerController(): PlayerScreenProps {
     hasMedia,
     isFullscreen,
     setToast,
+    setError,
     toggleFullscreen,
   });
 

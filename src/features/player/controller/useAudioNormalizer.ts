@@ -2,7 +2,7 @@ import { useCallback, useRef, useState, type Dispatch, type SetStateAction } fro
 import { createAudioNormalizerToast } from "@features/toaster/messages";
 import type { ToastState } from "@features/toaster/types";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
-import { getErrorMessage } from "@shared/lib/error";
+import { playerCommand, runPlayerCommand } from "./playerCommand";
 
 export function useAudioNormalizer({
   player,
@@ -16,28 +16,31 @@ export function useAudioNormalizer({
   setToast: Dispatch<SetStateAction<ToastState | null>>;
 }): {
   isAudioNormalizerEnabled: boolean;
-  toggleAudioNormalizer: () => Promise<void>;
+  toggleAudioNormalizer: () => void;
 } {
   const [isAudioNormalizerEnabled, setIsAudioNormalizerEnabled] = useState(false);
   const isSwitchingRef = useRef(false);
 
-  const toggleAudioNormalizer = useCallback(async (): Promise<void> => {
+  const toggleAudioNormalizer = useCallback((): void => {
     if (!hasMedia || isSwitchingRef.current) {
       return;
     }
 
     isSwitchingRef.current = true;
-    try {
-      const enabled = !isAudioNormalizerEnabled;
-      await player.setAudioNormalizerEnabled(enabled);
-      setError("");
-      setIsAudioNormalizerEnabled(enabled);
-      setToast(createAudioNormalizerToast(enabled));
-    } catch (error) {
-      setError(getErrorMessage(error, "Failed to toggle audio normalizer"));
-    } finally {
-      isSwitchingRef.current = false;
-    }
+    runPlayerCommand(
+      playerCommand("Failed to toggle audio normalizer", async () => {
+        try {
+          const enabled = !isAudioNormalizerEnabled;
+          await player.setAudioNormalizerEnabled(enabled);
+          setError("");
+          setIsAudioNormalizerEnabled(enabled);
+          setToast(createAudioNormalizerToast(enabled));
+        } finally {
+          isSwitchingRef.current = false;
+        }
+      }),
+      setError,
+    );
   }, [hasMedia, isAudioNormalizerEnabled, player, setError, setToast]);
 
   return {

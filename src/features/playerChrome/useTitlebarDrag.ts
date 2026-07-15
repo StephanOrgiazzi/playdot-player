@@ -1,6 +1,11 @@
 import { useEffect, type RefObject } from "react";
+import { Effect } from "effect";
 import type { Window } from "@tauri-apps/api/window";
 import type { TitlebarPointerDownRef } from "./types";
+
+class TitlebarDragError extends Error {
+  readonly _tag = "TitlebarDragError";
+}
 
 type UseTitlebarDragOptions = {
   appWindow: Window;
@@ -37,7 +42,12 @@ export function useTitlebarDrag({
         suppressTitlePillClickRef.current = true;
       }
 
-      void appWindow.startDragging();
+      Effect.runCallback(
+        Effect.tryPromise({
+          try: () => appWindow.startDragging(),
+          catch: (cause) => new TitlebarDragError("Failed to start titlebar drag", { cause }),
+        }).pipe(Effect.catch((error) => Effect.logError(error))),
+      );
     };
 
     const handleMouseUp = (): void => {

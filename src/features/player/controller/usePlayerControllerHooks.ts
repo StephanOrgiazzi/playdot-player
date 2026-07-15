@@ -22,12 +22,12 @@ import {
   getUiVolumeFromMpvVolume,
 } from "@integrations/mpv/constants";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
-import { getErrorMessage } from "@shared/lib/error";
 import { getPersistedBoolean, persistBoolean } from "@shared/lib/persistedBoolean";
 import { getPlayerTrackDerivedState } from "../model/playerDerived";
 import { hasMedia as hasLoadedMedia } from "../model/playerSelectors";
 import { usePlayerStateSelector } from "./playerSession";
 import { useAudioNormalizer } from "./useAudioNormalizer";
+import { playerCommand, runPlayerCommand } from "./playerCommand";
 
 const FSR_PREFERENCE_STORAGE_KEY = "playdot-player.player.fsr-enabled";
 const STEREO_DOWNMIX_PREFERENCE_STORAGE_KEY = "playdot-player.player.stereo-downmix-enabled";
@@ -37,33 +37,24 @@ type SetError = (value: string) => void;
 type SetToast = Dispatch<SetStateAction<ToastState | null>>;
 
 async function applyFsrAction({
-  errorMessage,
-  setError,
   setIsFsrEnabled,
   setToast,
   showToast = true,
   onSuccess,
   task,
 }: {
-  errorMessage: string;
-  setError: SetError;
   setIsFsrEnabled: (value: boolean) => void;
   setToast: SetToast;
   showToast?: boolean;
   onSuccess?: (enabled: boolean) => void;
   task: () => Promise<boolean>;
 }): Promise<void> {
-  try {
-    const enabled = await task();
-    setError("");
-    setIsFsrEnabled(enabled);
-    if (showToast) {
-      setToast(createFsrToast(enabled));
-    }
-    onSuccess?.(enabled);
-  } catch (error) {
-    setError(getErrorMessage(error, errorMessage));
+  const enabled = await task();
+  setIsFsrEnabled(enabled);
+  if (showToast) {
+    setToast(createFsrToast(enabled));
   }
+  onSuccess?.(enabled);
 }
 
 async function applyVolumeAction({
@@ -102,22 +93,25 @@ function useTrackCycleAction({
   setError: SetError;
   setIsCycling: (value: boolean) => void;
   setPendingTrackToast: (value: TrackKind) => void;
-}): () => Promise<void> {
-  return useCallback(async (): Promise<void> => {
+}): () => void {
+  return useCallback((): void => {
     if (isCycling) {
       return;
     }
 
     setIsCycling(true);
-    try {
-      await cycleTrack();
-      setError("");
-      setPendingTrackToast(kind);
-    } catch (error) {
-      setError(getErrorMessage(error, errorMessage));
-    } finally {
-      setIsCycling(false);
-    }
+    runPlayerCommand(
+      playerCommand(errorMessage, async () => {
+        try {
+          await cycleTrack();
+          setError("");
+          setPendingTrackToast(kind);
+        } finally {
+          setIsCycling(false);
+        }
+      }),
+      setError,
+    );
   }, [cycleTrack, errorMessage, isCycling, kind, setError, setIsCycling, setPendingTrackToast]);
 }
 
@@ -152,14 +146,17 @@ function useSavedFsrPreferenceSync({
       return;
     }
     lastFsrSyncKeyRef.current = fsrSyncKey;
-    void applyFsrAction({
-      errorMessage: "Failed to apply saved FSR setting",
+    runPlayerCommand(
+      playerCommand("Failed to apply saved FSR setting", () =>
+        applyFsrAction({
+          setIsFsrEnabled,
+          setToast,
+          showToast: false,
+          task: () => player.toggleFsr(),
+        }),
+      ),
       setError,
-      setIsFsrEnabled,
-      setToast,
-      showToast: false,
-      task: () => player.toggleFsr(),
-    });
+    );
   }, [
     filename,
     fsrPreferenceEnabled,
@@ -263,10 +260,10 @@ export function useTrackActions({
 }): {
   isCyclingAudio: boolean;
   isCyclingSubtitles: boolean;
-  cycleAudioTrack: () => Promise<void>;
-  cycleSubtitleTrack: () => Promise<void>;
-  selectAudioTrack: (id: number | "no") => Promise<void>;
-  selectSubtitleTrack: (id: number | "no") => Promise<void>;
+  cycleAudioTrack: () => void;
+  cycleSubtitleTrack: () => void;
+  selectAudioTrack: (id: number | "no") => void;
+  selectSubtitleTrack: (id: number | "no") => void;
 } {
   const [isCyclingAudio, setIsCyclingAudio] = useState(false);
   const [isCyclingSubtitles, setIsCyclingSubtitles] = useState(false);
@@ -301,26 +298,29 @@ export function useTrackActions({
     setPendingTrackToast,
   });
   const selectAudioTrack = useCallback(
-    async (id: number | "no"): Promise<void> => {
+    (id: number | "no"): void => {
       if (!hasMedia || id === "no" || isCyclingAudio || selectedAudioTrack?.id === id) {
         return;
       }
 
       setIsCyclingAudio(true);
-      try {
-        await player.setAudioTrack(id);
-        setError("");
-        setPendingTrackToast("audio");
-      } catch (error) {
-        setError(getErrorMessage(error, "Failed to change audio track"));
-      } finally {
-        setIsCyclingAudio(false);
-      }
+      runPlayerCommand(
+        playerCommand("Failed to change audio track", async () => {
+          try {
+            await player.setAudioTrack(id);
+            setError("");
+            setPendingTrackToast("audio");
+          } finally {
+            setIsCyclingAudio(false);
+          }
+        }),
+        setError,
+      );
     },
     [hasMedia, isCyclingAudio, player, selectedAudioTrack?.id, setError],
   );
   const selectSubtitleTrack = useCallback(
-    async (id: number | "no"): Promise<void> => {
+    (id: number | "no"): void => {
       if (!hasMedia || isCyclingSubtitles) {
         return;
       }
@@ -332,15 +332,18 @@ export function useTrackActions({
       }
 
       setIsCyclingSubtitles(true);
-      try {
-        await player.setSubtitleTrack(id);
-        setError("");
-        setPendingTrackToast("subtitles");
-      } catch (error) {
-        setError(getErrorMessage(error, "Failed to change subtitle track"));
-      } finally {
-        setIsCyclingSubtitles(false);
-      }
+      runPlayerCommand(
+        playerCommand("Failed to change subtitle track", async () => {
+          try {
+            await player.setSubtitleTrack(id);
+            setError("");
+            setPendingTrackToast("subtitles");
+          } finally {
+            setIsCyclingSubtitles(false);
+          }
+        }),
+        setError,
+      );
     },
     [
       hasMedia,
@@ -378,14 +381,14 @@ export function usePlayerEnhancementActions({
   isFsrEnabled: boolean;
   isAudioNormalizerEnabled: boolean;
   isStereoDownmixEnabled: boolean;
-  toggleFsr: () => Promise<void>;
-  toggleAudioNormalizer: () => Promise<void>;
-  toggleStereoDownmix: () => Promise<void>;
+  toggleFsr: () => void;
+  toggleAudioNormalizer: () => void;
+  toggleStereoDownmix: () => void;
   preparePlayerStart: () => Promise<void>;
-  adjustVolume: (delta: number) => Promise<void>;
-  adjustGamma: (delta: number) => Promise<void>;
-  increaseGamma: () => Promise<void>;
-  decreaseGamma: () => Promise<void>;
+  adjustVolume: (delta: number) => void;
+  adjustGamma: (delta: number) => void;
+  increaseGamma: () => void;
+  decreaseGamma: () => void;
 } {
   const { isAudioNormalizerEnabled, toggleAudioNormalizer } = useAudioNormalizer({
     player,
@@ -409,61 +412,83 @@ export function usePlayerEnhancementActions({
     await player.setStereoDownmixEnabled(stereoDownmixPreferenceEnabled);
     setIsStereoDownmixEnabled(stereoDownmixPreferenceEnabled);
   }, [player, stereoDownmixPreferenceEnabled]);
-  const toggleFsr = useCallback(async (): Promise<void> => {
+  const toggleFsr = useCallback((): void => {
     if (!hasMedia) {
       return;
     }
-    await applyFsrAction({
-      errorMessage: "Failed to toggle FSR",
+    runPlayerCommand(
+      playerCommand("Failed to toggle FSR", () =>
+        applyFsrAction({
+          setIsFsrEnabled,
+          setToast,
+          onSuccess: (enabled) => {
+            setError("");
+            setFsrPreferenceEnabled(enabled);
+            persistBoolean(FSR_PREFERENCE_STORAGE_KEY, enabled);
+          },
+          task: () => player.toggleFsr(),
+        }),
+      ),
       setError,
-      setIsFsrEnabled,
-      setToast,
-      onSuccess: (enabled) => {
-        setFsrPreferenceEnabled(enabled);
-        persistBoolean(FSR_PREFERENCE_STORAGE_KEY, enabled);
-      },
-      task: () => player.toggleFsr(),
-    });
+    );
   }, [hasMedia, player, setError, setToast]);
   const adjustVolume = useCallback(
-    (delta: number): Promise<void> => applyVolumeAction({ player, hasMedia, delta, setToast }),
-    [hasMedia, player, setToast],
+    (delta: number): void => {
+      runPlayerCommand(
+        playerCommand("Failed to adjust volume", () =>
+          applyVolumeAction({ player, hasMedia, delta, setToast }),
+        ),
+        setError,
+      );
+    },
+    [hasMedia, player, setError, setToast],
   );
-  const toggleStereoDownmix = useCallback(async (): Promise<void> => {
+  const toggleStereoDownmix = useCallback((): void => {
     if (!hasMedia || isSwitchingStereoDownmixRef.current) {
       return;
     }
 
     isSwitchingStereoDownmixRef.current = true;
-    try {
-      const nextPreferenceEnabled = !stereoDownmixPreferenceEnabled;
-
-      await player.setStereoDownmixEnabled(nextPreferenceEnabled);
-      setError("");
-      setStereoDownmixPreferenceEnabled(nextPreferenceEnabled);
-      setIsStereoDownmixEnabled(nextPreferenceEnabled);
-      persistBoolean(STEREO_DOWNMIX_PREFERENCE_STORAGE_KEY, nextPreferenceEnabled);
-      setToast(createStereoDownmixToast(nextPreferenceEnabled));
-    } catch (error) {
-      setError(getErrorMessage(error, "Failed to toggle stereo downmix"));
-    } finally {
-      isSwitchingStereoDownmixRef.current = false;
-    }
+    runPlayerCommand(
+      playerCommand("Failed to toggle stereo downmix", async () => {
+        try {
+          const nextPreferenceEnabled = !stereoDownmixPreferenceEnabled;
+          await player.setStereoDownmixEnabled(nextPreferenceEnabled);
+          setError("");
+          setStereoDownmixPreferenceEnabled(nextPreferenceEnabled);
+          setIsStereoDownmixEnabled(nextPreferenceEnabled);
+          persistBoolean(STEREO_DOWNMIX_PREFERENCE_STORAGE_KEY, nextPreferenceEnabled);
+          setToast(createStereoDownmixToast(nextPreferenceEnabled));
+        } finally {
+          isSwitchingStereoDownmixRef.current = false;
+        }
+      }),
+      setError,
+    );
   }, [hasMedia, player, setError, setToast, stereoDownmixPreferenceEnabled]);
   const adjustGamma = useCallback(
-    async (delta: number): Promise<void> => {
+    (delta: number): void => {
       if (!hasMedia || delta === 0) {
         return;
       }
 
-      await player.adjustGamma(delta);
-      gammaLevelRef.current += delta;
-      setToast(createGammaToast(gammaLevelRef.current));
+      runPlayerCommand(
+        playerCommand("Failed to adjust gamma", async () => {
+          await player.adjustGamma(delta);
+          gammaLevelRef.current += delta;
+          setToast(createGammaToast(gammaLevelRef.current));
+        }),
+        setError,
+      );
     },
-    [hasMedia, player, setToast],
+    [hasMedia, player, setError, setToast],
   );
-  const increaseGamma = useCallback((): Promise<void> => adjustGamma(GAMMA_STEP), [adjustGamma]);
-  const decreaseGamma = useCallback((): Promise<void> => adjustGamma(-GAMMA_STEP), [adjustGamma]);
+  const increaseGamma = useCallback((): void => {
+    adjustGamma(GAMMA_STEP);
+  }, [adjustGamma]);
+  const decreaseGamma = useCallback((): void => {
+    adjustGamma(-GAMMA_STEP);
+  }, [adjustGamma]);
 
   useEffect(() => {
     gammaLevelRef.current = 0;

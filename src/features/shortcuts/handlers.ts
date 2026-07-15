@@ -64,11 +64,11 @@ export function handleShortcutKeyDown({
 
   const runShortcut = (action: KeyShortcutAction): void => {
     event.preventDefault();
-    void actions[action]();
+    actions[action]();
   };
   const adjustVolume = (delta: number): void => {
     event.preventDefault();
-    void actions.adjustVolume(delta);
+    actions.adjustVolume(delta);
   };
   const normalizedKey = event.key.toLowerCase();
   const hasCtrlShortcutModifiers = event.ctrlKey && !event.altKey && !event.metaKey;
@@ -109,13 +109,13 @@ export function handleShortcutKeyDown({
 
     if (event.key === "ArrowLeft") {
       event.preventDefault();
-      void actions.adjustGamma(-1);
+      actions.adjustGamma(-1);
       return;
     }
 
     if (event.key === "ArrowRight") {
       event.preventDefault();
-      void actions.adjustGamma(1);
+      actions.adjustGamma(1);
       return;
     }
 
@@ -161,7 +161,7 @@ export function handleShortcutKeyDown({
 type HandleShortcutWheelOptions = {
   event: WheelEvent;
   hasMedia: boolean;
-  adjustVolume: (delta: number) => Promise<void>;
+  adjustVolume: (delta: number) => void;
 };
 
 export function handleShortcutWheel({
@@ -184,12 +184,12 @@ export function handleShortcutWheel({
   }
 
   event.preventDefault();
-  void adjustVolume(volumeDelta);
+  adjustVolume(volumeDelta);
 }
 
 type HandleShortcutPasteOptions = {
   event: ClipboardEvent;
-  openPastedWebUrl: (clipboardText: string) => Promise<void>;
+  openPastedWebUrl: (clipboardText: string) => void;
 };
 
 export function handleShortcutPaste({ event, openPastedWebUrl }: HandleShortcutPasteOptions): void {
@@ -202,5 +202,5 @@ export function handleShortcutPaste({ event, openPastedWebUrl }: HandleShortcutP
     return;
   }
 
-  void openPastedWebUrl(clipboardText);
+  openPastedWebUrl(clipboardText);
 }

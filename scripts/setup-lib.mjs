@@ -66,6 +66,11 @@ async function downloadFile(url, destinationPath) {
   await pipeline(bodyStream, fileStream);
 }
 
+/**
+ * @param {string} command
+ * @param {readonly string[]} args
+ * @returns {Promise<void>}
+ */
 function runCommand(command, args) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { stdio: "ignore", windowsHide: true });
@@ -95,6 +100,10 @@ async function extractArchiveWithNative7z(archivePath, extractDir) {
   }
 }
 
+/**
+ * @param {string} archivePath
+ * @param {string} extractDir
+ */
 async function extractArchive(archivePath, extractDir) {
   await fs.promises.rm(extractDir, { recursive: true, force: true });
   await fs.promises.mkdir(extractDir, { recursive: true });
@@ -140,6 +149,11 @@ async function extractArchive(archivePath, extractDir) {
   }
 }
 
+/**
+ * @param {string} searchDir
+ * @param {string} fileName
+ * @returns {Promise<string | null>}
+ */
 async function findFile(searchDir, fileName) {
   const entries = await fs.promises.readdir(searchDir, { withFileTypes: true });
 
@@ -166,6 +180,7 @@ async function findFile(searchDir, fileName) {
   return null;
 }
 
+/** @param {string} searchDir */
 async function copyRuntimeDllsFromExtract(searchDir) {
   const entries = await fs.promises.readdir(searchDir, { withFileTypes: true });
 
@@ -185,6 +200,10 @@ async function copyRuntimeDllsFromExtract(searchDir) {
   }
 }
 
+/**
+ * @param {string} sourcePath
+ * @param {string} destinationPath
+ */
 async function copyFileIfTargetExists(sourcePath, destinationPath) {
   try {
     await fs.promises.access(path.dirname(destinationPath));

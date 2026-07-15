@@ -1,26 +1,26 @@
-import type { AsyncAction } from "@features/player/model/types";
+import type { PlayerAction } from "@features/player/model/types";
 
 export type ShortcutActions = {
-  cycleAudioTrack: AsyncAction;
-  cycleSubtitleTrack: AsyncAction;
-  closeWindow: AsyncAction;
-  adjustVolume: (delta: number) => Promise<void>;
-  zoomIn: AsyncAction;
-  zoomOut: AsyncAction;
-  increaseSubtitleScale: AsyncAction;
-  decreaseSubtitleScale: AsyncAction;
-  openPastedWebUrl: (clipboardText: string) => Promise<void>;
-  seekBack: AsyncAction;
-  seekForward: AsyncAction;
-  slowDownPlayback: AsyncAction;
-  speedUpPlayback: AsyncAction;
-  adjustGamma: (delta: number) => Promise<void>;
-  toggleFsr: AsyncAction;
-  toggleAudioNormalizer: AsyncAction;
-  toggleStereoDownmix: AsyncAction;
-  toggleFullscreen: AsyncAction;
-  toggleMute: AsyncAction;
-  togglePlayPause: AsyncAction;
+  cycleAudioTrack: PlayerAction;
+  cycleSubtitleTrack: PlayerAction;
+  closeWindow: PlayerAction;
+  adjustVolume: (delta: number) => void;
+  zoomIn: PlayerAction;
+  zoomOut: PlayerAction;
+  increaseSubtitleScale: PlayerAction;
+  decreaseSubtitleScale: PlayerAction;
+  openPastedWebUrl: (clipboardText: string) => void;
+  seekBack: PlayerAction;
+  seekForward: PlayerAction;
+  slowDownPlayback: PlayerAction;
+  speedUpPlayback: PlayerAction;
+  adjustGamma: (delta: number) => void;
+  toggleFsr: PlayerAction;
+  toggleAudioNormalizer: PlayerAction;
+  toggleStereoDownmix: PlayerAction;
+  toggleFullscreen: PlayerAction;
+  toggleMute: PlayerAction;
+  togglePlayPause: PlayerAction;
 };
 
 export type UseGlobalShortcutsOptions = ShortcutActions & {

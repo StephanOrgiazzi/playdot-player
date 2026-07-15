@@ -2,10 +2,12 @@
   "name": "playdot-player",
   "version": "0.14.0",
   "private": true,
+  "packageManager": "bun@1.3.10",
+  "workspaces": ["website"],
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "app:dev": "npm run setup-lib && npm run tauri:dev",
+    "app:dev": "bun run setup-lib && bun run tauri:dev",
     "build": "tsc -b && vite build",
     "lint": "oxlint -c ./.oxlintrc.json . --type-aware --deny typescript/no-deprecated --deny max-lines --deny max-lines-per-function",
     "format": "oxfmt -c ./.oxfmtrc.json --check .",
@@ -13,15 +15,16 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "setup-lib": "node ./scripts/setup-lib.mjs",
-    "release:win": "npm run setup-lib && tauri build --bundles nsis",
+    "setup-lib": "bun ./scripts/setup-lib.mjs",
+    "release:win": "bun run setup-lib && tauri build --bundles nsis",
     "release:artifacts": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-artifacts.ps1",
-    "release": "npm run release:win && npm run release:artifacts"
+    "release": "bun run release:win && bun run release:artifacts"
   },
   "dependencies": {
     "@tauri-apps/api": "2.11.0",
     "@tauri-apps/plugin-dialog": "2.7.1",
     "@tauri-apps/plugin-log": "2.8.0",
+    "effect": "4.0.0-beta.98",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },
@@ -33,8 +36,8 @@
     "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "oxfmt": "^0.47.0",
-    "oxlint": "^1.62.0",
-    "oxlint-tsgolint": "^0.22.1",
+    "oxlint": "1.62.0",
+    "oxlint-tsgolint": "0.22.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.10"
   }
