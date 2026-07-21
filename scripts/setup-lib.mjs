@@ -10,8 +10,10 @@ const projectRoot = process.cwd();
 const targetDir = path.join(projectRoot, "src-tauri", "lib");
 const tempDir = path.join(targetDir, ".setup-lib-tmp");
 
-const wrapperBaseUrl = "https://github.com/nini22P/libmpv-wrapper/releases/latest/download";
-const mpvBaseUrl = "https://github.com/zhongfly/mpv-winbuild/releases/latest/download";
+const wrapperRelease = "v0.1.1";
+const mpvRelease = "2026-07-18-94335ab87a";
+const wrapperBaseUrl = `https://github.com/nini22P/libmpv-wrapper/releases/download/${wrapperRelease}`;
+const mpvBaseUrl = `https://github.com/zhongfly/mpv-winbuild/releases/download/${mpvRelease}`;
 
 function getSystemInfo() {
   const platform = os.platform();
@@ -165,7 +167,7 @@ async function findFile(searchDir, fileName) {
     const fullPath = path.join(searchDir, entry.name);
 
     if (entry.isDirectory()) {
-      const nested = await findFile(fullPath, fileName);
+      const nested = await findFile(String(fullPath), fileName);
       if (nested) {
         return nested;
       }
@@ -188,7 +190,7 @@ async function copyRuntimeDllsFromExtract(searchDir) {
     const fullPath = path.join(searchDir, entry.name);
 
     if (entry.isDirectory()) {
-      await copyRuntimeDllsFromExtract(fullPath);
+      await copyRuntimeDllsFromExtract(String(fullPath));
       continue;
     }
 
@@ -226,8 +228,8 @@ async function refreshExistingCargoResourceCopies() {
     const sourcePath = path.join(targetDir, entry.name);
     for (const profile of targetProfiles) {
       await copyFileIfTargetExists(
-        sourcePath,
-        path.join(projectRoot, "src-tauri", "target", profile, "lib", entry.name),
+        String(sourcePath),
+        String(path.join(projectRoot, "src-tauri", "target", profile, "lib", entry.name)),
       );
     }
   }
@@ -285,9 +287,9 @@ async function extractFileFromRelease(baseUrl, releaseFileName, desiredFileName)
   await downloadFile(`${baseUrl}/${releaseFileName}`, String(archivePath));
 
   console.log(`Extracting ${releaseFileName}...`);
-  await extractArchive(archivePath, extractDir);
+  await extractArchive(String(archivePath), String(extractDir));
 
-  const foundFile = await findFile(extractDir, desiredFileName);
+  const foundFile = await findFile(String(extractDir), desiredFileName);
   if (!foundFile) {
     throw new Error(`${desiredFileName} not found in ${releaseFileName}`);
   }
@@ -296,7 +298,7 @@ async function extractFileFromRelease(baseUrl, releaseFileName, desiredFileName)
   await fs.promises.copyFile(foundFile, destinationPath);
 
   if (desiredFileName === "libmpv-2.dll") {
-    await copyRuntimeDllsFromExtract(extractDir);
+    await copyRuntimeDllsFromExtract(String(extractDir));
   }
 }
 

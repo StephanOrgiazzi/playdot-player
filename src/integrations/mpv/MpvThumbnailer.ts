@@ -1,18 +1,24 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import { Cause, Data, Effect, Fiber } from "effect";
-import { command, destroy, init, type MpvConfig } from "./libmpv-api";
+import { Effect, Fiber, Option, Schedule, Schema } from "effect";
+import { createMpvThumbnailConfig, getMpvLoadOptionsForSource } from "./config";
+import { command, destroy, init } from "./libmpv-api";
 
 const THUMBNAIL_INSTANCE_LABEL = "thumbnail-worker";
 const EXACT_SEEK_DELAY_MS = 120;
 const FRAME_POLL_INTERVAL_MS = 18;
 const MAX_FRAME_POLLS = 20;
+const framePollSchedule = Schedule.spaced(FRAME_POLL_INTERVAL_MS).pipe(
+  Schedule.upTo({ times: MAX_FRAME_POLLS - 1 }),
+);
 
-type ThumbnailTarget = {
-  rawPath: string;
-  imagePath: string;
-  width: number;
-  height: number;
-};
+const ThumbnailTarget = Schema.Struct({
+  rawPath: Schema.String,
+  imagePath: Schema.String,
+  width: Schema.Number,
+  height: Schema.Number,
+});
+
+interface ThumbnailTarget extends Schema.Schema.Type<typeof ThumbnailTarget> {}
 
 type PendingSeek = {
   seconds: number;
@@ -23,19 +29,30 @@ type PendingSeek = {
 type WorkerPreparation = "existing" | "started";
 type ThumbnailListener = (url: string) => void;
 
-class ThumbnailError extends Data.TaggedError("ThumbnailError")<{
-  readonly operation: string;
-  readonly cause: Cause.UnknownError;
-}> {}
+class ThumbnailError extends Schema.TaggedErrorClass<ThumbnailError>()("MpvThumbnailer.Error", {
+  operation: Schema.String,
+  cause: Schema.Defect(),
+}) {
+  override get message(): string {
+    return this.cause instanceof Error && this.cause.message
+      ? this.cause.message
+      : `Thumbnail ${this.operation} failed`;
+  }
+}
 
-const attempt = <A>(operation: string, task: () => Promise<A>): Effect.Effect<A, ThumbnailError> =>
-  Effect.tryPromise({
-    try: task,
-    catch: (cause) => new ThumbnailError({ operation, cause: new Cause.UnknownError(cause) }),
-  });
+const attempt = Effect.fn("MpvThumbnailer.attempt")(
+  <A>(operation: string, task: () => Promise<A>): Effect.Effect<A, ThumbnailError> =>
+    Effect.tryPromise({
+      try: task,
+      catch: (cause) => new ThumbnailError({ operation, cause }),
+    }),
+);
 
 const reportError = (error: ThumbnailError): Effect.Effect<void> =>
   Effect.logError(`Thumbnail ${error.operation} failed`, error.cause);
+
+const decodeThumbnailTarget = Schema.decodeUnknownEffect(ThumbnailTarget);
+const decodeBoolean = Schema.decodeUnknownEffect(Schema.Boolean);
 
 export class MpvThumbnailer {
   private source: string | null = null;
@@ -115,20 +132,16 @@ export class MpvThumbnailer {
   private scheduleExactSeek(seconds: number, revision: number): void {
     this.interruptExactSeek();
     const fiber = Effect.runFork(
-      Effect.sleep(EXACT_SEEK_DELAY_MS).pipe(
-        Effect.andThen(
-          Effect.sync(() => {
-            if (this.exactSeekFiber === fiber) {
-              this.exactSeekFiber = null;
-            }
-            if (!this.active || revision !== this.requestRevision) {
-              return;
-            }
-            this.pendingSeek = { seconds, exact: true, revision };
-            this.startRender();
-          }),
-        ),
-      ),
+      Effect.sync(() => {
+        if (this.exactSeekFiber === fiber) {
+          this.exactSeekFiber = null;
+        }
+        if (!this.active || revision !== this.requestRevision) {
+          return;
+        }
+        this.pendingSeek = { seconds, exact: true, revision };
+        this.startRender();
+      }).pipe(Effect.delay(EXACT_SEEK_DELAY_MS)),
     );
     this.exactSeekFiber = fiber;
   }
@@ -162,8 +175,8 @@ export class MpvThumbnailer {
     this.renderFiber = Effect.runFork(render);
   }
 
-  private flush(): Effect.Effect<void, ThumbnailError> {
-    return Effect.gen({ self: this }, function* () {
+  private readonly flush = Effect.fn("MpvThumbnailer.flush")(() =>
+    Effect.gen({ self: this }, function* () {
       while (this.pendingSeek) {
         const pending = this.pendingSeek;
         this.pendingSeek = null;
@@ -181,131 +194,133 @@ export class MpvThumbnailer {
           return;
         }
       }
-    });
-  }
+    }),
+  );
 
-  private renderFrame(
-    pending: PendingSeek,
-    token: number,
-  ): Effect.Effect<string | null, ThumbnailError> {
-    return Effect.gen({ self: this }, function* () {
-      const preparation = yield* this.ensureStarted(token, pending);
-      if (!preparation || !this.target) {
-        return null;
-      }
+  private readonly renderFrame = Effect.fn("MpvThumbnailer.renderFrame")(
+    (pending: PendingSeek, token: number): Effect.Effect<string | null, ThumbnailError> =>
+      Effect.gen({ self: this }, function* () {
+        const preparation = yield* this.ensureStarted(token, pending);
+        if (!preparation || !this.target) {
+          return null;
+        }
 
-      const target = this.target;
-      if (preparation === "existing") {
-        yield* attempt("frame discard", () =>
-          invoke("discard_thumbnail_frame", { rawPath: target.rawPath }),
+        const target = this.target;
+        if (preparation === "existing") {
+          yield* attempt("frame discard", () =>
+            invoke("discard_thumbnail_frame", { rawPath: target.rawPath }),
+          );
+          yield* attempt("seek", () =>
+            command(
+              "seek",
+              [pending.seconds, pending.exact ? "absolute+exact" : "absolute+keyframes"],
+              undefined,
+              THUMBNAIL_INSTANCE_LABEL,
+            ),
+          );
+        }
+
+        const pollFrame = Effect.gen({ self: this }, function* () {
+          if (!this.active || token !== this.lifecycleToken) {
+            return Option.some<string | null>(null);
+          }
+
+          const readyPayload = yield* attempt("frame promotion", () =>
+            invoke<boolean>("promote_thumbnail_frame", {
+              rawPath: target.rawPath,
+              imagePath: target.imagePath,
+            }),
+          );
+          const ready = yield* decodeBoolean(readyPayload).pipe(
+            Effect.mapError(
+              (cause) =>
+                new ThumbnailError({ operation: "frame promotion response decoding", cause }),
+            ),
+          );
+          if (ready) {
+            this.frameRevision += 1;
+            return Option.some<string | null>(
+              `${convertFileSrc(target.imagePath)}?frame=${this.frameRevision}`,
+            );
+          }
+
+          return Option.none<string | null>();
+        });
+
+        const result = yield* pollFrame.pipe(
+          Effect.delay(FRAME_POLL_INTERVAL_MS),
+          Effect.repeat({
+            schedule: framePollSchedule,
+            until: Option.isSome,
+          }),
         );
-        yield* attempt("seek", () =>
+        return Option.getOrNull(result);
+      }),
+  );
+
+  private readonly ensureStarted = Effect.fn("MpvThumbnailer.ensureStarted")(
+    (
+      token: number,
+      initialSeek: PendingSeek,
+    ): Effect.Effect<WorkerPreparation | null, ThumbnailError> =>
+      Effect.gen({ self: this }, function* () {
+        const source = this.source;
+        const pendingTeardown = this.teardown;
+        if (!source || token !== this.lifecycleToken) {
+          return null;
+        }
+        if (this.startedSource === source && this.target) {
+          return "existing";
+        }
+
+        yield* Effect.promise(() => pendingTeardown);
+        if (source !== this.source || token !== this.lifecycleToken) {
+          return null;
+        }
+
+        const targetPayload = yield* attempt("target creation", () =>
+          invoke<ThumbnailTarget>("create_thumbnail_target"),
+        );
+        const target = yield* decodeThumbnailTarget(targetPayload).pipe(
+          Effect.mapError(
+            (cause) => new ThumbnailError({ operation: "target response decoding", cause }),
+          ),
+        );
+        this.target = target;
+        yield* this.startWorker(source, target, initialSeek).pipe(
+          Effect.tapError(() =>
+            Effect.sync(() => {
+              this.queueTeardown();
+            }),
+          ),
+        );
+        if (source !== this.source || token !== this.lifecycleToken) {
+          return null;
+        }
+        this.startedSource = source;
+        return "started";
+      }),
+  );
+
+  private readonly startWorker = Effect.fn("MpvThumbnailer.startWorker")(
+    (source: string, target: ThumbnailTarget, initialSeek: PendingSeek) =>
+      Effect.gen({ self: this }, function* () {
+        const config = createMpvThumbnailConfig(target, initialSeek);
+        yield* attempt("worker initialization", () =>
+          init(config, undefined, THUMBNAIL_INSTANCE_LABEL),
+        );
+        this.workerStarted = true;
+        const loadOptions = getMpvLoadOptionsForSource(source, "thumbnail");
+        yield* attempt("media loading", () =>
           command(
-            "seek",
-            [pending.seconds, pending.exact ? "absolute+exact" : "absolute+keyframes"],
+            "loadfile",
+            loadOptions ? [source, "replace", -1, loadOptions] : [source],
             undefined,
             THUMBNAIL_INSTANCE_LABEL,
           ),
         );
-      }
-
-      for (let poll = 0; poll < MAX_FRAME_POLLS; poll += 1) {
-        yield* Effect.sleep(FRAME_POLL_INTERVAL_MS);
-        if (!this.active || token !== this.lifecycleToken) {
-          return null;
-        }
-
-        const ready = yield* attempt("frame promotion", () =>
-          invoke<boolean>("promote_thumbnail_frame", {
-            rawPath: target.rawPath,
-            imagePath: target.imagePath,
-          }),
-        );
-        if (ready) {
-          this.frameRevision += 1;
-          return `${convertFileSrc(target.imagePath)}?frame=${this.frameRevision}`;
-        }
-      }
-
-      return null;
-    });
-  }
-
-  private ensureStarted(
-    token: number,
-    initialSeek: PendingSeek,
-  ): Effect.Effect<WorkerPreparation | null, ThumbnailError> {
-    return Effect.gen({ self: this }, function* () {
-      const source = this.source;
-      const pendingTeardown = this.teardown;
-      if (!source || token !== this.lifecycleToken) {
-        return null;
-      }
-      if (this.startedSource === source && this.target) {
-        return "existing";
-      }
-
-      yield* Effect.promise(() => pendingTeardown);
-      if (source !== this.source || token !== this.lifecycleToken) {
-        return null;
-      }
-
-      const target = yield* attempt("target creation", () =>
-        invoke<ThumbnailTarget>("create_thumbnail_target"),
-      );
-      this.target = target;
-      const startWorker = Effect.gen({ self: this }, function* () {
-        yield* attempt("worker initialization", () =>
-          init(this.createConfig(target, initialSeek), undefined, THUMBNAIL_INSTANCE_LABEL),
-        );
-        this.workerStarted = true;
-        yield* attempt("media loading", () =>
-          command("loadfile", [source], undefined, THUMBNAIL_INSTANCE_LABEL),
-        );
-      });
-
-      yield* startWorker.pipe(
-        Effect.tapError(() =>
-          Effect.sync(() => {
-            this.queueTeardown();
-          }),
-        ),
-      );
-      if (source !== this.source || token !== this.lifecycleToken) {
-        return null;
-      }
-      this.startedSource = source;
-      return "started";
-    });
-  }
-
-  private createConfig(target: ThumbnailTarget, initialSeek: PendingSeek): MpvConfig {
-    return {
-      initialOptions: {
-        idle: "yes",
-        pause: "yes",
-        "keep-open": "always",
-        start: initialSeek.seconds,
-        "hr-seek": initialSeek.exact ? "yes" : "no",
-        audio: "no",
-        sub: "no",
-        hwdec: "no",
-        "demuxer-readahead-secs": 0,
-        "demuxer-max-bytes": "128KiB",
-        "vd-lavc-skiploopfilter": "all",
-        "vd-lavc-fast": "yes",
-        "vd-lavc-threads": 2,
-        "sws-scaler": "fast-bilinear",
-        "target-trc": "srgb",
-        "target-prim": "bt.709",
-        vf: `gpu=api=vulkan:w=${target.width}:h=${target.height},format=fmt=bgra`,
-        ovc: "rawvideo",
-        of: "image2",
-        ofopts: "update=1",
-        o: target.rawPath,
-      },
-    };
-  }
+      }),
+  );
 
   private queueTeardown(): void {
     this.startedSource = null;
@@ -321,7 +336,7 @@ export class MpvThumbnailer {
     this.teardown = Effect.runPromise(teardown);
   }
 
-  private destroyWorker(): Effect.Effect<void> {
+  private readonly destroyWorker = Effect.fn("MpvThumbnailer.destroyWorker")(() => {
     const target = this.target;
     this.target = null;
     this.startedSource = null;
@@ -351,5 +366,5 @@ export class MpvThumbnailer {
       : Effect.void;
 
     return destroyWorker.pipe(Effect.andThen(removeTarget));
-  }
+  });
 }
