@@ -153,6 +153,8 @@ bun run release
 
 Outputs are written under `src-tauri/target/release/bundle/` and `release/`.
 
+See [docs/releasing.md](docs/releasing.md) for versioning, commit, and publication conventions.
+
 ## Scripts
 
 | Command               | Description                             |
