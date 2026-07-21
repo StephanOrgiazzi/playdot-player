@@ -1,11 +1,23 @@
 import { useEffect, type RefObject } from "react";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import type { Window } from "@tauri-apps/api/window";
 import type { TitlebarPointerDownRef } from "./types";
 
-class TitlebarDragError extends Error {
-  readonly _tag = "TitlebarDragError";
+class TitlebarDragError extends Schema.TaggedErrorClass<TitlebarDragError>()("Titlebar.DragError", {
+  cause: Schema.Defect(),
+}) {
+  override get message(): string {
+    return "Failed to start titlebar drag";
+  }
 }
+
+const startTitlebarDrag = Effect.fn("Titlebar.startDragging")(
+  (appWindow: Window): Effect.Effect<void, TitlebarDragError> =>
+    Effect.tryPromise({
+      try: () => appWindow.startDragging(),
+      catch: (cause) => new TitlebarDragError({ cause }),
+    }),
+);
 
 type UseTitlebarDragOptions = {
   appWindow: Window;
@@ -43,10 +55,9 @@ export function useTitlebarDrag({
       }
 
       Effect.runCallback(
-        Effect.tryPromise({
-          try: () => appWindow.startDragging(),
-          catch: (cause) => new TitlebarDragError("Failed to start titlebar drag", { cause }),
-        }).pipe(Effect.catch((error) => Effect.logError(error))),
+        startTitlebarDrag(appWindow).pipe(
+          Effect.catch((error) => Effect.logError("Titlebar.drag_failed", error)),
+        ),
       );
     };
 

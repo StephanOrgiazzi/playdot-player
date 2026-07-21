@@ -7,7 +7,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type SubmitEvent as ReactSubmitEvent,
 } from "react";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 
 type PlayerUrlDialogProps = {
   isOpen: boolean;
@@ -27,19 +27,25 @@ type InputContextMenuState = {
   selectionEnd: number;
 };
 
-class ClipboardError extends Error {
-  readonly _tag = "ClipboardError";
+class ClipboardError extends Schema.TaggedErrorClass<ClipboardError>()(
+  "PlayerUrlDialog.ClipboardError",
+  {
+    operation: Schema.String,
+    cause: Schema.Defect(),
+  },
+) {
+  override get message(): string {
+    return `Failed to ${this.operation}`;
+  }
 }
 
-function clipboardPromise<A>(
-  operation: string,
-  task: () => PromiseLike<A>,
-): Effect.Effect<A, ClipboardError> {
-  return Effect.tryPromise({
-    try: task,
-    catch: (cause) => new ClipboardError(`Failed to ${operation}`, { cause }),
-  });
-}
+const clipboardPromise = Effect.fn("PlayerUrlDialog.clipboard")(
+  <A,>(operation: string, task: () => PromiseLike<A>): Effect.Effect<A, ClipboardError> =>
+    Effect.tryPromise({
+      try: task,
+      catch: (cause) => new ClipboardError({ operation, cause }),
+    }),
+);
 
 function getClampedMenuPosition(event: ReactMouseEvent<HTMLInputElement>): {
   x: number;
@@ -135,7 +141,7 @@ export function PlayerUrlDialog({
     );
     Effect.runCallback(
       clipboardPromise("copy URL text", () => navigator.clipboard.writeText(selectedText)).pipe(
-        Effect.catch((error) => Effect.logError(error)),
+        Effect.catch((error) => Effect.logError("PlayerUrlDialog.copy_failed", error)),
       ),
     );
   };
@@ -170,7 +176,7 @@ export function PlayerUrlDialog({
           }
         });
       });
-    }).pipe(Effect.catch((error) => Effect.logError(error)));
+    }).pipe(Effect.catch((error) => Effect.logError("PlayerUrlDialog.paste_failed", error)));
     interruptClipboardRef.current = Effect.runCallback(paste);
   };
 

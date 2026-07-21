@@ -1,10 +1,26 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import type { OpenWebUrlResult } from "./types";
 
-class OpenUrlSubmissionError extends Error {
-  readonly _tag = "OpenUrlSubmissionError";
+class OpenUrlSubmissionError extends Schema.TaggedErrorClass<OpenUrlSubmissionError>()(
+  "OpenUrlDialog.SubmissionError",
+  { cause: Schema.Defect() },
+) {
+  override get message(): string {
+    return "Could not open that URL";
+  }
 }
+
+const submitOpenUrl = Effect.fn("OpenUrlDialog.submit")(
+  (
+    openWebUrl: (url: string) => Promise<OpenWebUrlResult>,
+    url: string,
+  ): Effect.Effect<OpenWebUrlResult, OpenUrlSubmissionError> =>
+    Effect.tryPromise({
+      try: () => openWebUrl(url),
+      catch: (cause) => new OpenUrlSubmissionError({ cause }),
+    }),
+);
 
 export function useOpenUrlDialog(openWebUrl: (url: string) => Promise<OpenWebUrlResult>): {
   isOpen: boolean;
@@ -53,10 +69,7 @@ export function useOpenUrlDialog(openWebUrl: (url: string) => Promise<OpenWebUrl
     setError("");
     interruptSubmissionRef.current?.();
 
-    const submission = Effect.tryPromise({
-      try: () => openWebUrl(enteredUrl),
-      catch: (cause) => new OpenUrlSubmissionError("Could not open that URL", { cause }),
-    }).pipe(
+    const submission = submitOpenUrl(openWebUrl, enteredUrl).pipe(
       Effect.tap((result) =>
         Effect.sync(() => {
           setIsOpening(false);
@@ -73,7 +86,7 @@ export function useOpenUrlDialog(openWebUrl: (url: string) => Promise<OpenWebUrl
         Effect.sync(() => {
           setIsOpening(false);
           setError("Could not open that URL. Check it and try again.");
-        }).pipe(Effect.andThen(Effect.logError(failure))),
+        }).pipe(Effect.andThen(Effect.logError("OpenUrlDialog.submit_failed", failure))),
       ),
     );
 

@@ -1,30 +1,27 @@
 import { useCallback, useEffect, useRef } from "react";
-import { Effect, Queue } from "effect";
+import { Effect, Queue, Schema, Stream } from "effect";
 
-export class PlayerCommandError extends Error {
-  readonly _tag = "PlayerCommandError";
-
-  constructor(
-    readonly fallbackMessage: string,
-    override readonly cause: Error,
-  ) {
-    super(cause.message || fallbackMessage, { cause });
+export class PlayerCommandError extends Schema.TaggedErrorClass<PlayerCommandError>()(
+  "PlayerCommand.Error",
+  {
+    fallbackMessage: Schema.String,
+    cause: Schema.Defect(),
+  },
+) {
+  override get message(): string {
+    return this.cause instanceof Error && this.cause.message
+      ? this.cause.message
+      : this.fallbackMessage;
   }
 }
 
-export function playerCommand(
-  fallbackMessage: string,
-  task: () => Promise<void>,
-): Effect.Effect<void, PlayerCommandError> {
-  return Effect.tryPromise({
-    try: task,
-    catch: (cause) =>
-      new PlayerCommandError(
-        fallbackMessage,
-        cause instanceof Error ? cause : new Error(String(cause)),
-      ),
-  });
-}
+export const playerCommand = Effect.fn("PlayerCommand.execute")(
+  (fallbackMessage: string, task: () => Promise<void>): Effect.Effect<void, PlayerCommandError> =>
+    Effect.tryPromise({
+      try: task,
+      catch: (cause) => new PlayerCommandError({ fallbackMessage, cause }),
+    }),
+);
 
 export function runPlayerCommand(
   command: Effect.Effect<void, PlayerCommandError>,
@@ -33,18 +30,19 @@ export function runPlayerCommand(
   Effect.runCallback(handlePlayerCommand(command, setError));
 }
 
-function handlePlayerCommand(
-  command: Effect.Effect<void, PlayerCommandError>,
-  setError: (message: string) => void,
-): Effect.Effect<void> {
-  return command.pipe(
-    Effect.catch((error) =>
-      Effect.sync(() => {
-        setError(error.message);
-      }).pipe(Effect.andThen(Effect.logError(error.fallbackMessage, error))),
+const handlePlayerCommand = Effect.fn("PlayerCommand.handle")(
+  (
+    command: Effect.Effect<void, PlayerCommandError>,
+    setError: (message: string) => void,
+  ): Effect.Effect<void> =>
+    command.pipe(
+      Effect.catch((error) =>
+        Effect.sync(() => {
+          setError(error.message);
+        }).pipe(Effect.andThen(Effect.logError(error.fallbackMessage, error))),
+      ),
     ),
-  );
-}
+);
 
 export function useLatestPlayerCommand(setError: (message: string) => void): {
   runLatest: (command: Effect.Effect<void, PlayerCommandError>) => void;
@@ -56,8 +54,8 @@ export function useLatestPlayerCommand(setError: (message: string) => void): {
   const queue = queueRef.current;
 
   useEffect(() => {
-    const worker = Effect.forever(
-      Queue.take(queue).pipe(Effect.flatMap((command) => handlePlayerCommand(command, setError))),
+    const worker = Stream.fromQueue(queue).pipe(
+      Stream.runForEach((command) => handlePlayerCommand(command, setError)),
     );
     return Effect.runCallback(worker);
   }, [queue, setError]);

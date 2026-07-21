@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, type Dispatch, type SetStateAction } from "react";
-import { Effect, FiberSet, Queue, Semaphore } from "effect";
+import { Effect, FiberSet, Queue, Schema, Semaphore, Stream } from "effect";
 import { getStartupMediaSource } from "@features/mediaOpen/startup";
 import { listen } from "@tauri-apps/api/event";
 import type { Window } from "@tauri-apps/api/window";
@@ -20,35 +20,32 @@ type MediaSourceRequest = {
   failureMessage: string;
 };
 
-class PlayerLifecycleError extends Error {
-  readonly _tag = "PlayerLifecycleError";
-
-  constructor(
-    readonly operation: string,
-    message: string,
-    cause: object,
-  ) {
-    super(message, { cause });
+class PlayerLifecycleError extends Schema.TaggedErrorClass<PlayerLifecycleError>()(
+  "PlayerLifecycle.Error",
+  {
+    operation: Schema.String,
+    displayMessage: Schema.String,
+    cause: Schema.Defect(),
+  },
+) {
+  override get message(): string {
+    return this.displayMessage;
   }
 }
 
 const playerLifecycleSemaphore = Semaphore.makeUnsafe(1);
 
-function lifecyclePromise<A>(
-  operation: string,
-  message: string,
-  task: () => PromiseLike<A>,
-): Effect.Effect<A, PlayerLifecycleError> {
-  return Effect.tryPromise({
-    try: task,
-    catch: (cause) =>
-      new PlayerLifecycleError(
-        operation,
-        message,
-        cause instanceof Error ? cause : new Error(String(cause)),
-      ),
-  });
-}
+const lifecyclePromise = Effect.fn("PlayerLifecycle.promise")(
+  <A>(
+    operation: string,
+    displayMessage: string,
+    task: () => PromiseLike<A>,
+  ): Effect.Effect<A, PlayerLifecycleError> =>
+    Effect.tryPromise({
+      try: task,
+      catch: (cause) => new PlayerLifecycleError({ operation, displayMessage, cause }),
+    }),
+);
 
 export function usePlayerLifecycle({
   player,
@@ -191,21 +188,19 @@ export function usePlayerLifecycle({
           ),
         );
 
-        yield* Effect.forkScoped(
-          Effect.forever(Queue.take(mediaSources).pipe(Effect.flatMap(loadMediaSource))),
+        yield* Stream.fromQueue(mediaSources).pipe(
+          Stream.runForEach(loadMediaSource),
+          Effect.forkScoped,
         );
-        yield* Effect.forkScoped(
-          Effect.forever(
-            Queue.take(windowResizes).pipe(
-              Effect.flatMap(() =>
-                lifecyclePromise(
-                  "synchronize window state",
-                  "Failed to synchronize window state",
-                  syncWindowState,
-                ).pipe(Effect.catch(reportFailure)),
-              ),
-            ),
+        yield* Stream.fromQueue(windowResizes).pipe(
+          Stream.runForEach(() =>
+            lifecyclePromise(
+              "synchronize window state",
+              "Failed to synchronize window state",
+              syncWindowState,
+            ).pipe(Effect.catch(reportFailure)),
           ),
+          Effect.forkScoped,
         );
         yield* Queue.offer(windowResizes, undefined);
         yield* Effect.never;

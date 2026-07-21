@@ -1,11 +1,15 @@
+import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useRef, useState } from "react";
 import { createSvpToast } from "@features/toaster/messages";
 import type { ToastState } from "@features/toaster/types";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
 import { getErrorMessage } from "@shared/lib/error";
 import { getPersistedBoolean, persistBoolean } from "@shared/lib/persistedBoolean";
-import { resolveSvpIntegration } from "./api";
-import type { SvpIntegrationState } from "./types";
+
+type SvpIntegrationState = {
+  available: boolean;
+  enabled: boolean;
+};
 
 type UseSvpIntegrationOptions = {
   player: MpvPlayer;
@@ -22,6 +26,16 @@ type UseSvpIntegrationResult = {
 };
 
 const SVP_PREFERENCE_STORAGE_KEY = "playdot-player.player.svp-enabled";
+
+async function resolveSvpIntegration(requestedEnabled: boolean): Promise<SvpIntegrationState> {
+  try {
+    return await invoke<SvpIntegrationState>("resolve_svp_integration", {
+      requestedEnabled,
+    });
+  } catch {
+    return { available: false, enabled: false };
+  }
+}
 
 export function useSvpIntegration({
   player,
