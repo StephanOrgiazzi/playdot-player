@@ -58,7 +58,7 @@ export class MpvThumbnailer {
   private source: string | null = null;
   private startedSource: string | null = null;
   private target: ThumbnailTarget | null = null;
-  private listeners = new Set<ThumbnailListener>();
+  private readonly listeners = new Set<ThumbnailListener>();
   private currentUrl = "";
   private active = false;
   private pendingSeek: PendingSeek | null = null;

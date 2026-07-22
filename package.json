@@ -10,7 +10,7 @@
     "dev": "vite",
     "app:dev": "bun run setup-lib && bun run tauri:dev",
     "build": "tsc -b && vite build",
-    "lint": "oxlint -c ./.oxlintrc.json . --type-aware --deny typescript/no-deprecated --deny max-lines --deny max-lines-per-function",
+    "lint": "oxlint -c ./.oxlintrc.json .",
     "format": "oxfmt -c ./.oxfmtrc.json --check .",
     "preview": "vite preview",
     "tauri": "tauri",
@@ -37,9 +37,9 @@
     "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "oxfmt": "^0.47.0",
-    "oxlint": "1.62.0",
-    "oxlint-tsgolint": "0.22.1",
-    "typescript": "^6.0.3",
+    "oxlint": "1.75.0",
+    "oxlint-tsgolint": "7.0.2001",
+    "typescript": "^7.0.2",
     "vite": "^8.0.10"
   },
   "packageManager": "bun@1.3.10"

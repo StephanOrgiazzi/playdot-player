@@ -13,27 +13,24 @@
     "typescript/no-deprecated": "error",
     "typescript/no-floating-promises": ["error", { "ignoreVoid": false }],
     "typescript/no-misused-promises": "error",
-    "typescript/no-restricted-types": [
-      "error",
-      {
-        "types": {
-          "unknown": {
-            "message": "Use a concrete type instead of `unknown`."
-          }
-        }
-      }
-    ],
     "typescript/no-unsafe-argument": "error",
     "typescript/restrict-plus-operands": "error",
     "typescript/switch-exhaustiveness-check": "error",
     "typescript/no-unnecessary-condition": "error",
     "typescript/no-unnecessary-type-assertion": "error",
-    "@typescript-eslint/no-unnecessary-condition": "error",
-    "@typescript-eslint/no-confusing-void-expression": "error",
-    "@typescript-eslint/no-unsafe-argument": "error",
-    "@typescript-eslint/restrict-plus-operands": "error",
-    "@typescript-eslint/no-deprecated": "error",
-    "@typescript-eslint/no-unnecessary-type-assertion": "error",
+    "typescript/consistent-type-exports": "error",
+    "typescript/dot-notation": "error",
+    "typescript/no-unnecessary-qualifier": "error",
+    "typescript/no-unnecessary-type-conversion": "error",
+    "typescript/no-unnecessary-type-parameters": "error",
+    "typescript/no-useless-default-assignment": "error",
+    "typescript/prefer-find": "error",
+    "typescript/prefer-nullish-coalescing": "error",
+    "typescript/prefer-optional-chain": "error",
+    "typescript/prefer-readonly": "error",
+    "typescript/prefer-regexp-exec": "error",
+    "typescript/prefer-string-starts-ends-with": "error",
+    "typescript/strict-void-return": "error",
     "max-lines": [
       "error",
       {

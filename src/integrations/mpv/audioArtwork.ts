@@ -25,7 +25,7 @@ export function isLikelyAudioSource(source: string): boolean {
   }
 
   const normalizedSource = source.split(/[?#]/, 1)[0] ?? source;
-  const extension = normalizedSource.match(/\.([^.\\/]+)$/)?.[1]?.toLowerCase();
+  const extension = (/\.([^.\\/]+)$/.exec(normalizedSource))?.[1]?.toLowerCase();
   return extension ? AUDIO_FILE_EXTENSIONS.has(extension) : false;
 }
 

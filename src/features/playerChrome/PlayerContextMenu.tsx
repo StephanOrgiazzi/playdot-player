@@ -55,7 +55,7 @@ function getTrackDisplayLabel(track: MediaTrack): string {
     return `${language} (${title})`;
   }
 
-  return language || title || `Track ${track.id}`;
+  return (language ?? title) || `Track ${track.id}`;
 }
 
 function keepWheelInsideSubmenu(event: WheelEvent<HTMLDivElement>): void {
@@ -112,7 +112,7 @@ function PlaybackOptionsSubmenu({
         setIsPlaybackSubmenuOpen(true);
       }}
       onBlurCapture={(event): void => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
           setIsPlaybackSubmenuOpen(false);
         }
       }}
@@ -254,7 +254,7 @@ function TrackSelectionSubmenu({
         setIsOpen(true);
       }}
       onBlurCapture={(event): void => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
           setIsOpen(false);
         }
       }}

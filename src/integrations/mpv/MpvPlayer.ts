@@ -37,9 +37,9 @@ const MIN_PLAYBACK_SPEED = 0.01;
 
 export class MpvPlayer {
   private state: PlayerState = { ...EMPTY_PLAYER_STATE };
-  private thumbnailer = new MpvThumbnailer();
+  private readonly thumbnailer = new MpvThumbnailer();
 
-  private listeners = new Set<PlayerListener>();
+  private readonly listeners = new Set<PlayerListener>();
   private emitFrameId: number | null = null;
   private unlisten: (() => void) | null = null;
   private fsrToggle: Promise<boolean> | null = null;
@@ -103,7 +103,9 @@ export class MpvPlayer {
   subscribe(listener: PlayerListener): () => void {
     this.listeners.add(listener);
     listener(this.state);
-    return () => this.listeners.delete(listener);
+    return (): void => {
+      this.listeners.delete(listener);
+    };
   }
 
   getSnapshot(): PlayerState {

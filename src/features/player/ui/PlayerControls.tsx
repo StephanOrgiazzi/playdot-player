@@ -310,7 +310,7 @@ function useTimelineControl({
   ]);
 
   const timelineValue =
-    timelineDragValue === null ? Math.min(timePos, progressMax) : timelineDragValue;
+    timelineDragValue ?? Math.min(timePos, progressMax);
   let timelineProgressPercent = progressPercent;
 
   if (timelineDragValue !== null) {

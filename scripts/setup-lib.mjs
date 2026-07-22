@@ -167,7 +167,7 @@ async function findFile(searchDir, fileName) {
     const fullPath = path.join(searchDir, entry.name);
 
     if (entry.isDirectory()) {
-      const nested = await findFile(String(fullPath), fileName);
+      const nested = await findFile(fullPath, fileName);
       if (nested) {
         return nested;
       }
@@ -190,7 +190,7 @@ async function copyRuntimeDllsFromExtract(searchDir) {
     const fullPath = path.join(searchDir, entry.name);
 
     if (entry.isDirectory()) {
-      await copyRuntimeDllsFromExtract(String(fullPath));
+      await copyRuntimeDllsFromExtract(fullPath);
       continue;
     }
 
@@ -228,8 +228,8 @@ async function refreshExistingCargoResourceCopies() {
     const sourcePath = path.join(targetDir, entry.name);
     for (const profile of targetProfiles) {
       await copyFileIfTargetExists(
-        String(sourcePath),
-        String(path.join(projectRoot, "src-tauri", "target", profile, "lib", entry.name)),
+        sourcePath,
+        path.join(projectRoot, "src-tauri", "target", profile, "lib", entry.name),
       );
     }
   }
@@ -284,12 +284,12 @@ async function extractFileFromRelease(baseUrl, releaseFileName, desiredFileName)
   const extractDir = path.join(tempDir, `${desiredFileName}-extract`);
 
   console.log(`Downloading ${releaseFileName}...`);
-  await downloadFile(`${baseUrl}/${releaseFileName}`, String(archivePath));
+  await downloadFile(`${baseUrl}/${releaseFileName}`, archivePath);
 
   console.log(`Extracting ${releaseFileName}...`);
-  await extractArchive(String(archivePath), String(extractDir));
+  await extractArchive(archivePath, extractDir);
 
-  const foundFile = await findFile(String(extractDir), desiredFileName);
+  const foundFile = await findFile(extractDir, desiredFileName);
   if (!foundFile) {
     throw new Error(`${desiredFileName} not found in ${releaseFileName}`);
   }
@@ -298,7 +298,7 @@ async function extractFileFromRelease(baseUrl, releaseFileName, desiredFileName)
   await fs.promises.copyFile(foundFile, destinationPath);
 
   if (desiredFileName === "libmpv-2.dll") {
-    await copyRuntimeDllsFromExtract(String(extractDir));
+    await copyRuntimeDllsFromExtract(extractDir);
   }
 }
 

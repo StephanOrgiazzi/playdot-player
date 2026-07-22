@@ -1,7 +1,7 @@
-export function getErrorMessage<T>(error: T, fallback: string): string {
+export function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
-export function toError<T>(error: T): Error | null {
+export function toError(error: unknown): Error | null {
   return error instanceof Error ? error : null;
 }
