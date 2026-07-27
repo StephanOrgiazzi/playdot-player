@@ -37,7 +37,9 @@ import {
 
 type PlayerListener = (state: PlayerState) => void;
 const MIN_PLAYBACK_SPEED = 0.01;
-const OBSERVED_PROPERTY_NAMES = new Set(OBSERVED_PROPERTIES.map(([name]) => name));
+const OBSERVED_PROPERTY_NAMES: ReadonlySet<string> = new Set(
+  OBSERVED_PROPERTIES.map(([name]) => name),
+);
 
 export class MpvPlayer {
   private state: PlayerState = { ...EMPTY_PLAYER_STATE };
