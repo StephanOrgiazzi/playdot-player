@@ -10,6 +10,7 @@
     "dev": "vite",
     "app:dev": "bun run setup-lib && bun run tauri:dev",
     "build": "tsc -b && vite build",
+    "test": "bun test",
     "lint": "oxlint -c ./.oxlintrc.json .",
     "format": "oxfmt -c ./.oxfmtrc.json --check .",
     "preview": "vite preview",
