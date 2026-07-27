@@ -102,20 +102,16 @@ export function usePlayerLifecycle({
         };
 
         let autoCloseStarted = false;
-        let lastPlaybackError = "";
         yield* Effect.acquireRelease(
           Effect.sync(() =>
             player.subscribe((next) => {
-              if (!mounted) {
-                return;
-              }
-
-              if (next.playbackError && next.playbackError !== lastPlaybackError) {
-                setError(next.playbackError);
-              }
-              lastPlaybackError = next.playbackError;
-
-              if (autoCloseStarted || next.playbackError || !next.filename || !next.eofReached) {
+              if (
+                !mounted ||
+                autoCloseStarted ||
+                next.playbackError ||
+                !next.filename ||
+                !next.eofReached
+              ) {
                 return;
               }
 
