@@ -47,7 +47,11 @@ jobs:
         shell: pwsh
         run: |
           bun run format 2>&1 | Tee-Object -FilePath format.log
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($LASTEXITCODE -ne 0) {
+            bunx oxfmt -c ./.oxfmtrc.json .
+            git diff --no-ext-diff --binary | Out-File -FilePath format.patch -Encoding utf8
+            exit 1
+          }
 
       - name: Build frontend
         run: bun run build
@@ -72,3 +76,4 @@ jobs:
           path: |
             lint.log
             format.log
+            format.patch
