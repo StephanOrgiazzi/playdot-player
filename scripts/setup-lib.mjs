@@ -72,7 +72,7 @@ async function downloadFile(url, destinationPath) {
 async function hashFileSha256(filePath) {
   const hash = createHash("sha256");
   for await (const chunk of fs.createReadStream(filePath)) {
-    hash.update(chunk);
+    hash.update(/** @type {Buffer} */ (chunk));
   }
   return hash.digest("hex");
 }
@@ -372,8 +372,7 @@ async function main() {
   }
 }
 
-const isMainModule =
-  process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const isMainModule = path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isMainModule) {
   main().catch((error) => {
