@@ -3,9 +3,10 @@ import {
   destroy,
   getProperty,
   init,
-  observeProperties,
+  listenEvents,
   setVideoMarginRatio,
   setProperty,
+  type MpvEvent,
 } from "./libmpv-api";
 import {
   AUDIO_ARTWORK_HIDDEN_VIDEO_MARGIN_RATIO,
@@ -23,6 +24,7 @@ import {
 } from "./config";
 import { toggleFsrShaders } from "./fsr";
 import { MpvThumbnailer } from "./MpvThumbnailer";
+import { getMpvPlaybackFailure, preparePlayerStateForMediaLoad } from "./sessionState";
 import { applyObservedProperty } from "./stateUpdates";
 import { getNextAudioTrackSelection, getNextSubtitleTrackSelection } from "./tracks";
 import { syncSvpMpvFilter } from "@integrations/svp/mpv";
@@ -32,8 +34,10 @@ import {
   type MediaTrack,
   type PlayerState,
 } from "@features/player/model/playerState";
+
 type PlayerListener = (state: PlayerState) => void;
 const MIN_PLAYBACK_SPEED = 0.01;
+const OBSERVED_PROPERTY_NAMES = new Set(OBSERVED_PROPERTIES.map(([name]) => name));
 
 export class MpvPlayer {
   private state: PlayerState = { ...EMPTY_PLAYER_STATE };
@@ -51,6 +55,9 @@ export class MpvPlayer {
   private svpEnabled = false;
   private svpFilterSync: Promise<void> | null = null;
   private started = false;
+  private sessionGeneration = 0;
+  private activePlaylistEntryId: number | null = null;
+  private mediaLoadPending = false;
 
   private clearPendingEmit(): void {
     if (this.emitFrameId === null) {
@@ -126,6 +133,9 @@ export class MpvPlayer {
   async stop(): Promise<void> {
     const shouldDestroy = this.started || this.unlisten !== null;
 
+    this.sessionGeneration += 1;
+    this.activePlaylistEntryId = null;
+    this.mediaLoadPending = false;
     this.clearPendingEmit();
     this.unlisten?.();
     this.unlisten = null;
@@ -204,19 +214,29 @@ export class MpvPlayer {
   }
 
   async loadFile(path: string): Promise<void> {
-    const isAudioSource = isLikelyAudioSource(path);
-    const audioArtworkUrl = await readAudioArtworkUrl(isAudioSource ? path : null).catch(() => "");
+    this.activePlaylistEntryId = null;
+    this.mediaLoadPending = true;
+    this.state = preparePlayerStateForMediaLoad(this.state);
+    this.emitImmediately();
 
-    this.thumbnailer.setSource(isAudioSource ? null : path);
-    this.prepareAudioArtworkLoad(audioArtworkUrl);
-    if (audioArtworkUrl) {
-      await setVideoMarginRatio(AUDIO_ARTWORK_HIDDEN_VIDEO_MARGIN_RATIO).catch(() => undefined);
-      await nextAnimationFrame();
-    } else {
-      await setVideoMarginRatio({ left: 0, right: 0, top: 0, bottom: 0 }).catch(() => undefined);
+    try {
+      const isAudioSource = isLikelyAudioSource(path);
+      const audioArtworkUrl = await readAudioArtworkUrl(isAudioSource ? path : null).catch(() => "");
+
+      this.thumbnailer.setSource(isAudioSource ? null : path);
+      this.prepareAudioArtworkLoad(audioArtworkUrl);
+      if (audioArtworkUrl) {
+        await setVideoMarginRatio(AUDIO_ARTWORK_HIDDEN_VIDEO_MARGIN_RATIO).catch(() => undefined);
+        await nextAnimationFrame();
+      } else {
+        await setVideoMarginRatio({ left: 0, right: 0, top: 0, bottom: 0 }).catch(() => undefined);
+      }
+
+      await this.loadMpvFile(path);
+    } catch (error) {
+      this.mediaLoadPending = false;
+      throw error;
     }
-
-    await this.loadMpvFile(path);
   }
 
   async togglePlayPause(): Promise<void> {
@@ -239,38 +259,138 @@ export class MpvPlayer {
   }
 
   private async initialize(): Promise<void> {
-    if (this.started || this.unlisten) {
+    const shouldDestroy = this.started || this.unlisten !== null;
+    const generation = this.sessionGeneration + 1;
+    this.sessionGeneration = generation;
+
+    this.unlisten?.();
+    this.unlisten = null;
+    this.started = false;
+    this.activePlaylistEntryId = null;
+    this.mediaLoadPending = false;
+
+    let unlisten: (() => void) | null = null;
+
+    try {
+      if (shouldDestroy) {
+        await destroy();
+      }
+
+      const resourcePaths = await getMpvResourcePaths();
+      const config = await createMpvConfig(resourcePaths, {
+        audioNormalizerEnabled: this.audioNormalizerEnabled,
+        stereoDownmixEnabled: this.stereoDownmixEnabled,
+        svpAvailable: this.svpAvailable,
+      });
+
+      unlisten = await listenEvents((event) => {
+        if (this.sessionGeneration === generation) {
+          this.handleMpvEvent(event);
+        }
+      });
+
+      await init(config);
+
+      if (this.sessionGeneration !== generation) {
+        unlisten();
+        await destroy().catch(() => undefined);
+        return;
+      }
+
+      this.unlisten = unlisten;
+      unlisten = null;
+      this.upscaleShaderBundles = resourcePaths.upscaleShaderBundles;
+      this.appliedUpscaleShaderPaths = [];
+      this.started = true;
+
+      this.state = { ...this.state, initialized: true };
+      this.emit();
+    } catch (error) {
+      unlisten?.();
       await destroy().catch(() => undefined);
+
+      if (this.sessionGeneration === generation) {
+        this.started = false;
+        this.state = { ...EMPTY_PLAYER_STATE };
+        this.emitImmediately();
+      }
+
+      throw error;
+    }
+  }
+
+  private handleMpvEvent(event: MpvEvent): void {
+    if (event.event === "start-file") {
+      this.activePlaylistEntryId =
+        typeof event.playlist_entry_id === "number" ? event.playlist_entry_id : null;
+      this.mediaLoadPending = false;
+      this.state = preparePlayerStateForMediaLoad(this.state);
+      this.emitImmediately();
+      return;
     }
 
-    const resourcePaths = await getMpvResourcePaths();
-    const config = await createMpvConfig(resourcePaths, {
-      audioNormalizerEnabled: this.audioNormalizerEnabled,
-      stereoDownmixEnabled: this.stereoDownmixEnabled,
-      svpAvailable: this.svpAvailable,
-    });
-    await init(config);
-    this.upscaleShaderBundles = resourcePaths.upscaleShaderBundles;
-    this.appliedUpscaleShaderPaths = [];
-    this.started = true;
-
-    this.state = { ...this.state, initialized: true };
-    this.emit();
-
-    this.unlisten = await observeProperties(OBSERVED_PROPERTIES, (event) => {
-      if (event.name === "vf") {
-        void this.syncSvpFilterState().catch(() => undefined);
+    if (event.event === "file-loaded") {
+      this.mediaLoadPending = false;
+      if (!this.state.playbackError && !this.state.eofReached && !this.state.coreIdle) {
         return;
       }
 
-      const nextState = applyObservedProperty(this.state, event);
-      if (nextState === this.state) {
-        return;
-      }
-
-      this.state = nextState;
+      this.state = {
+        ...this.state,
+        playbackError: "",
+        eofReached: false,
+        coreIdle: false,
+      };
       this.emit();
+      return;
+    }
+
+    const playbackFailure = getMpvPlaybackFailure(
+      event,
+      this.activePlaylistEntryId,
+      this.mediaLoadPending,
+    );
+    if (playbackFailure) {
+      this.mediaLoadPending = false;
+      this.state = {
+        ...this.state,
+        paused: true,
+        pausedForCache: false,
+        eofReached: false,
+        playbackError: playbackFailure,
+      };
+      this.emitImmediately();
+      return;
+    }
+
+    if (event.event === "queue-overflow") {
+      console.error("mpv event queue overflowed; player state may be stale");
+      return;
+    }
+
+    if (
+      event.event !== "property-change" ||
+      !event.name ||
+      !OBSERVED_PROPERTY_NAMES.has(event.name)
+    ) {
+      return;
+    }
+
+    if (event.name === "vf") {
+      void this.syncSvpFilterState().catch(() => undefined);
+      return;
+    }
+
+    const nextState = applyObservedProperty(this.state, {
+      name: event.name,
+      data: event.data,
     });
+    if (nextState === this.state) {
+      return;
+    }
+
+    this.state = nextState;
+    this.emit();
   }
 
   private async syncSvpFilterState(): Promise<void> {
@@ -453,7 +573,10 @@ export class MpvPlayer {
 
   private async loadMpvFile(path: string): Promise<void> {
     const loadOptions = getMpvLoadOptionsForSource(path);
-    await command("loadfile", loadOptions ? [path, "replace", -1, loadOptions] : [path]);
+    await command(
+      "loadfile",
+      loadOptions ? [path, "replace", -1, loadOptions] : [path, "replace"],
+    );
     await this.resetPerMediaDefaults();
     await this.play();
   }
