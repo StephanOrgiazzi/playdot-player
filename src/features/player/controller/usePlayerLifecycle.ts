@@ -4,6 +4,7 @@ import { getStartupMediaSource } from "@features/mediaOpen/startup";
 import { listen } from "@tauri-apps/api/event";
 import type { Window } from "@tauri-apps/api/window";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
+import { getErrorMessage } from "@shared/lib/error";
 
 type StateSetter<T> = Dispatch<SetStateAction<T>>;
 
@@ -29,7 +30,8 @@ class PlayerLifecycleError extends Schema.TaggedErrorClass<PlayerLifecycleError>
   },
 ) {
   override get message(): string {
-    return this.displayMessage;
+    const detail = getErrorMessage(this.cause, "");
+    return detail ? `${this.displayMessage}: ${detail}` : this.displayMessage;
   }
 }
 
@@ -100,10 +102,20 @@ export function usePlayerLifecycle({
         };
 
         let autoCloseStarted = false;
+        let lastPlaybackError = "";
         yield* Effect.acquireRelease(
           Effect.sync(() =>
             player.subscribe((next) => {
-              if (!mounted || autoCloseStarted || !next.filename || !next.eofReached) {
+              if (!mounted) {
+                return;
+              }
+
+              if (next.playbackError && next.playbackError !== lastPlaybackError) {
+                setError(next.playbackError);
+              }
+              lastPlaybackError = next.playbackError;
+
+              if (autoCloseStarted || next.playbackError || !next.filename || !next.eofReached) {
                 return;
               }
 
