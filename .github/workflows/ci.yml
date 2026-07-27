@@ -43,15 +43,11 @@ jobs:
           bun run lint 2>&1 | Tee-Object -FilePath lint.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Upload lint diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lint-diagnostics
-          path: lint.log
-
       - name: Check formatting
-        run: bun run format
+        shell: pwsh
+        run: |
+          bun run format 2>&1 | Tee-Object -FilePath format.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build frontend
         run: bun run build
@@ -67,3 +63,12 @@ jobs:
 
       - name: Test Rust
         run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Upload validation diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-diagnostics
+          path: |
+            lint.log
+            format.log
