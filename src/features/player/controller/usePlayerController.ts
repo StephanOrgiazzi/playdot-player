@@ -10,7 +10,7 @@ import { useGlobalShortcuts } from "@features/shortcuts/useGlobalShortcuts";
 import type { ToastState } from "@features/toaster/types";
 import { useToastAutoHide } from "@features/toaster/useToastEffects";
 import { useSvpIntegration } from "@integrations/svp/useSvpIntegration";
-import { player } from "./playerSession";
+import { player, usePlayerStateSelector } from "./playerSession";
 import { usePlayerActions } from "./usePlayerActions";
 import {
   useMediaOpenActions,
@@ -124,6 +124,7 @@ function useWindowStateSync(): {
 
 export function usePlayerController(): PlayerScreenProps {
   const [error, setError] = useState("");
+  const playbackError = usePlayerStateSelector((state) => state.playbackError);
   const [toast, setToast] = useState<ToastState | null>(null);
   const { isFullscreen, syncWindowState } = useWindowStateSync();
   const { isControlDockHovered, handleControlDockMouseEnter, handleControlDockMouseLeave } =
@@ -303,7 +304,7 @@ export function usePlayerController(): PlayerScreenProps {
   return {
     initialized,
     filename,
-    error,
+    error: playbackError || error,
     toast,
     isFullscreen,
     isFsrEnabled,
