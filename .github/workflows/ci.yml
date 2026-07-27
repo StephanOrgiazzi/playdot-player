@@ -38,7 +38,17 @@ jobs:
         run: bun run test
 
       - name: Lint
-        run: bun run lint
+        shell: pwsh
+        run: |
+          bun run lint 2>&1 | Tee-Object -FilePath lint.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload lint diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-diagnostics
+          path: lint.log
 
       - name: Check formatting
         run: bun run format
