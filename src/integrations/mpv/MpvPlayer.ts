@@ -14,7 +14,7 @@ import {
   nextAnimationFrame,
   readAudioArtworkUrl,
 } from "./audioArtwork";
-import { OBSERVED_PROPERTIES, SUBTITLE_SCALE, clampMpvVolume } from "./constants";
+import { SUBTITLE_SCALE, clampMpvVolume } from "./constants";
 import {
   AUDIO_NORMALIZER_FILTER,
   createMpvConfig,
@@ -22,10 +22,10 @@ import {
   getMpvResourcePaths,
   getStereoDownmixMpvOptions,
 } from "./config";
+import { applyMpvEvent } from "./eventState";
 import { toggleFsrShaders } from "./fsr";
 import { MpvThumbnailer } from "./MpvThumbnailer";
-import { getMpvPlaybackFailure, preparePlayerStateForMediaLoad } from "./sessionState";
-import { applyObservedProperty } from "./stateUpdates";
+import { preparePlayerStateForMediaLoad } from "./sessionState";
 import { getNextAudioTrackSelection, getNextSubtitleTrackSelection } from "./tracks";
 import { syncSvpMpvFilter } from "@integrations/svp/mpv";
 import {
@@ -37,9 +37,6 @@ import {
 
 type PlayerListener = (state: PlayerState) => void;
 const MIN_PLAYBACK_SPEED = 0.01;
-const OBSERVED_PROPERTY_NAMES: ReadonlySet<string> = new Set(
-  OBSERVED_PROPERTIES.map(([name]) => name),
-);
 
 export class MpvPlayer {
   private state: PlayerState = { ...EMPTY_PLAYER_STATE };
@@ -322,77 +319,38 @@ export class MpvPlayer {
   }
 
   private handleMpvEvent(event: MpvEvent): void {
-    if (event.event === "start-file") {
-      this.activePlaylistEntryId =
-        typeof event.playlist_entry_id === "number" ? event.playlist_entry_id : null;
-      this.mediaLoadPending = false;
-      this.state = preparePlayerStateForMediaLoad(this.state);
-      this.emitImmediately();
-      return;
-    }
-
-    if (event.event === "file-loaded") {
-      this.mediaLoadPending = false;
-      if (!this.state.playbackError && !this.state.eofReached && !this.state.coreIdle) {
-        return;
-      }
-
-      this.state = {
-        ...this.state,
-        playbackError: "",
-        eofReached: false,
-        coreIdle: false,
-      };
-      this.emit();
-      return;
-    }
-
-    const playbackFailure = getMpvPlaybackFailure(
+    const update = applyMpvEvent(
+      {
+        state: this.state,
+        activePlaylistEntryId: this.activePlaylistEntryId,
+        mediaLoadPending: this.mediaLoadPending,
+      },
       event,
-      this.activePlaylistEntryId,
-      this.mediaLoadPending,
     );
-    if (playbackFailure) {
-      this.mediaLoadPending = false;
-      this.state = {
-        ...this.state,
-        paused: true,
-        pausedForCache: false,
-        eofReached: false,
-        playbackError: playbackFailure,
-      };
-      this.emitImmediately();
+    if (!update) {
       return;
     }
 
-    if (event.event === "queue-overflow") {
-      console.error("mpv event queue overflowed; player state may be stale");
-      return;
-    }
+    const stateChanged = update.state !== this.state;
+    this.activePlaylistEntryId = update.activePlaylistEntryId;
+    this.mediaLoadPending = update.mediaLoadPending;
+    this.state = update.state;
 
-    if (
-      event.event !== "property-change" ||
-      !event.name ||
-      !OBSERVED_PROPERTY_NAMES.has(event.name)
-    ) {
-      return;
-    }
-
-    if (event.name === "vf") {
+    if (update.syncSvpFilter) {
       void this.syncSvpFilterState().catch(() => undefined);
+    }
+    if (update.queueOverflow) {
+      console.error("mpv event queue overflowed; player state may be stale");
+    }
+    if (!stateChanged || update.emission === "none") {
       return;
     }
 
-    const nextState = applyObservedProperty(this.state, {
-      name: event.name,
-      data: event.data,
-    });
-    if (nextState === this.state) {
-      return;
+    if (update.emission === "immediate") {
+      this.emitImmediately();
+    } else {
+      this.emit();
     }
-
-    this.state = nextState;
-    this.emit();
   }
 
   private async syncSvpFilterState(): Promise<void> {
