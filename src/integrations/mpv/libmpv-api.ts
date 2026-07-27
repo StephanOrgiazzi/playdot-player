@@ -31,6 +31,9 @@ export type MpvEvent = {
   event: string;
   name?: string;
   data?: MpvNodeValue;
+  reason?: string;
+  error?: number;
+  playlist_entry_id?: number;
 };
 
 export type MpvObservedPropertyEvent = {
