@@ -1,9 +1,11 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { fileURLToPath } from "node:url";
 import SevenZip from "7z-wasm";
 
 const projectRoot = process.cwd();
@@ -35,9 +37,7 @@ function getSystemInfo() {
   };
 }
 
-/**
- * @param {string} url
- */
+/** @param {string} url */
 async function fetchText(url) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -66,6 +66,28 @@ async function downloadFile(url, destinationPath) {
   const fileStream = fs.createWriteStream(destinationPath);
   const bodyStream = Readable.fromWeb(response.body);
   await pipeline(bodyStream, fileStream);
+}
+
+/** @param {string} filePath */
+async function hashFileSha256(filePath) {
+  const hash = createHash("sha256");
+  for await (const chunk of fs.createReadStream(filePath)) {
+    hash.update(chunk);
+  }
+  return hash.digest("hex");
+}
+
+/**
+ * @param {string} filePath
+ * @param {string} expectedSha256
+ */
+async function verifyFileSha256(filePath, expectedSha256) {
+  const actualSha256 = await hashFileSha256(filePath);
+  if (actualSha256 !== expectedSha256.toLowerCase()) {
+    throw new Error(
+      `Checksum mismatch for ${path.basename(filePath)}: expected ${expectedSha256}, got ${actualSha256}`,
+    );
+  }
 }
 
 /**
@@ -235,21 +257,31 @@ async function refreshExistingCargoResourceCopies() {
   }
 }
 
+/** @param {string} rawLine */
+export function parseReleaseChecksumLine(rawLine) {
+  const line = rawLine.trim();
+  const gnuMatch = /^([a-f0-9]{64})\s+\*?(.+)$/i.exec(line);
+  if (gnuMatch) {
+    return { sha256: gnuMatch[1].toLowerCase(), fileName: gnuMatch[2].trim() };
+  }
+
+  const bsdMatch = /^SHA256 \((.+)\) = ([a-f0-9]{64})$/i.exec(line);
+  if (bsdMatch) {
+    return { sha256: bsdMatch[2].toLowerCase(), fileName: bsdMatch[1].trim() };
+  }
+
+  return null;
+}
+
 /**
  * @param {string} shaText
  * @param {(fileName: string) => boolean} predicate
  */
-function pickReleaseFile(shaText, predicate) {
+export function pickReleaseFile(shaText, predicate) {
   for (const rawLine of shaText.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line) {
-      continue;
-    }
-
-    const parts = line.split(/\s+/);
-    const fileName = parts.at(-1);
-    if (fileName && predicate(fileName)) {
-      return fileName;
+    const entry = parseReleaseChecksumLine(rawLine);
+    if (entry && predicate(entry.fileName)) {
+      return entry;
     }
   }
 
@@ -260,7 +292,7 @@ function pickReleaseFile(shaText, predicate) {
  * @param {string} shaText
  * @param {string} archName
  */
-function pickMpvDevArchive(shaText, archName) {
+export function pickMpvDevArchive(shaText, archName) {
   const isDevArchiveForArch = (fileName) =>
     fileName.startsWith(`mpv-dev-${archName}-`) &&
     fileName.endsWith(".7z") &&
@@ -276,22 +308,23 @@ function pickMpvDevArchive(shaText, archName) {
 
 /**
  * @param {string} baseUrl
- * @param {string} releaseFileName
+ * @param {{ fileName: string; sha256: string }} releaseFile
  * @param {string} desiredFileName
  */
-async function extractFileFromRelease(baseUrl, releaseFileName, desiredFileName) {
-  const archivePath = path.join(tempDir, releaseFileName);
+async function extractFileFromRelease(baseUrl, releaseFile, desiredFileName) {
+  const archivePath = path.join(tempDir, releaseFile.fileName);
   const extractDir = path.join(tempDir, `${desiredFileName}-extract`);
 
-  console.log(`Downloading ${releaseFileName}...`);
-  await downloadFile(`${baseUrl}/${releaseFileName}`, archivePath);
+  console.log(`Downloading ${releaseFile.fileName}...`);
+  await downloadFile(`${baseUrl}/${releaseFile.fileName}`, archivePath);
+  await verifyFileSha256(archivePath, releaseFile.sha256);
 
-  console.log(`Extracting ${releaseFileName}...`);
+  console.log(`Extracting ${releaseFile.fileName}...`);
   await extractArchive(archivePath, extractDir);
 
   const foundFile = await findFile(extractDir, desiredFileName);
   if (!foundFile) {
-    throw new Error(`${desiredFileName} not found in ${releaseFileName}`);
+    throw new Error(`${desiredFileName} not found in ${releaseFile.fileName}`);
   }
 
   const destinationPath = path.join(targetDir, desiredFileName);
@@ -339,7 +372,12 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-});
+const isMainModule =
+  process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isMainModule) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
+}
