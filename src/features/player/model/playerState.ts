@@ -23,6 +23,7 @@ export type PlayerState = {
   mute: boolean;
   playbackSpeed: number;
   filename: string;
+  playbackError: string;
   selectedAudioTrackId: number | null;
   selectedSubtitleTrackId: number | null;
   isAudioArtworkActive: boolean;
@@ -42,6 +43,7 @@ export const EMPTY_PLAYER_STATE: PlayerState = {
   mute: false,
   playbackSpeed: DEFAULT_PLAYBACK_SPEED,
   filename: "",
+  playbackError: "",
   selectedAudioTrackId: null,
   selectedSubtitleTrackId: null,
   isAudioArtworkActive: false,
