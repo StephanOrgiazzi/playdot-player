@@ -1,18 +1,5 @@
-import {
-  command,
-  destroy,
-  getProperty,
-  init,
-  observeProperties,
-  setVideoMarginRatio,
-  setProperty,
-} from "./libmpv-api";
-import {
-  AUDIO_ARTWORK_HIDDEN_VIDEO_MARGIN_RATIO,
-  isLikelyAudioSource,
-  nextAnimationFrame,
-  readAudioArtworkUrl,
-} from "./audioArtwork";
+import { command, destroy, getProperty, init, observeProperties, setProperty } from "./libmpv-api";
+import { isLikelyAudioSource, readAudioArtworkUrl } from "./audioArtwork";
 import { OBSERVED_PROPERTIES, SUBTITLE_SCALE, clampMpvVolume } from "./constants";
 import {
   AUDIO_NORMALIZER_FILTER,
@@ -25,7 +12,9 @@ import { toggleFsrShaders } from "./fsr";
 import { MpvThumbnailer } from "./MpvThumbnailer";
 import { applyObservedProperty } from "./stateUpdates";
 import { getNextAudioTrackSelection, getNextSubtitleTrackSelection } from "./tracks";
+import { setVideoViewportHidden } from "./videoViewport";
 import { syncSvpMpvFilter } from "@integrations/svp/mpv";
+import { LatestValueWriter } from "@shared/lib/LatestValueWriter";
 import {
   DEFAULT_PLAYBACK_SPEED,
   EMPTY_PLAYER_STATE,
@@ -33,6 +22,9 @@ import {
   type PlayerState,
 } from "@features/player/model/playerState";
 type PlayerListener = (state: PlayerState) => void;
+type LoadRequest = { path: string; revision: number };
+type PropertyWrite = { revision: number; value: number; previousValue: number };
+type VolumeWrite = PropertyWrite & { previousMute: boolean };
 const MIN_PLAYBACK_SPEED = 0.01;
 
 export class MpvPlayer {
@@ -50,7 +42,24 @@ export class MpvPlayer {
   private svpAvailable = false;
   private svpEnabled = false;
   private svpFilterSync: Promise<void> | null = null;
+  private svpFilterRevision = 0;
+  private loadRevision = 0;
+  private volumeRevision = 0;
+  private playbackSpeedRevision = 0;
   private started = false;
+
+  private readonly loadWriter = new LatestValueWriter<LoadRequest>((request) =>
+    this.loadCurrentFile(request),
+  );
+  private readonly volumeWriter = new LatestValueWriter<VolumeWrite>((write) =>
+    this.applyVolume(write),
+  );
+  private readonly playbackSpeedWriter = new LatestValueWriter<PropertyWrite>((write) =>
+    this.applyPlaybackSpeed(write),
+  );
+  private readonly absoluteSeekWriter = new LatestValueWriter<number>((seconds) =>
+    command("seek", [seconds, "absolute+exact"]),
+  );
 
   private clearPendingEmit(): void {
     if (this.emitFrameId === null) {
@@ -125,6 +134,18 @@ export class MpvPlayer {
 
   async stop(): Promise<void> {
     const shouldDestroy = this.started || this.unlisten !== null;
+    const pendingFsrToggle = this.fsrToggle;
+    const pendingSvpSync = this.svpFilterSync;
+    this.loadRevision += 1;
+
+    await Promise.all([
+      this.loadWriter.whenIdle(),
+      this.volumeWriter.whenIdle(),
+      this.playbackSpeedWriter.whenIdle(),
+      this.absoluteSeekWriter.whenIdle(),
+      pendingFsrToggle?.then(() => undefined).catch(() => undefined) ?? Promise.resolve(),
+      pendingSvpSync?.catch(() => undefined) ?? Promise.resolve(),
+    ]);
 
     this.clearPendingEmit();
     this.unlisten?.();
@@ -134,7 +155,7 @@ export class MpvPlayer {
     this.upscaleShaderBundles = [];
     this.appliedUpscaleShaderPaths = [];
     this.started = false;
-    await readAudioArtworkUrl(null).catch(() => "");
+    await Promise.all([readAudioArtworkUrl(null).catch(() => ""), setVideoViewportHidden(false)]);
     this.state = { ...EMPTY_PLAYER_STATE };
     this.emitImmediately();
 
@@ -203,20 +224,30 @@ export class MpvPlayer {
     }
   }
 
-  async loadFile(path: string): Promise<void> {
+  loadFile(path: string): Promise<void> {
+    const revision = ++this.loadRevision;
+    return this.loadWriter.write({ path, revision });
+  }
+
+  private async loadCurrentFile({ path, revision }: LoadRequest): Promise<void> {
+    if (!this.isCurrentLoad(revision)) {
+      return;
+    }
+
     const isAudioSource = isLikelyAudioSource(path);
     const audioArtworkUrl = await readAudioArtworkUrl(isAudioSource ? path : null).catch(() => "");
+    if (!this.isCurrentLoad(revision)) {
+      return;
+    }
 
     this.thumbnailer.setSource(isAudioSource ? null : path);
     this.prepareAudioArtworkLoad(audioArtworkUrl);
-    if (audioArtworkUrl) {
-      await setVideoMarginRatio(AUDIO_ARTWORK_HIDDEN_VIDEO_MARGIN_RATIO).catch(() => undefined);
-      await nextAnimationFrame();
-    } else {
-      await setVideoMarginRatio({ left: 0, right: 0, top: 0, bottom: 0 }).catch(() => undefined);
+    await setVideoViewportHidden(audioArtworkUrl.length > 0);
+    if (!this.isCurrentLoad(revision)) {
+      return;
     }
 
-    await this.loadMpvFile(path);
+    await this.loadMpvFile(path, revision);
   }
 
   async togglePlayPause(): Promise<void> {
@@ -231,7 +262,7 @@ export class MpvPlayer {
   }
 
   async seekAbsolute(seconds: number): Promise<void> {
-    await command("seek", [Math.max(0, seconds), "absolute+exact"]);
+    await this.absoluteSeekWriter.write(Math.max(0, seconds));
   }
 
   async seekRelative(seconds: number): Promise<void> {
@@ -262,6 +293,12 @@ export class MpvPlayer {
         void this.syncSvpFilterState().catch(() => undefined);
         return;
       }
+      if (
+        ((event.name === "volume" || event.name === "mute") && !this.volumeWriter.isIdle()) ||
+        (event.name === "speed" && !this.playbackSpeedWriter.isIdle())
+      ) {
+        return;
+      }
 
       const nextState = applyObservedProperty(this.state, event);
       if (nextState === this.state) {
@@ -278,17 +315,26 @@ export class MpvPlayer {
       return;
     }
 
+    this.svpFilterRevision += 1;
     if (this.svpFilterSync) {
       return this.svpFilterSync;
     }
 
-    const task = syncSvpMpvFilter(this.svpEnabled).finally(() => {
+    const task = this.runSvpFilterSync().finally(() => {
       if (this.svpFilterSync === task) {
         this.svpFilterSync = null;
       }
     });
     this.svpFilterSync = task;
     return task;
+  }
+
+  private async runSvpFilterSync(): Promise<void> {
+    let synchronizedRevision = 0;
+    while (this.started && synchronizedRevision !== this.svpFilterRevision) {
+      synchronizedRevision = this.svpFilterRevision;
+      await syncSvpMpvFilter(this.svpEnabled);
+    }
   }
 
   private prepareAudioArtworkLoad(audioArtworkUrl: string): void {
@@ -310,9 +356,10 @@ export class MpvPlayer {
     this.emitImmediately();
   }
 
-  async setVolume(volume: number): Promise<void> {
+  setVolume(volume: number): Promise<void> {
+    const previousVolume = this.state.volume;
+    const previousMute = this.state.mute;
     const nextVolume = clampMpvVolume(volume);
-    const wasMuted = this.state.mute;
     const nextMute = nextVolume > 0 ? false : this.state.mute;
 
     if (nextVolume !== this.state.volume || nextMute !== this.state.mute) {
@@ -324,23 +371,52 @@ export class MpvPlayer {
       this.emit();
     }
 
-    if (nextVolume > 0 && wasMuted) {
-      await setProperty("mute", false);
-    }
+    const revision = ++this.volumeRevision;
+    return this.volumeWriter.write({
+      revision,
+      value: nextVolume,
+      previousValue: previousVolume,
+      previousMute,
+    });
+  }
 
-    await setProperty("volume", nextVolume);
+  private async applyVolume({
+    revision,
+    value,
+    previousValue,
+    previousMute,
+  }: VolumeWrite): Promise<void> {
+    try {
+      if (value > 0) {
+        await setProperty("mute", false);
+      }
+      await setProperty("volume", value);
+      if (
+        revision === this.volumeRevision &&
+        (this.state.volume !== value || (value > 0 && this.state.mute))
+      ) {
+        this.state = { ...this.state, volume: value, ...(value > 0 ? { mute: false } : {}) };
+        this.emit();
+      }
+    } catch (error) {
+      if (revision === this.volumeRevision) {
+        const [volume, mute] = await Promise.all([
+          getProperty("volume", "double").catch(() => null),
+          this.readPlayerFlag("mute"),
+        ]);
+        this.state = {
+          ...this.state,
+          volume: volume ?? previousValue,
+          mute: mute ?? previousMute,
+        };
+        this.emit();
+      }
+      throw error;
+    }
   }
 
   async toggleMute(): Promise<void> {
     await this.setPlayerFlag("mute", !this.state.mute);
-  }
-
-  getVolume(): number {
-    return this.state.volume;
-  }
-
-  getIsMuted(): boolean {
-    return this.state.mute;
   }
 
   async adjustPlaybackSpeed(multiplier: number): Promise<number> {
@@ -352,8 +428,37 @@ export class MpvPlayer {
       this.emit();
     }
 
-    await setProperty("speed", nextSpeed);
+    const revision = ++this.playbackSpeedRevision;
+    await this.playbackSpeedWriter.write({
+      revision,
+      value: nextSpeed,
+      previousValue: currentSpeed,
+    });
     return nextSpeed;
+  }
+
+  private async applyPlaybackSpeed({
+    revision,
+    value,
+    previousValue,
+  }: PropertyWrite): Promise<void> {
+    try {
+      await setProperty("speed", value);
+      if (revision === this.playbackSpeedRevision && this.state.playbackSpeed !== value) {
+        this.state = { ...this.state, playbackSpeed: value };
+        this.emit();
+      }
+    } catch (error) {
+      if (revision === this.playbackSpeedRevision) {
+        const confirmedSpeed = await getProperty("speed", "double").catch(() => null);
+        const reconciledSpeed = confirmedSpeed ?? previousValue;
+        if (reconciledSpeed !== this.state.playbackSpeed) {
+          this.state = { ...this.state, playbackSpeed: reconciledSpeed };
+          this.emit();
+        }
+      }
+      throw error;
+    }
   }
 
   async adjustVideoZoom(delta: number): Promise<void> {
@@ -415,11 +520,21 @@ export class MpvPlayer {
   }
 
   private async applyStereoDownmixSettings(enabled: boolean): Promise<void> {
-    await Promise.all(
-      Object.entries(getStereoDownmixMpvOptions(enabled)).map(([name, value]) =>
-        setProperty(name, value),
-      ),
-    );
+    const nextOptions = Object.entries(getStereoDownmixMpvOptions(enabled));
+    const previousOptions = getStereoDownmixMpvOptions(!enabled);
+    const applied: string[] = [];
+
+    try {
+      for (const [name, value] of nextOptions) {
+        await setProperty(name, value);
+        applied.push(name);
+      }
+    } catch (error) {
+      await Promise.allSettled(
+        applied.reverse().map((name) => setProperty(name, previousOptions[name] ?? "")),
+      );
+      throw error;
+    }
   }
 
   private async setTrackSelection(
@@ -451,10 +566,20 @@ export class MpvPlayer {
     await Promise.all([setProperty("sub-scale", SUBTITLE_SCALE), setProperty("gamma", 1)]);
   }
 
-  private async loadMpvFile(path: string): Promise<void> {
+  private isCurrentLoad(revision: number): boolean {
+    return revision === this.loadRevision;
+  }
+
+  private async loadMpvFile(path: string, revision: number): Promise<void> {
     const loadOptions = getMpvLoadOptionsForSource(path);
     await command("loadfile", loadOptions ? [path, "replace", -1, loadOptions] : [path]);
+    if (!this.isCurrentLoad(revision)) {
+      return;
+    }
     await this.resetPerMediaDefaults();
+    if (!this.isCurrentLoad(revision)) {
+      return;
+    }
     await this.play();
   }
 }

@@ -107,7 +107,7 @@ export function usePlayerActions({
   }, [execute, hasMedia, player, setToast]);
   const toggleMute = useCallback((): void => {
     execute("Failed to toggle mute", async () => {
-      const nextMuted = !player.getIsMuted();
+      const nextMuted = !player.getSnapshot().mute;
       await player.toggleMute();
       setToast(createMuteToast(nextMuted));
     });

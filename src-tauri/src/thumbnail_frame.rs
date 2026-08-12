@@ -46,13 +46,20 @@ pub fn create_thumbnail_target() -> Result<ThumbnailTarget, String> {
 }
 
 #[tauri::command]
-pub fn discard_thumbnail_frame(raw_path: String) -> Result<(), String> {
-    let raw_path = validate_target_path(&raw_path, RAW_SUFFIX)?;
-    remove_if_exists(&raw_path)
+pub async fn discard_thumbnail_frame(raw_path: String) -> Result<(), String> {
+    run_blocking(move || {
+        let raw_path = validate_target_path(&raw_path, RAW_SUFFIX)?;
+        remove_if_exists(&raw_path)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn promote_thumbnail_frame(raw_path: String, image_path: String) -> Result<bool, String> {
+pub async fn promote_thumbnail_frame(raw_path: String, image_path: String) -> Result<bool, String> {
+    run_blocking(move || promote_thumbnail_frame_blocking(raw_path, image_path)).await
+}
+
+fn promote_thumbnail_frame_blocking(raw_path: String, image_path: String) -> Result<bool, String> {
     let raw_path = validate_target_path(&raw_path, RAW_SUFFIX)?;
     let image_path = validate_target_path(&image_path, IMAGE_SUFFIX)?;
     let pending_path = raw_path.with_extension("pending.bgra");
@@ -88,13 +95,28 @@ pub fn promote_thumbnail_frame(raw_path: String, image_path: String) -> Result<b
 }
 
 #[tauri::command]
-pub fn remove_thumbnail_target(raw_path: String, image_path: String) -> Result<(), String> {
+pub async fn remove_thumbnail_target(raw_path: String, image_path: String) -> Result<(), String> {
+    run_blocking(move || remove_thumbnail_target_blocking(raw_path, image_path)).await
+}
+
+fn remove_thumbnail_target_blocking(raw_path: String, image_path: String) -> Result<(), String> {
     let raw_path = validate_target_path(&raw_path, RAW_SUFFIX)?;
     let image_path = validate_target_path(&image_path, IMAGE_SUFFIX)?;
     remove_if_exists(&raw_path)?;
     remove_if_exists(&raw_path.with_extension("pending.bgra"))?;
     remove_if_exists(&image_path)?;
     remove_if_exists(&image_path.with_extension("next.bmp"))
+}
+
+async fn run_blocking<T>(
+    task: impl FnOnce() -> Result<T, String> + Send + 'static,
+) -> Result<T, String>
+where
+    T: Send + 'static,
+{
+    tauri::async_runtime::spawn_blocking(task)
+        .await
+        .map_err(|error| error.to_string())?
 }
 
 fn validate_target_path(path: &str, suffix: &str) -> Result<PathBuf, String> {
@@ -149,8 +171,9 @@ mod tests {
         let pixel_size = (THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 4) as usize;
         fs::write(&target.raw_path, vec![7_u8; pixel_size]).expect("raw frame should be written");
 
-        let promoted = promote_thumbnail_frame(target.raw_path.clone(), target.image_path.clone())
-            .expect("frame should promote");
+        let promoted =
+            promote_thumbnail_frame_blocking(target.raw_path.clone(), target.image_path.clone())
+                .expect("frame should promote");
         let bmp = fs::read(&target.image_path).expect("bmp should be readable");
 
         assert!(promoted);
@@ -162,7 +185,36 @@ mod tests {
         );
         assert_eq!(bmp[BMP_HEADER_BYTES], 7);
 
-        remove_thumbnail_target(target.raw_path, target.image_path)
+        remove_thumbnail_target_blocking(target.raw_path, target.image_path)
             .expect("target should be removed");
+    }
+
+    #[test]
+    fn rejects_incomplete_frames_without_publishing_an_image() {
+        let target = create_thumbnail_target().expect("target should be created");
+        fs::write(&target.raw_path, [7_u8; 16]).expect("raw frame should be written");
+
+        let promoted =
+            promote_thumbnail_frame_blocking(target.raw_path.clone(), target.image_path.clone())
+                .expect("incomplete frame should be handled");
+
+        assert!(!promoted);
+        assert!(!Path::new(&target.image_path).exists());
+        assert!(!Path::new(&target.raw_path)
+            .with_extension("pending.bgra")
+            .exists());
+        remove_thumbnail_target_blocking(target.raw_path, target.image_path)
+            .expect("target should be removed");
+    }
+
+    #[test]
+    fn rejects_targets_outside_the_application_temp_scope() {
+        let outside_path = std::env::current_dir()
+            .expect("current directory should exist")
+            .join("playdot-player-thumbnail-outside.bgra");
+
+        let result = validate_target_path(outside_path.to_string_lossy().as_ref(), RAW_SUFFIX);
+
+        assert!(result.is_err());
     }
 }

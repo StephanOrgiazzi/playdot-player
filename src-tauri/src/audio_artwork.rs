@@ -2,18 +2,24 @@ use lofty::file::TaggedFileExt;
 use lofty::picture::{Picture, PictureType};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::State;
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct AudioArtwork {
+    shared: Arc<AudioArtworkState>,
+}
+
+#[derive(Default)]
+struct AudioArtworkState {
     current_path: Mutex<Option<PathBuf>>,
 }
 
 impl AudioArtwork {
     fn extract(&self, source: Option<&str>) -> Result<Option<PathBuf>, String> {
         let mut current_path = self
+            .shared
             .current_path
             .lock()
             .map_err(|error| error.to_string())?;
@@ -44,7 +50,7 @@ impl AudioArtwork {
     }
 }
 
-impl Drop for AudioArtwork {
+impl Drop for AudioArtworkState {
     fn drop(&mut self) {
         let current_path = self
             .current_path
@@ -55,13 +61,18 @@ impl Drop for AudioArtwork {
 }
 
 #[tauri::command]
-pub fn extract_audio_artwork(
+pub async fn extract_audio_artwork(
     source: Option<String>,
     artwork: State<'_, AudioArtwork>,
 ) -> Result<Option<String>, String> {
-    artwork
-        .extract(source.as_deref())
-        .map(|path| path.map(|path| path.to_string_lossy().into_owned()))
+    let artwork = artwork.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        artwork
+            .extract(source.as_deref())
+            .map(|path| path.map(|path| path.to_string_lossy().into_owned()))
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 fn select_picture(tag: &lofty::tag::Tag) -> Option<&Picture> {
@@ -165,7 +176,7 @@ mod tests {
     #[test]
     fn dropping_audio_artwork_deletes_the_current_file() {
         let path = create_test_artwork();
-        let artwork = AudioArtwork {
+        let artwork = AudioArtworkState {
             current_path: Mutex::new(Some(path.clone())),
         };
 

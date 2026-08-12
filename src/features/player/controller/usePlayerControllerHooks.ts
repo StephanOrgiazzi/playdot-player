@@ -72,7 +72,9 @@ async function applyVolumeAction({
     return;
   }
 
-  const nextDisplayVolume = clampUiVolume(getUiVolumeFromMpvVolume(player.getVolume()) + delta);
+  const nextDisplayVolume = clampUiVolume(
+    getUiVolumeFromMpvVolume(player.getSnapshot().volume) + delta,
+  );
   await player.setVolume(getMpvVolumeFromUiVolume(nextDisplayVolume));
   setToast(createVolumeToast(nextDisplayVolume));
 }
