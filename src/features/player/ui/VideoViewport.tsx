@@ -24,9 +24,7 @@ export function VideoViewport({ initialized, onDoubleClick }: VideoViewportProps
       return Math.round(clamped * 1_000_000) / 1_000_000;
     };
 
-    const getLayoutRect = (
-      node: HTMLElement,
-    ): { left: number; right: number; top: number; bottom: number } => {
+    const getLayoutRect = (node: HTMLElement) => {
       let left = 0;
       let top = 0;
       let current: HTMLElement | null = node;
@@ -34,7 +32,7 @@ export function VideoViewport({ initialized, onDoubleClick }: VideoViewportProps
       while (current) {
         left += current.offsetLeft;
         top += current.offsetTop;
-        current = current.offsetParent as HTMLElement | null;
+        current = current.offsetParent instanceof HTMLElement ? current.offsetParent : null;
       }
 
       const width = node.offsetWidth;

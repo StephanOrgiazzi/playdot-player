@@ -44,9 +44,7 @@ const handlePlayerCommand = Effect.fn("PlayerCommand.handle")(
     ),
 );
 
-export function useLatestPlayerCommand(setError: (message: string) => void): {
-  runLatest: (command: Effect.Effect<void, PlayerCommandError>) => void;
-} {
+export function useLatestPlayerCommand(setError: (message: string) => void) {
   const queueRef = useRef<Queue.Queue<Effect.Effect<void, PlayerCommandError>> | null>(null);
   queueRef.current ??= Effect.runSync(Queue.sliding<Effect.Effect<void, PlayerCommandError>>(1));
   const queue = queueRef.current;

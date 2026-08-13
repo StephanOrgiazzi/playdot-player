@@ -4,7 +4,6 @@ import {
   useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
-  type RefObject,
 } from "react";
 import { CONTEXT_MENU_HEIGHT, CONTEXT_MENU_MARGIN, CONTEXT_MENU_WIDTH } from "./constants";
 import type { ContextMenuPosition } from "./types";
@@ -22,12 +21,7 @@ function getContextMenuPosition(clientX: number, clientY: number): ContextMenuPo
   return { x, y };
 }
 
-export function useStageContextMenu(isDisabled: boolean): {
-  contextMenuPosition: ContextMenuPosition | null;
-  contextMenuRef: RefObject<HTMLDivElement | null>;
-  closeContextMenu: () => void;
-  handleStageContextMenu: (event: ReactMouseEvent<HTMLElement>) => void;
-} {
+export function useStageContextMenu(isDisabled: boolean) {
   const [contextMenuPosition, setContextMenuPosition] = useState<ContextMenuPosition | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
 

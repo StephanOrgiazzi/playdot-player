@@ -32,11 +32,7 @@ const withPlayerFocusRestore = async <T>(task: () => Promise<T>): Promise<T> => 
   }
 };
 
-function useControlDockHoverState(): {
-  isControlDockHovered: boolean;
-  handleControlDockMouseEnter: () => void;
-  handleControlDockMouseLeave: () => void;
-} {
+function useControlDockHoverState() {
   const [isControlDockHovered, setIsControlDockHovered] = useState(false);
   const handleControlDockMouseEnter = useCallback((): void => {
     setIsControlDockHovered(true);
@@ -58,10 +54,7 @@ function useTitlebarInteractions({
 }: {
   isFullscreen: boolean;
   pickAndOpenMediaFile: () => void;
-}): {
-  handleTitlebarMouseDown: (event: ReactMouseEvent<HTMLElement>) => void;
-  handleTitlePillClick: () => void;
-} {
+}) {
   const titlebarPointerDownRef = useRef<TitlebarPointerDown | null>(null);
   const suppressTitlePillClickRef = useRef(false);
 
@@ -106,10 +99,7 @@ function useTitlebarInteractions({
   };
 }
 
-function useWindowStateSync(): {
-  isFullscreen: boolean;
-  syncWindowState: () => Promise<void>;
-} {
+function useWindowStateSync() {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const syncWindowState = useCallback(async (): Promise<void> => {

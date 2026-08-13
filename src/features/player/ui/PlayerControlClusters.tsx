@@ -32,6 +32,8 @@ type ToolClusterProps = {
   toggleFullscreen: PlayerControlsProps["toggleFullscreen"];
 };
 
+type VolumeStyle = CSSProperties & { "--progress": string };
+
 export function VolumeCluster({
   isMuted,
   displayVolume,
@@ -56,7 +58,8 @@ export function VolumeCluster({
       </button>
       <input
         className="volume"
-        style={{ "--progress": volumePercent } as CSSProperties}
+        // SAFETY: The custom CSS property is consumed by the volume slider stylesheet.
+        style={{ "--progress": volumePercent } as VolumeStyle}
         type="range"
         min={0}
         max={UI_VOLUME_MAX}

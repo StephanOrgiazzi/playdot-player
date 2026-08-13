@@ -1,3 +1,4 @@
+import { Schema } from "effect";
 import type { PlayerState } from "@features/player/model/playerState";
 import type { MpvNodeValue, MpvObservedPropertyEvent } from "./libmpv-api";
 import { parseTracks } from "./tracks";
@@ -32,8 +33,12 @@ function tracksAreEqual(
   });
 }
 
+const isMpvNumber = Schema.is(Schema.Number);
+const isMpvBoolean = Schema.is(Schema.Boolean);
+const isMpvString = Schema.is(Schema.String);
+
 function getNumberOrZero(value: MpvNodeValue | undefined): number {
-  return typeof value === "number" ? value : 0;
+  return isMpvNumber(value) ? value : 0;
 }
 
 export function applyObservedProperty(
@@ -42,19 +47,19 @@ export function applyObservedProperty(
 ): PlayerState {
   switch (event.name) {
     case "pause": {
-      const paused = Boolean(event.data);
+      const paused = isMpvBoolean(event.data) ? event.data : false;
       return paused === state.paused ? state : { ...state, paused };
     }
     case "paused-for-cache": {
-      const pausedForCache = Boolean(event.data);
+      const pausedForCache = isMpvBoolean(event.data) ? event.data : false;
       return pausedForCache === state.pausedForCache ? state : { ...state, pausedForCache };
     }
     case "core-idle": {
-      const coreIdle = Boolean(event.data);
+      const coreIdle = isMpvBoolean(event.data) ? event.data : false;
       return coreIdle === state.coreIdle ? state : { ...state, coreIdle };
     }
     case "eof-reached": {
-      const eofReached = Boolean(event.data);
+      const eofReached = isMpvBoolean(event.data) ? event.data : false;
       return eofReached === state.eofReached ? state : { ...state, eofReached };
     }
     case "time-pos": {
@@ -66,29 +71,29 @@ export function applyObservedProperty(
       return duration === state.duration ? state : { ...state, duration };
     }
     case "volume": {
-      const volume = typeof event.data === "number" ? event.data : state.volume;
+      const volume = isMpvNumber(event.data) ? event.data : state.volume;
       return volume === state.volume ? state : { ...state, volume };
     }
     case "mute": {
-      const mute = Boolean(event.data);
+      const mute = isMpvBoolean(event.data) ? event.data : state.mute;
       return mute === state.mute ? state : { ...state, mute };
     }
     case "speed": {
-      const playbackSpeed = typeof event.data === "number" ? event.data : state.playbackSpeed;
+      const playbackSpeed = isMpvNumber(event.data) ? event.data : state.playbackSpeed;
       return playbackSpeed === state.playbackSpeed ? state : { ...state, playbackSpeed };
     }
     case "filename": {
-      const filename = typeof event.data === "string" ? event.data : "";
+      const filename = isMpvString(event.data) ? event.data : "";
       return filename === state.filename ? state : { ...state, filename };
     }
     case "aid": {
-      const selectedAudioTrackId = typeof event.data === "number" ? event.data : null;
+      const selectedAudioTrackId = isMpvNumber(event.data) ? event.data : null;
       return selectedAudioTrackId === state.selectedAudioTrackId
         ? state
         : { ...state, selectedAudioTrackId };
     }
     case "sid": {
-      const selectedSubtitleTrackId = typeof event.data === "number" ? event.data : null;
+      const selectedSubtitleTrackId = isMpvNumber(event.data) ? event.data : null;
       return selectedSubtitleTrackId === state.selectedSubtitleTrackId
         ? state
         : { ...state, selectedSubtitleTrackId };

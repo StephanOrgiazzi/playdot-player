@@ -35,11 +35,7 @@ export function createMediaOpenActions({
   setError,
   withPlayerFocusRestore,
   isOpeningPastedWebUrlRef,
-}: CreateMediaOpenActionsOptions): {
-  pickAndOpenMediaFile: () => Promise<void>;
-  openWebUrl: (rawUrl: string) => Promise<OpenWebUrlResult>;
-  openPastedWebUrl: (clipboardText: string) => Promise<void>;
-} {
+}: CreateMediaOpenActionsOptions) {
   const pickAndOpenMediaFile = async (): Promise<void> => {
     const picked = await open({
       multiple: false,
@@ -61,7 +57,9 @@ export function createMediaOpenActions({
         await player.loadFile(picked);
         setError("");
       } catch (error) {
-        setError(getErrorMessage(error, "Failed to play media file"));
+        setError(
+          getErrorMessage(error instanceof Error ? error : null, "Failed to play media file"),
+        );
       }
     });
   };
@@ -84,7 +82,7 @@ export function createMediaOpenActions({
         setError("");
         return "opened";
       } catch (error) {
-        setError(getErrorMessage(error, "Failed to play web URL"));
+        setError(getErrorMessage(error instanceof Error ? error : null, "Failed to play web URL"));
         return "failed";
       } finally {
         isOpeningPastedWebUrlRef.current = false;

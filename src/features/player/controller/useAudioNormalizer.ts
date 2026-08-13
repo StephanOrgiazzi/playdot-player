@@ -14,10 +14,7 @@ export function useAudioNormalizer({
   hasMedia: boolean;
   setError: (value: string) => void;
   setToast: Dispatch<SetStateAction<ToastState | null>>;
-}): {
-  isAudioNormalizerEnabled: boolean;
-  toggleAudioNormalizer: () => void;
-} {
+}) {
   const [isAudioNormalizerEnabled, setIsAudioNormalizerEnabled] = useState(false);
   const isSwitchingRef = useRef(false);
 

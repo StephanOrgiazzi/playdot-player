@@ -49,19 +49,23 @@ function getWindowLabel(windowLabel?: string): string {
   return windowLabel ?? getCurrentWindow().label;
 }
 
-type InvokePayloadValue = string | boolean | number | object | null | undefined;
+type InvokePayloadValue = MpvNodeValue | MpvConfig | VideoMarginRatio | undefined;
+type InvokePayload = { [key: string]: InvokePayloadValue };
 
 function invokeMpv<T>(
   command: string,
-  payload: Record<string, InvokePayloadValue> = {},
+  payload: InvokePayload = {},
   windowLabel?: string,
   instanceLabel?: string,
 ): Promise<T> {
-  return invoke<T>(`plugin:libmpv|${command}`, {
+  const invokePayload = {
     ...payload,
     windowLabel: getWindowLabel(windowLabel),
-    ...(instanceLabel ? { instanceLabel } : {}),
-  });
+  };
+  if (!instanceLabel) {
+    return invoke<T>(`plugin:libmpv|${command}`, invokePayload);
+  }
+  return invoke<T>(`plugin:libmpv|${command}`, { ...invokePayload, instanceLabel });
 }
 
 export async function init(

@@ -48,10 +48,7 @@ export type TimelineControl = {
   handleTimelinePointerMove: (event: ReactPointerEvent<HTMLInputElement>) => void;
 };
 
-function getTimelinePointerMetrics(
-  element: HTMLInputElement,
-  clientX: number,
-): { ratio: number; leftPercent: number } {
+function getTimelinePointerMetrics(element: HTMLInputElement, clientX: number) {
   const trackBounds = element.getBoundingClientRect();
   if (trackBounds.width <= 0) {
     return { ratio: 0, leftPercent: 0 };
@@ -65,11 +62,7 @@ function getTimelinePointerMetrics(
   };
 }
 
-function useTimelinePointerScheduler(apply: (pending: PendingTimelinePointer) => void): {
-  cancel: () => void;
-  flush: () => void;
-  schedule: (pending: PendingTimelinePointer) => void;
-} {
+function useTimelinePointerScheduler(apply: (pending: PendingTimelinePointer) => void) {
   const frameRef = useRef<number | null>(null);
   const pendingRef = useRef<PendingTimelinePointer | null>(null);
 

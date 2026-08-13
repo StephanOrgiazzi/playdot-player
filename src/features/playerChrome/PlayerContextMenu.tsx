@@ -364,9 +364,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
     const [isAudioTracksSubmenuOpen, setIsAudioTracksSubmenuOpen] = useState(false);
     const [isSubtitleTracksSubmenuOpen, setIsSubtitleTracksSubmenuOpen] = useState(false);
     const isSubmenuOpenLeft =
-      typeof window === "undefined"
-        ? false
-        : position.x + CONTEXT_MENU_WIDTH + CONTEXT_MENU_SUBMENU_WIDTH + 8 > window.innerWidth;
+      position.x + CONTEXT_MENU_WIDTH + CONTEXT_MENU_SUBMENU_WIDTH + 8 > window.innerWidth;
 
     const runAction = useCallback(
       (action: PlayerAction): void => {

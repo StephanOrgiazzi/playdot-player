@@ -138,7 +138,8 @@ async function extractArchive(archivePath, extractDir) {
   try {
     sevenZip.callMain(["x", `${sourceMount}/${archiveName}`, `-o${destinationMount}`, "-y"]);
   } catch (error) {
-    if (!(error && typeof error === "object" && "status" in error && error.status === 0)) {
+    const errorObject = Object(error);
+    if (!("status" in errorObject) || errorObject.status !== 0) {
       throw error;
     }
   } finally {

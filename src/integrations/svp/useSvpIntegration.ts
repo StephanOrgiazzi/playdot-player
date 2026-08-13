@@ -82,7 +82,7 @@ export function useSvpIntegration({
       persistBoolean(SVP_PREFERENCE_STORAGE_KEY, nextPreferenceEnabled);
       setToast(createSvpToast(resolved.enabled));
     } catch (error) {
-      setError(getErrorMessage(error, "Failed to toggle SVP"));
+      setError(getErrorMessage(error instanceof Error ? error : null, "Failed to toggle SVP"));
     } finally {
       isSwitchingSvpRef.current = false;
       setIsSwitchingSvp(false);

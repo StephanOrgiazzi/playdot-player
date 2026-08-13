@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Effect, Schema } from "effect";
 import type { OpenWebUrlResult } from "./types";
 
@@ -22,17 +22,7 @@ const submitOpenUrl = Effect.fn("OpenUrlDialog.submit")(
     }),
 );
 
-export function useOpenUrlDialog(openWebUrl: (url: string) => Promise<OpenWebUrlResult>): {
-  isOpen: boolean;
-  isOpening: boolean;
-  urlInputValue: string;
-  error: string;
-  inputRef: RefObject<HTMLInputElement | null>;
-  open: () => void;
-  close: () => void;
-  submit: () => void;
-  setUrlInputValue: (value: string) => void;
-} {
+export function useOpenUrlDialog(openWebUrl: (url: string) => Promise<OpenWebUrlResult>) {
   const [isOpen, setIsOpen] = useState(false);
   const [isOpening, setIsOpening] = useState(false);
   const [urlInputValue, setUrlInputValue] = useState("https://");

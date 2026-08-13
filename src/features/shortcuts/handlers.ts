@@ -18,21 +18,21 @@ type KeyShortcutAction = Exclude<
   "adjustVolume" | "adjustGamma" | "openPastedWebUrl"
 >;
 
-const CTRL_MEDIA_SHORTCUTS: Partial<Record<string, KeyShortcutAction>> = {
-  ArrowLeft: "slowDownPlayback",
-  ArrowRight: "speedUpPlayback",
-  ArrowUp: "increaseSubtitleScale",
-  ArrowDown: "decreaseSubtitleScale",
-};
+const CTRL_MEDIA_SHORTCUTS = new Map<string, KeyShortcutAction>([
+  ["ArrowLeft", "slowDownPlayback"],
+  ["ArrowRight", "speedUpPlayback"],
+  ["ArrowUp", "increaseSubtitleScale"],
+  ["ArrowDown", "decreaseSubtitleScale"],
+]);
 
-const MEDIA_SHORTCUTS: Partial<Record<string, KeyShortcutAction>> = {
-  a: "cycleAudioTrack",
-  d: "toggleStereoDownmix",
-  n: "toggleAudioNormalizer",
-  s: "cycleSubtitleTrack",
-  u: "toggleFsr",
-  m: "toggleMute",
-};
+const MEDIA_SHORTCUTS = new Map<string, KeyShortcutAction>([
+  ["a", "cycleAudioTrack"],
+  ["d", "toggleStereoDownmix"],
+  ["n", "toggleAudioNormalizer"],
+  ["s", "cycleSubtitleTrack"],
+  ["u", "toggleFsr"],
+  ["m", "toggleMute"],
+]);
 
 function getZoomShortcutAction(event: KeyboardEvent): KeyShortcutAction | undefined {
   if (
@@ -80,7 +80,7 @@ export function handleShortcutKeyDown({
     }
 
     if (hasMedia && hasCtrlShortcutModifiers) {
-      const action = CTRL_MEDIA_SHORTCUTS[event.key] ?? getZoomShortcutAction(event);
+      const action = CTRL_MEDIA_SHORTCUTS.get(event.key) ?? getZoomShortcutAction(event);
       if (action) {
         runShortcut(action);
         return;
@@ -136,7 +136,7 @@ export function handleShortcutKeyDown({
   }
 
   if (!priorityOnly) {
-    const action = MEDIA_SHORTCUTS[normalizedKey];
+    const action = MEDIA_SHORTCUTS.get(normalizedKey);
     if (action) {
       runShortcut(action);
       return;

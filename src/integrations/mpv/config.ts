@@ -165,7 +165,7 @@ async function createMpvInitialOptions(
   } = featureFlags ?? {};
   const svpInitialOptions = getSvpMpvInitialOptions(svpAvailable);
 
-  return {
+  const initialOptions: NonNullable<MpvConfig["initialOptions"]> = {
     vo: "gpu-next",
     "gpu-api": "d3d11",
     hwdec: "auto-safe",
@@ -188,8 +188,6 @@ async function createMpvInitialOptions(
     "replaygain-fallback": "0",
     "replaygain-clip": "no",
     "ad-lavc-ac3drc": 0,
-    ...(audioNormalizerEnabled ? { af: AUDIO_NORMALIZER_FILTER } : {}),
-    ...getStereoDownmixMpvOptions(stereoDownmixEnabled),
     "sub-font": SUBTITLE_FONT,
     "sub-font-size": SUBTITLE_FONT_SIZE,
     "sub-scale": SUBTITLE_SCALE,
@@ -200,9 +198,18 @@ async function createMpvInitialOptions(
     "sub-shadow-offset": SUBTITLE_SHADOW_OFFSET,
     "sub-ass-override": "force",
     "sub-ass-force-style": SUBTITLE_ASS_STYLE,
-    ...svpInitialOptions,
-    ...(subtitleFontsDir ? { "sub-fonts-dir": subtitleFontsDir } : {}),
   };
+
+  if (audioNormalizerEnabled) {
+    initialOptions.af = AUDIO_NORMALIZER_FILTER;
+  }
+  Object.assign(initialOptions, getStereoDownmixMpvOptions(stereoDownmixEnabled));
+  Object.assign(initialOptions, svpInitialOptions);
+  if (subtitleFontsDir) {
+    initialOptions["sub-fonts-dir"] = subtitleFontsDir;
+  }
+
+  return initialOptions;
 }
 
 export async function createMpvConfig(

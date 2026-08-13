@@ -47,10 +47,7 @@ const clipboardPromise = Effect.fn("PlayerUrlDialog.clipboard")(
     }),
 );
 
-function getClampedMenuPosition(event: ReactMouseEvent<HTMLInputElement>): {
-  x: number;
-  y: number;
-} {
+function getClampedMenuPosition(event: ReactMouseEvent<HTMLInputElement>) {
   const menuWidth = 148;
   const menuHeight = 72;
   const viewportPadding = 8;

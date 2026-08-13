@@ -39,7 +39,7 @@ async function enableFsrShaders(shaderBundles: string[][]): Promise<string[] | n
 
       return appliedBundlePaths;
     } catch (error) {
-      lastError = toError(error);
+      lastError = toError(error instanceof Error ? error : null);
       await removeShaders(appliedBundlePaths);
     }
   }

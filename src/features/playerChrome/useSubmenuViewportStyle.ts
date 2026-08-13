@@ -1,15 +1,12 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { CONTEXT_MENU_MARGIN } from "./constants";
 
-export function useSubmenuViewportStyle(isOpen: boolean): {
-  panelRef: RefObject<HTMLDivElement | null>;
-  panelStyle: CSSProperties;
-} {
+export function useSubmenuViewportStyle(isOpen: boolean) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
 
   useLayoutEffect(() => {
-    if (!isOpen || typeof window === "undefined") {
+    if (!isOpen) {
       setPanelStyle({});
       return;
     }

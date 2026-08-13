@@ -26,6 +26,11 @@ type TimelineRowProps = {
   handleTimelinePointerMove: (event: ReactPointerEvent<HTMLInputElement>) => void;
 };
 
+type TimelineStyle = CSSProperties & {
+  "--preview-position"?: string;
+  "--progress"?: string;
+};
+
 function TimelineRow({
   displayedCurrentTime,
   totalTime,
@@ -47,7 +52,8 @@ function TimelineRow({
       <div className="timeline-slot">
         <input
           className={`timeline${isTimelineScrubbing ? " is-scrubbing" : ""}`}
-          style={{ "--progress": timelineProgressPercent } as CSSProperties}
+          // SAFETY: The custom CSS property is consumed by the timeline stylesheet.
+          style={{ "--progress": timelineProgressPercent } as TimelineStyle}
           type="range"
           min={0}
           max={progressMax}
@@ -65,9 +71,10 @@ function TimelineRow({
           <div
             className={`timeline-preview${thumbnailUrl ? " has-thumbnail" : ""}`}
             style={
+              // SAFETY: The custom CSS property is consumed by the timeline preview stylesheet.
               {
                 "--preview-position": `${timelinePreview.leftPercent}%`,
-              } as CSSProperties
+              } as TimelineStyle
             }
           >
             {thumbnailUrl ? (

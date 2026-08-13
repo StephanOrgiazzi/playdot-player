@@ -1,11 +1,17 @@
+import { Schema } from "effect";
 import { getSelectedTrackByType, getTracksByType } from "@features/player/model/playerSelectors";
 import type { MediaTrack, PlayerState } from "@features/player/model/playerState";
 import type { MpvNodeValue } from "./libmpv-api";
 
 export type TrackSelection = number | "no";
 
+const isMpvString = Schema.is(Schema.String);
+const isMpvNumber = Schema.is(Schema.Number);
+const isMpvBoolean = Schema.is(Schema.Boolean);
+const isMpvNodeObjectValue = Schema.is(Schema.Record(Schema.String, Schema.Unknown));
+
 function isMpvNodeObject(value: MpvNodeValue): value is { readonly [key: string]: MpvNodeValue } {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return isMpvNodeObjectValue(value);
 }
 
 function isMpvNodeArray(value: MpvNodeValue | undefined): value is readonly MpvNodeValue[] {
@@ -27,26 +33,27 @@ export function parseTracks(node: MpvNodeValue | undefined): MediaTrack[] {
         value.type === "audio" || value.type === "sub" || value.type === "video"
           ? value.type
           : null;
-      const id = typeof value.id === "number" ? value.id : null;
+      const id = isMpvNumber(value.id) ? value.id : null;
 
       if (!type || id === null) {
         return null;
       }
 
       const title =
-        typeof value.title === "string" && value.title.trim().length > 0
-          ? value.title
-          : `${type} ${id}`;
+        isMpvString(value.title) && value.title.trim().length > 0 ? value.title : `${type} ${id}`;
 
       const track: MediaTrack = {
         id,
         type,
         title,
-        selected: value.selected === true,
-        external: value.external === true,
-        albumart: value.albumart === true,
-        ...(typeof value.lang === "string" ? { lang: value.lang } : {}),
+        selected: isMpvBoolean(value.selected) && value.selected,
+        external: isMpvBoolean(value.external) && value.external,
+        albumart: isMpvBoolean(value.albumart) && value.albumart,
       };
+
+      if (isMpvString(value.lang)) {
+        track.lang = value.lang;
+      }
 
       return track;
     })

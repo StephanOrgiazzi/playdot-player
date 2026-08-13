@@ -395,7 +395,9 @@ export class MpvPlayer {
         revision === this.volumeRevision &&
         (this.state.volume !== value || (value > 0 && this.state.mute))
       ) {
-        this.state = { ...this.state, volume: value, ...(value > 0 ? { mute: false } : {}) };
+        const nextState = { ...this.state, volume: value };
+        if (value > 0) nextState.mute = false;
+        this.state = nextState;
         this.emit();
       }
     } catch (error) {

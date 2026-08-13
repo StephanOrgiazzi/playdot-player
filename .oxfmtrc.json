@@ -1,4 +1,10 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": ["dist/**", "src-tauri/target/**", "vendor/**", "node_modules/**"]
+  "ignorePatterns": [
+    "dist/**",
+    "src-tauri/target/**",
+    "vendor/**",
+    "node_modules/**",
+    "tools/oxlint/anti-slop/**"
+  ]
 }

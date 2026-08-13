@@ -1,6 +1,6 @@
 type Waiter = {
   resolve: () => void;
-  reject: (error: unknown) => void;
+  reject: (error: Error | null) => void;
 };
 
 type PendingValue<T> = {
@@ -53,7 +53,7 @@ export class LatestValueWriter<T> {
         }
       } catch (error) {
         for (const waiter of pending.waiters) {
-          waiter.reject(error);
+          waiter.reject(error instanceof Error ? error : null);
         }
       }
     }

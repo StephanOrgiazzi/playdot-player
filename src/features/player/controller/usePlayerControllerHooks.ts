@@ -171,20 +171,7 @@ function useSavedFsrPreferenceSync({
   ]);
 }
 
-export function usePlayerMediaState(): {
-  initialized: boolean;
-  filename: string;
-  hasMedia: boolean;
-  hasVideo: boolean;
-  audioTracks: ReturnType<typeof getPlayerTrackDerivedState>["audioTracks"];
-  subtitleTracks: ReturnType<typeof getPlayerTrackDerivedState>["subtitleTracks"];
-  selectedAudioTrack: ReturnType<typeof getPlayerTrackDerivedState>["selectedAudioTrack"];
-  selectedSubtitleTrack: ReturnType<typeof getPlayerTrackDerivedState>["selectedSubtitleTrack"];
-  audioSummary: string;
-  subtitleSummary: string;
-  isAudioArtworkActive: boolean;
-  audioArtworkUrl: string;
-} {
+export function usePlayerMediaState() {
   const initialized = usePlayerStateSelector((state) => state.initialized);
   const filename = usePlayerStateSelector((state) => state.filename);
   const selectedAudioTrackId = usePlayerStateSelector((state) => state.selectedAudioTrackId);
@@ -259,14 +246,7 @@ export function useTrackActions({
   subtitleTracks: ReturnType<typeof getPlayerTrackDerivedState>["subtitleTracks"];
   setError: SetError;
   setToast: SetToast;
-}): {
-  isCyclingAudio: boolean;
-  isCyclingSubtitles: boolean;
-  cycleAudioTrack: () => void;
-  cycleSubtitleTrack: () => void;
-  selectAudioTrack: (id: number | "no") => void;
-  selectSubtitleTrack: (id: number | "no") => void;
-} {
+}) {
   const [isCyclingAudio, setIsCyclingAudio] = useState(false);
   const [isCyclingSubtitles, setIsCyclingSubtitles] = useState(false);
   const [pendingTrackToast, setPendingTrackToast] = useState<TrackKind | null>(null);
@@ -379,19 +359,7 @@ export function usePlayerEnhancementActions({
   filename: string;
   setError: SetError;
   setToast: SetToast;
-}): {
-  isFsrEnabled: boolean;
-  isAudioNormalizerEnabled: boolean;
-  isStereoDownmixEnabled: boolean;
-  toggleFsr: () => void;
-  toggleAudioNormalizer: () => void;
-  toggleStereoDownmix: () => void;
-  preparePlayerStart: () => Promise<void>;
-  adjustVolume: (delta: number) => void;
-  adjustGamma: (delta: number) => void;
-  increaseGamma: () => void;
-  decreaseGamma: () => void;
-} {
+}) {
   const { isAudioNormalizerEnabled, toggleAudioNormalizer } = useAudioNormalizer({
     player,
     hasMedia,
