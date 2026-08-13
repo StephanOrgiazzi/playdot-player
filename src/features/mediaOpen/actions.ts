@@ -1,9 +1,51 @@
 import { open } from "@tauri-apps/plugin-dialog";
+import { Effect, Schema } from "effect";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
-import { getErrorMessage } from "@shared/lib/error";
 import type { OpenWebUrlResult } from "./types";
 
 const WEB_URL_PROTOCOLS = new Set(["http:", "https:"]);
+
+class MediaLoadError extends Schema.TaggedErrorClass<MediaLoadError>()("MediaOpen.LoadError", {
+  fallbackMessage: Schema.String,
+  cause: Schema.Defect(),
+}) {
+  override get message(): string {
+    return this.cause instanceof Error && this.cause.message
+      ? this.cause.message
+      : this.fallbackMessage;
+  }
+}
+
+const loadMedia = Effect.fn("MediaOpen.load")(
+  (
+    player: MpvPlayer,
+    source: string,
+    fallbackMessage: string,
+  ): Effect.Effect<void, MediaLoadError> =>
+    Effect.tryPromise({
+      try: () => player.loadFile(source),
+      catch: (cause) => new MediaLoadError({ fallbackMessage, cause }),
+    }),
+);
+
+const attemptMediaLoad = Effect.fn("MediaOpen.attemptLoad")(
+  (
+    player: MpvPlayer,
+    source: string,
+    fallbackMessage: string,
+    setError: (value: string) => void,
+  ): Effect.Effect<boolean> =>
+    loadMedia(player, source, fallbackMessage).pipe(
+      Effect.tap(() => Effect.sync(() => setError(""))),
+      Effect.as(true),
+      Effect.catch((error) =>
+        Effect.sync(() => setError(error.message)).pipe(
+          Effect.andThen(Effect.logError(error.fallbackMessage, error.cause)),
+          Effect.as(false),
+        ),
+      ),
+    ),
+);
 
 function normalizeWebUrl(value: string): string | null {
   const trimmedValue = value.trim();
@@ -52,16 +94,11 @@ export function createMediaOpenActions({
       return withPlayerFocusRestore(async () => undefined);
     }
 
-    return withPlayerFocusRestore(async () => {
-      try {
-        await player.loadFile(picked);
-        setError("");
-      } catch (error) {
-        setError(
-          getErrorMessage(error instanceof Error ? error : null, "Failed to play media file"),
-        );
-      }
-    });
+    return withPlayerFocusRestore(() =>
+      Effect.runPromise(
+        attemptMediaLoad(player, picked, "Failed to play media file", setError).pipe(Effect.asVoid),
+      ),
+    );
   };
 
   const openWebUrl = async (rawUrl: string): Promise<OpenWebUrlResult> => {
@@ -76,18 +113,22 @@ export function createMediaOpenActions({
 
     isOpeningPastedWebUrlRef.current = true;
 
-    return withPlayerFocusRestore(async () => {
-      try {
-        await player.loadFile(normalizedUrl);
-        setError("");
-        return "opened";
-      } catch (error) {
-        setError(getErrorMessage(error instanceof Error ? error : null, "Failed to play web URL"));
-        return "failed";
-      } finally {
-        isOpeningPastedWebUrlRef.current = false;
-      }
-    });
+    const attempt = attemptMediaLoad(
+      player,
+      normalizedUrl,
+      "Failed to play web URL",
+      setError,
+    ).pipe(
+      Effect.ensuring(
+        Effect.sync(() => {
+          isOpeningPastedWebUrlRef.current = false;
+        }),
+      ),
+    );
+
+    return withPlayerFocusRestore(() =>
+      Effect.runPromise(attempt).then((opened): OpenWebUrlResult => (opened ? "opened" : "failed")),
+    );
   };
 
   const openPastedWebUrl = async (clipboardText: string): Promise<void> => {

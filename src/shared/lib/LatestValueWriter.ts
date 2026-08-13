@@ -1,6 +1,9 @@
+type PromiseExecutor = ConstructorParameters<PromiseConstructorLike>[0];
+type PromiseReject = Parameters<PromiseExecutor>[1];
+
 type Waiter = {
   resolve: () => void;
-  reject: (error: Error | null) => void;
+  reject: PromiseReject;
 };
 
 type PendingValue<T> = {
@@ -53,7 +56,7 @@ export class LatestValueWriter<T> {
         }
       } catch (error) {
         for (const waiter of pending.waiters) {
-          waiter.reject(error instanceof Error ? error : null);
+          waiter.reject(error);
         }
       }
     }

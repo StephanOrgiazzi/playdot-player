@@ -1,9 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useRef, useState } from "react";
+import { Effect, Schema } from "effect";
 import { createSvpToast } from "@features/toaster/messages";
 import type { ToastState } from "@features/toaster/types";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
-import { getErrorMessage } from "@shared/lib/error";
 import { getPersistedBoolean, persistBoolean } from "@shared/lib/persistedBoolean";
 
 type SvpIntegrationState = {
@@ -26,6 +26,27 @@ type UseSvpIntegrationResult = {
 };
 
 const SVP_PREFERENCE_STORAGE_KEY = "playdot-player.player.svp-enabled";
+
+class SvpToggleError extends Schema.TaggedErrorClass<SvpToggleError>()("Svp.ToggleError", {
+  cause: Schema.Defect(),
+}) {
+  override get message(): string {
+    return this.cause instanceof Error && this.cause.message
+      ? this.cause.message
+      : "Failed to toggle SVP";
+  }
+}
+
+const applySvpToggle = Effect.fn("Svp.toggle")(
+  (
+    requestedEnabled: boolean,
+    applyPreference: (enabled: boolean) => Promise<SvpIntegrationState>,
+  ): Effect.Effect<SvpIntegrationState, SvpToggleError> =>
+    Effect.tryPromise({
+      try: () => applyPreference(requestedEnabled),
+      catch: (cause) => new SvpToggleError({ cause }),
+    }),
+);
 
 async function resolveSvpIntegration(requestedEnabled: boolean): Promise<SvpIntegrationState> {
   try {
@@ -75,18 +96,29 @@ export function useSvpIntegration({
 
     isSwitchingSvpRef.current = true;
     setIsSwitchingSvp(true);
-    try {
-      const resolved = await applySvpPreference(nextPreferenceEnabled);
-      setError("");
-      setSvpPreferenceEnabled(nextPreferenceEnabled);
-      persistBoolean(SVP_PREFERENCE_STORAGE_KEY, nextPreferenceEnabled);
-      setToast(createSvpToast(resolved.enabled));
-    } catch (error) {
-      setError(getErrorMessage(error instanceof Error ? error : null, "Failed to toggle SVP"));
-    } finally {
-      isSwitchingSvpRef.current = false;
-      setIsSwitchingSvp(false);
-    }
+    const toggle = applySvpToggle(nextPreferenceEnabled, applySvpPreference).pipe(
+      Effect.tap((resolved) =>
+        Effect.sync(() => {
+          setError("");
+          setSvpPreferenceEnabled(nextPreferenceEnabled);
+          persistBoolean(SVP_PREFERENCE_STORAGE_KEY, nextPreferenceEnabled);
+          setToast(createSvpToast(resolved.enabled));
+        }),
+      ),
+      Effect.catch((error) =>
+        Effect.sync(() => setError(error.message)).pipe(
+          Effect.andThen(Effect.logError("Failed to toggle SVP", error.cause)),
+        ),
+      ),
+      Effect.ensuring(
+        Effect.sync(() => {
+          isSwitchingSvpRef.current = false;
+          setIsSwitchingSvp(false);
+        }),
+      ),
+    );
+
+    await Effect.runPromise(toggle);
   }, [applySvpPreference, setError, setToast, svpPreferenceEnabled]);
 
   return {

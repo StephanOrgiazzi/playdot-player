@@ -3,12 +3,10 @@ import { LatestValueWriter } from "../src/shared/lib/LatestValueWriter";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  let reject!: (error: Error | null) => void;
-  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+  const promise = new Promise<T>((resolvePromise) => {
     resolve = resolvePromise;
-    reject = rejectPromise;
   });
-  return { promise, resolve, reject };
+  return { promise, resolve };
 }
 
 test("coalesces pending writes while preserving the active write", async () => {
@@ -67,6 +65,14 @@ test("returns to idle when a writer throws synchronously", async () => {
   await expect(writer.write(1)).rejects.toThrow("synchronous failure");
   await writer.whenIdle();
   expect(writer.isIdle()).toBe(true);
+});
+
+test("preserves non-Error rejection causes", async () => {
+  const cause = Symbol("write failed");
+  const writer = new LatestValueWriter<number>(() => Promise.reject(cause));
+
+  await expect(writer.write(1)).rejects.toBe(cause);
+  await writer.whenIdle();
 });
 
 test("supports revision checks for latest-request-wins work", async () => {
