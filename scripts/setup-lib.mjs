@@ -11,7 +11,7 @@ const targetDir = path.join(projectRoot, "src-tauri", "lib");
 const tempDir = path.join(targetDir, ".setup-lib-tmp");
 
 const wrapperRelease = "v0.1.1";
-const mpvRelease = "2026-07-18-94335ab87a";
+const mpvRelease = "2026-08-24-654e9382c0";
 const wrapperBaseUrl = `https://github.com/nini22P/libmpv-wrapper/releases/download/${wrapperRelease}`;
 const mpvBaseUrl = `https://github.com/zhongfly/mpv-winbuild/releases/download/${mpvRelease}`;
 

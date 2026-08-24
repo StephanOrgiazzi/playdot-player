@@ -5,12 +5,12 @@ PLAY. is MIT-licensed, but its Windows playback stack includes third-party compo
 ## mpv / libmpv
 
 - Component: mpv / libmpv
-- Runtime revision: `94335ab87a`
-- Binary build release: `zhongfly/mpv-winbuild` `2026-07-18-94335ab87a`
+- Runtime revision: `654e9382c0`
+- Binary build release: `zhongfly/mpv-winbuild` `2026-08-24-654e9382c0`
 - Required build flavor for PLAY.: LGPL development build (`mpv-dev-lgpl-*`)
 - License: GNU Lesser General Public License 2.1 or later for the LGPL-compatible build
-- Source: https://github.com/mpv-player/mpv/tree/94335ab87a
-- Build provenance: https://github.com/zhongfly/mpv-winbuild/releases/tag/2026-07-18-94335ab87a
+- Source: https://github.com/mpv-player/mpv/tree/654e9382c0
+- Build provenance: https://github.com/zhongfly/mpv-winbuild/releases/tag/2026-08-24-654e9382c0
 
 ## FFmpeg
 
@@ -19,7 +19,7 @@ FFmpeg libraries are included in the selected `mpv-dev-lgpl-*` Windows runtime. 
 - License: GNU Lesser General Public License 3.0
 - Exact source revision: derived from the pinned build release's `sha256.txt` by `scripts/setup-third-party-notices.mjs`
 - Upstream source: https://github.com/FFmpeg/FFmpeg
-- Build provenance: https://github.com/zhongfly/mpv-winbuild/releases/tag/2026-07-18-94335ab87a
+- Build provenance: https://github.com/zhongfly/mpv-winbuild/releases/tag/2026-08-24-654e9382c0
 
 ## libmpv-wrapper
 
