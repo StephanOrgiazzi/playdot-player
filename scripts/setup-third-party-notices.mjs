@@ -8,6 +8,8 @@ const mpvRevision = "94335ab87a";
 const mpvBuildRelease = "2026-07-18-94335ab87a";
 const wrapperRelease = "v0.1.1";
 const pluginVersion = "0.3.2";
+const pluginSourceRevision = "5da4e044c276245dcfd8a279310e5106394a0679";
+const mpvBuildBaseUrl = `https://github.com/zhongfly/mpv-winbuild/releases/download/${mpvBuildRelease}`;
 
 async function fetchText(url) {
   const response = await fetch(url);
@@ -22,7 +24,18 @@ async function writeRemoteFile(fileName, url) {
   await fs.promises.writeFile(path.join(outputDir, fileName), contents, "utf8");
 }
 
+function findFfmpegRevision(shaText) {
+  const match = shaText.match(/ffmpeg-lgpl-(?:x86_64|aarch64)(?:-v3)?-git-([0-9a-f]+)\.7z/);
+  if (!match?.[1]) {
+    throw new Error(`FFmpeg LGPL revision not found in ${mpvBuildRelease} sha256.txt`);
+  }
+  return match[1];
+}
+
 async function main() {
+  const releaseSha = await fetchText(`${mpvBuildBaseUrl}/sha256.txt`);
+  const ffmpegRevision = findFfmpegRevision(releaseSha);
+
   await fs.promises.rm(outputDir, { recursive: true, force: true });
   await fs.promises.mkdir(outputDir, { recursive: true });
 
@@ -40,12 +53,12 @@ async function main() {
       `https://raw.githubusercontent.com/nini22P/libmpv-wrapper/${wrapperRelease}/LICENSE`,
     ),
     writeRemoteFile(
-      "FFmpeg-LGPL-2.1.txt",
-      "https://raw.githubusercontent.com/FFmpeg/FFmpeg/master/COPYING.LGPLv2.1",
+      "FFmpeg-LGPL-3.0.txt",
+      `https://raw.githubusercontent.com/FFmpeg/FFmpeg/${ffmpegRevision}/COPYING.LGPLv3`,
     ),
     writeRemoteFile(
       "tauri-plugin-libmpv-MPL-2.0.txt",
-      "https://raw.githubusercontent.com/nini22P/tauri-plugin-libmpv/main/LICENSE",
+      `https://raw.githubusercontent.com/nini22P/tauri-plugin-libmpv/${pluginSourceRevision}/LICENSE`,
     ),
   ]);
 
@@ -60,11 +73,13 @@ async function main() {
     `mpv revision: ${mpvRevision}`,
     `mpv source: https://github.com/mpv-player/mpv/tree/${mpvRevision}`,
     `Windows LGPL build release: https://github.com/zhongfly/mpv-winbuild/releases/tag/${mpvBuildRelease}`,
+    `FFmpeg revision: ${ffmpegRevision}`,
+    `FFmpeg source: https://github.com/FFmpeg/FFmpeg/tree/${ffmpegRevision}`,
     `libmpv-wrapper release: https://github.com/nini22P/libmpv-wrapper/tree/${wrapperRelease}`,
     `tauri-plugin-libmpv crate version: ${pluginVersion}`,
     `tauri-plugin-libmpv crate: https://crates.io/crates/tauri-plugin-libmpv/${pluginVersion}`,
-    "tauri-plugin-libmpv upstream: https://github.com/nini22P/tauri-plugin-libmpv",
-    "FFmpeg upstream source: https://github.com/FFmpeg/FFmpeg",
+    `tauri-plugin-libmpv license source revision: ${pluginSourceRevision}`,
+    `tauri-plugin-libmpv upstream: https://github.com/nini22P/tauri-plugin-libmpv/tree/${pluginSourceRevision}`,
     "Windows build recipes: https://github.com/zhongfly/mpv-winbuild",
     "",
   ].join("\n");
