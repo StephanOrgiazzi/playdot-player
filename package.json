@@ -17,7 +17,7 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "setup-lib": "bun ./scripts/setup-lib.mjs",
+    "setup-lib": "bun ./scripts/setup-lib.mjs && bun ./scripts/setup-third-party-notices.mjs",
     "release:win": "bun run setup-lib && tauri build --bundles nsis",
     "release:artifacts": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-artifacts.ps1",
     "release": "bun run release:win && bun run release:artifacts"
