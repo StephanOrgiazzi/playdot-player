@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -66,6 +67,34 @@ async function downloadFile(url, destinationPath) {
   const fileStream = fs.createWriteStream(destinationPath);
   const bodyStream = Readable.fromWeb(response.body);
   await pipeline(bodyStream, fileStream);
+}
+
+/**
+ * @param {string} filePath
+ * @returns {Promise<string>}
+ */
+function sha256File(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = createHash("sha256");
+    const stream = fs.createReadStream(filePath);
+
+    stream.on("error", reject);
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("end", () => resolve(hash.digest("hex")));
+  });
+}
+
+/**
+ * @param {string} filePath
+ * @param {string} expectedSha256
+ */
+async function verifySha256(filePath, expectedSha256) {
+  const actualSha256 = await sha256File(filePath);
+  if (actualSha256 !== expectedSha256.toLowerCase()) {
+    throw new Error(
+      `SHA-256 mismatch for ${path.basename(filePath)}: expected ${expectedSha256}, got ${actualSha256}`,
+    );
+  }
 }
 
 /**
@@ -259,6 +288,34 @@ function pickReleaseFile(shaText, predicate) {
 
 /**
  * @param {string} shaText
+ * @param {string} fileName
+ * @returns {string}
+ */
+function findReleaseSha256(shaText, fileName) {
+  for (const rawLine of shaText.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) {
+      continue;
+    }
+
+    const parts = line.split(/\s+/);
+    if (parts.at(-1) !== fileName) {
+      continue;
+    }
+
+    const sha256 = parts[0]?.toLowerCase();
+    if (!sha256 || !/^[0-9a-f]{64}$/.test(sha256)) {
+      throw new Error(`Invalid SHA-256 metadata for ${fileName}`);
+    }
+
+    return sha256;
+  }
+
+  throw new Error(`SHA-256 metadata not found for ${fileName}`);
+}
+
+/**
+ * @param {string} shaText
  * @param {string} archName
  */
 function pickMpvDevArchive(shaText, archName) {
@@ -275,13 +332,24 @@ function pickMpvDevArchive(shaText, archName) {
  * @param {string} baseUrl
  * @param {string} releaseFileName
  * @param {string} desiredFileName
+ * @param {string | null} expectedSha256
  */
-async function extractFileFromRelease(baseUrl, releaseFileName, desiredFileName) {
+async function extractFileFromRelease(
+  baseUrl,
+  releaseFileName,
+  desiredFileName,
+  expectedSha256 = null,
+) {
   const archivePath = path.join(tempDir, releaseFileName);
   const extractDir = path.join(tempDir, `${desiredFileName}-extract`);
 
   console.log(`Downloading ${releaseFileName}...`);
   await downloadFile(`${baseUrl}/${releaseFileName}`, archivePath);
+
+  if (expectedSha256) {
+    await verifySha256(archivePath, expectedSha256);
+    console.log(`Verified SHA-256 for ${releaseFileName}`);
+  }
 
   console.log(`Extracting ${releaseFileName}...`);
   await extractArchive(archivePath, extractDir);
@@ -328,7 +396,13 @@ async function main() {
       throw new Error(`LGPL libmpv archive not found for windows ${archName}`);
     }
 
-    await extractFileFromRelease(mpvBaseUrl, mpvArchive, "libmpv-2.dll");
+    const mpvArchiveSha256 = findReleaseSha256(mpvSha, mpvArchive);
+    await extractFileFromRelease(
+      mpvBaseUrl,
+      mpvArchive,
+      "libmpv-2.dll",
+      mpvArchiveSha256,
+    );
     await refreshExistingCargoResourceCopies();
     console.log(`Libraries are ready in ${targetDir}`);
   } finally {
