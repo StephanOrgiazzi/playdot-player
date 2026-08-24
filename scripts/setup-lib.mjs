@@ -5,15 +5,14 @@ import { spawn } from "node:child_process";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import SevenZip from "7z-wasm";
+import { resolvePinnedMpvRelease } from "./libmpv-release.mjs";
 
 const projectRoot = process.cwd();
 const targetDir = path.join(projectRoot, "src-tauri", "lib");
 const tempDir = path.join(targetDir, ".setup-lib-tmp");
 
 const wrapperRelease = "v0.1.1";
-const mpvRelease = "2026-08-24-654e9382c0";
 const wrapperBaseUrl = `https://github.com/nini22P/libmpv-wrapper/releases/download/${wrapperRelease}`;
-const mpvBaseUrl = `https://github.com/zhongfly/mpv-winbuild/releases/download/${mpvRelease}`;
 
 function getSystemInfo() {
   const platform = os.platform();
@@ -321,7 +320,13 @@ async function main() {
 
     await extractFileFromRelease(wrapperBaseUrl, wrapperArchive, wrapperLibName);
 
-    const mpvSha = await fetchText(`${mpvBaseUrl}/sha256.txt`);
+    const {
+      baseUrl: mpvBaseUrl,
+      shaText: mpvSha,
+      source: mpvSource,
+    } = await resolvePinnedMpvRelease();
+    console.log(`Using ${mpvSource} source for the pinned libmpv runtime.`);
+
     const mpvArchive = pickMpvDevArchive(mpvSha, archName);
 
     if (!mpvArchive) {
