@@ -262,16 +262,12 @@ function pickReleaseFile(shaText, predicate) {
  * @param {string} archName
  */
 function pickMpvDevArchive(shaText, archName) {
-  const isDevArchiveForArch = (fileName) =>
-    fileName.startsWith(`mpv-dev-${archName}-`) &&
-    fileName.endsWith(".7z") &&
-    !fileName.includes("-v3-");
-
-  return (
-    pickReleaseFile(
-      shaText,
-      (fileName) => fileName.includes(`mpv-dev-lgpl-${archName}`) && !fileName.includes("v3"),
-    ) ?? pickReleaseFile(shaText, isDevArchiveForArch)
+  return pickReleaseFile(
+    shaText,
+    (fileName) =>
+      fileName.includes(`mpv-dev-lgpl-${archName}`) &&
+      fileName.endsWith(".7z") &&
+      !fileName.includes("-v3-"),
   );
 }
 
@@ -329,7 +325,7 @@ async function main() {
     const mpvArchive = pickMpvDevArchive(mpvSha, archName);
 
     if (!mpvArchive) {
-      throw new Error(`libmpv archive not found for windows ${archName}`);
+      throw new Error(`LGPL libmpv archive not found for windows ${archName}`);
     }
 
     await extractFileFromRelease(mpvBaseUrl, mpvArchive, "libmpv-2.dll");
