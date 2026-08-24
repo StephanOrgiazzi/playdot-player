@@ -10,15 +10,16 @@ PLAY. is MIT-licensed, but its Windows playback stack includes third-party compo
 - Required build flavor for PLAY.: LGPL development build (`mpv-dev-lgpl-*`)
 - License: GNU Lesser General Public License 2.1 or later for the LGPL-compatible build
 - Source: https://github.com/mpv-player/mpv/tree/94335ab87a
-- Build provenance: https://github.com/zhongfly/mpv-winbuild
+- Build provenance: https://github.com/zhongfly/mpv-winbuild/releases/tag/2026-07-18-94335ab87a
 
 ## FFmpeg
 
-FFmpeg libraries are included as part of the LGPL libmpv Windows runtime selected above.
+FFmpeg libraries are included in the selected `mpv-dev-lgpl-*` Windows runtime. The build provider documents this flavor as statically linking FFmpeg under LGPLv3.
 
-- License: LGPL-compatible configuration of FFmpeg
+- License: GNU Lesser General Public License 3.0
+- Exact source revision: derived from the pinned build release's `sha256.txt` by `scripts/setup-third-party-notices.mjs`
 - Upstream source: https://github.com/FFmpeg/FFmpeg
-- Build provenance: https://github.com/zhongfly/mpv-winbuild
+- Build provenance: https://github.com/zhongfly/mpv-winbuild/releases/tag/2026-07-18-94335ab87a
 
 ## libmpv-wrapper
 
@@ -37,4 +38,4 @@ FFmpeg libraries are included as part of the LGPL libmpv Windows runtime selecte
 
 ## Bundled license copies
 
-`bun run setup-lib` writes the applicable license texts, mpv copyright notice, this notice, and source provenance into `src-tauri/lib/licenses/`. That directory is already included in Tauri's `lib/**/*` bundled resources, so the files ship with Windows packages.
+`bun run setup-lib` writes the applicable license texts, mpv copyright notice, this notice, and source provenance into `src-tauri/lib/licenses/`. Remote license files are fetched from pinned revisions, and the FFmpeg revision is derived from the pinned Windows build metadata. That directory is already included in Tauri's `lib/**/*` bundled resources, so the files ship with Windows packages.
