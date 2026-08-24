@@ -57,6 +57,10 @@ async function main() {
       `https://raw.githubusercontent.com/FFmpeg/FFmpeg/${ffmpegRevision}/COPYING.LGPLv3`,
     ),
     writeRemoteFile(
+      "FFmpeg-GPL-3.0.txt",
+      `https://raw.githubusercontent.com/FFmpeg/FFmpeg/${ffmpegRevision}/COPYING.GPLv3`,
+    ),
+    writeRemoteFile(
       "tauri-plugin-libmpv-MPL-2.0.txt",
       `https://raw.githubusercontent.com/nini22P/tauri-plugin-libmpv/${pluginSourceRevision}/LICENSE`,
     ),
