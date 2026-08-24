@@ -1,0 +1,131 @@
+name: Mirror pinned libmpv runtime
+
+on:
+  pull_request:
+    paths:
+      - "scripts/libmpv-release.mjs"
+      - ".github/workflows/mirror-libmpv.yml"
+  push:
+    branches:
+      - master
+    paths:
+      - "scripts/libmpv-release.mjs"
+      - ".github/workflows/mirror-libmpv.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Read pinned libmpv metadata
+        id: libmpv
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE' >> "$GITHUB_OUTPUT"
+          import {
+            mpvMirrorTag,
+            mpvRelease,
+            mpvUpstreamBaseUrl,
+          } from "./scripts/libmpv-release.mjs";
+
+          console.log(`release=${mpvRelease}`);
+          console.log(`mirror_tag=${mpvMirrorTag}`);
+          console.log(`upstream_base_url=${mpvUpstreamBaseUrl}`);
+          NODE
+
+      - name: Download pinned LGPL runtime assets
+        env:
+          UPSTREAM_BASE_URL: ${{ steps.libmpv.outputs.upstream_base_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl --fail --location --retry 3 \
+            "$UPSTREAM_BASE_URL/sha256.txt" \
+            --output sha256.txt
+
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const shaText = fs.readFileSync("sha256.txt", "utf8");
+          const entries = shaText
+            .split(/\r?\n/)
+            .map((rawLine) => rawLine.trim())
+            .filter(Boolean)
+            .map((line) => {
+              const parts = line.split(/\s+/);
+              return {
+                sha256: parts[0]?.toLowerCase(),
+                fileName: parts.at(-1)?.replace(/^\*/, ""),
+              };
+            })
+            .filter(
+              ({ sha256, fileName }) =>
+                /^[0-9a-f]{64}$/.test(sha256 ?? "") && Boolean(fileName),
+            );
+
+          const selected = ["x86_64", "aarch64"].map((arch) => {
+            const matches = entries.filter(
+              ({ fileName }) =>
+                fileName.includes(`mpv-dev-lgpl-${arch}`) &&
+                fileName.endsWith(".7z") &&
+                !fileName.includes("-v3-"),
+            );
+
+            if (matches.length !== 1) {
+              throw new Error(
+                `Expected exactly one LGPL libmpv archive for ${arch}, found ${matches.length}`,
+              );
+            }
+
+            return matches[0];
+          });
+
+          fs.writeFileSync(
+            "assets.txt",
+            `${selected.map(({ fileName }) => fileName).join("\n")}\n`,
+          );
+          fs.writeFileSync(
+            "checksums.txt",
+            `${selected.map(({ sha256, fileName }) => `${sha256}  ${fileName}`).join("\n")}\n`,
+          );
+          NODE
+
+          while IFS= read -r asset; do
+            curl --fail --location --retry 3 \
+              "$UPSTREAM_BASE_URL/$asset" \
+              --output "$asset"
+          done < assets.txt
+
+          sha256sum --check checksums.txt
+
+      - name: Publish durable PLAY. mirror
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MIRROR_TAG: ${{ steps.libmpv.outputs.mirror_tag }}
+          MPV_RELEASE: ${{ steps.libmpv.outputs.release }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if gh release view "$MIRROR_TAG" >/dev/null 2>&1; then
+            echo "Mirror release $MIRROR_TAG already exists; leaving immutable pinned assets unchanged."
+            exit 0
+          fi
+
+          mapfile -t assets < assets.txt
+          gh release create "$MIRROR_TAG" \
+            sha256.txt \
+            "${assets[@]}" \
+            --target "$GITHUB_SHA" \
+            --title "Pinned libmpv runtime $MPV_RELEASE" \
+            --notes "Durable mirror of the pinned zhongfly/mpv-winbuild LGPL development archives used by PLAY. Source release: https://github.com/zhongfly/mpv-winbuild/releases/tag/$MPV_RELEASE" \
+            --prerelease \
+            --latest=false
