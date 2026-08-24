@@ -1,16 +1,19 @@
 import fs from "node:fs";
 import path from "node:path";
+import {
+  mpvMirrorTag,
+  mpvRelease as mpvBuildRelease,
+  resolvePinnedMpvRelease,
+} from "./libmpv-release.mjs";
 
 const projectRoot = process.cwd();
 const outputDir = path.join(projectRoot, "src-tauri", "lib", "licenses");
 const tempOutputDir = path.join(projectRoot, "src-tauri", "lib", ".licenses-tmp");
 
 const mpvRevision = "654e9382c0";
-const mpvBuildRelease = "2026-08-24-654e9382c0";
 const wrapperRelease = "v0.1.1";
 const pluginVersion = "0.3.2";
 const pluginSourceRevision = "5da4e044c276245dcfd8a279310e5106394a0679";
-const mpvBuildBaseUrl = `https://github.com/zhongfly/mpv-winbuild/releases/download/${mpvBuildRelease}`;
 
 /**
  * @param {string} url
@@ -53,7 +56,7 @@ function findFfmpegRevision(shaText) {
 }
 
 async function main() {
-  const releaseSha = await fetchText(`${mpvBuildBaseUrl}/sha256.txt`);
+  const { shaText: releaseSha, source: mpvMetadataSource } = await resolvePinnedMpvRelease();
   const ffmpegRevision = findFfmpegRevision(releaseSha);
 
   await fs.promises.rm(tempOutputDir, { recursive: true, force: true });
@@ -98,6 +101,8 @@ async function main() {
       `mpv revision: ${mpvRevision}`,
       `mpv source: https://github.com/mpv-player/mpv/tree/${mpvRevision}`,
       `Windows LGPL build release: https://github.com/zhongfly/mpv-winbuild/releases/tag/${mpvBuildRelease}`,
+      `PLAY. binary mirror: https://github.com/StephanOrgiazzi/playdot-player/releases/tag/${mpvMirrorTag}`,
+      `Build metadata source used for this package: ${mpvMetadataSource}`,
       `FFmpeg revision: ${ffmpegRevision}`,
       `FFmpeg source: https://github.com/FFmpeg/FFmpeg/tree/${ffmpegRevision}`,
       `libmpv-wrapper release: https://github.com/nini22P/libmpv-wrapper/tree/${wrapperRelease}`,
