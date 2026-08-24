@@ -30,8 +30,9 @@ FFmpeg libraries are included as part of the LGPL libmpv Windows runtime selecte
 ## tauri-plugin-libmpv
 
 - Component: `nini22P/tauri-plugin-libmpv`
-- PLAY. currently consumes a vendored copy of this project.
+- Version: `0.3.2`
 - License: Mozilla Public License 2.0
+- Crate: https://crates.io/crates/tauri-plugin-libmpv/0.3.2
 - Upstream source: https://github.com/nini22P/tauri-plugin-libmpv
 
 ## Bundled license copies
