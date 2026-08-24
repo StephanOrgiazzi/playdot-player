@@ -7,6 +7,7 @@ const outputDir = path.join(projectRoot, "src-tauri", "lib", "licenses");
 const mpvRevision = "94335ab87a";
 const mpvBuildRelease = "2026-07-18-94335ab87a";
 const wrapperRelease = "v0.1.1";
+const pluginVersion = "0.3.2";
 
 async function fetchText(url) {
   const response = await fetch(url);
@@ -19,25 +20,6 @@ async function fetchText(url) {
 async function writeRemoteFile(fileName, url) {
   const contents = await fetchText(url);
   await fs.promises.writeFile(path.join(outputDir, fileName), contents, "utf8");
-}
-
-async function writePluginLicense() {
-  const vendoredLicense = path.join(projectRoot, "vendor", "tauri-plugin-libmpv", "LICENSE");
-  const destination = path.join(outputDir, "tauri-plugin-libmpv-MPL-2.0.txt");
-
-  try {
-    await fs.promises.copyFile(vendoredLicense, destination);
-    return;
-  } catch (error) {
-    if (error?.code !== "ENOENT") {
-      throw error;
-    }
-  }
-
-  await writeRemoteFile(
-    "tauri-plugin-libmpv-MPL-2.0.txt",
-    "https://raw.githubusercontent.com/nini22P/tauri-plugin-libmpv/main/LICENSE",
-  );
 }
 
 async function main() {
@@ -61,7 +43,10 @@ async function main() {
       "FFmpeg-LGPL-2.1.txt",
       "https://raw.githubusercontent.com/FFmpeg/FFmpeg/master/COPYING.LGPLv2.1",
     ),
-    writePluginLicense(),
+    writeRemoteFile(
+      "tauri-plugin-libmpv-MPL-2.0.txt",
+      "https://raw.githubusercontent.com/nini22P/tauri-plugin-libmpv/main/LICENSE",
+    ),
   ]);
 
   await fs.promises.copyFile(
@@ -76,6 +61,8 @@ async function main() {
     `mpv source: https://github.com/mpv-player/mpv/tree/${mpvRevision}`,
     `Windows LGPL build release: https://github.com/zhongfly/mpv-winbuild/releases/tag/${mpvBuildRelease}`,
     `libmpv-wrapper release: https://github.com/nini22P/libmpv-wrapper/tree/${wrapperRelease}`,
+    `tauri-plugin-libmpv crate version: ${pluginVersion}`,
+    `tauri-plugin-libmpv crate: https://crates.io/crates/tauri-plugin-libmpv/${pluginVersion}`,
     "tauri-plugin-libmpv upstream: https://github.com/nini22P/tauri-plugin-libmpv",
     "FFmpeg upstream source: https://github.com/FFmpeg/FFmpeg",
     "Windows build recipes: https://github.com/zhongfly/mpv-winbuild",
