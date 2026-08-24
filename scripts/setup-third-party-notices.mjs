@@ -25,11 +25,18 @@ async function writeRemoteFile(fileName, url) {
 }
 
 function findFfmpegRevision(shaText) {
-  const match = shaText.match(/ffmpeg-lgpl-(?:x86_64|aarch64)(?:-v3)?-git-([0-9a-f]+)\.7z/);
-  if (!match?.[1]) {
-    throw new Error(`FFmpeg LGPL revision not found in ${mpvBuildRelease} sha256.txt`);
+  const revisions = [...shaText.matchAll(/ffmpeg-lgpl-(?:x86_64|aarch64)(?:-v3)?-git-([0-9a-f]+)\.7z/g)]
+    .map((match) => match[1])
+    .filter(Boolean);
+  const uniqueRevisions = [...new Set(revisions)];
+
+  if (uniqueRevisions.length !== 1) {
+    throw new Error(
+      `Expected one FFmpeg LGPL revision in ${mpvBuildRelease} sha256.txt, found ${uniqueRevisions.length}`,
+    );
   }
-  return match[1];
+
+  return uniqueRevisions[0];
 }
 
 async function main() {
