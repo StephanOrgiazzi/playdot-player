@@ -7,10 +7,12 @@ PLAY. is MIT-licensed, but its Windows playback stack includes third-party compo
 - Component: mpv / libmpv
 - Runtime revision: `654e9382c0`
 - Binary build release: `zhongfly/mpv-winbuild` `2026-08-24-654e9382c0`
+- PLAY. durable mirror: `third-party-libmpv-2026-08-24-654e9382c0`
 - Required build flavor for PLAY.: LGPL development build (`mpv-dev-lgpl-*`)
 - License: GNU Lesser General Public License 2.1 or later for the LGPL-compatible build
 - Source: https://github.com/mpv-player/mpv/tree/654e9382c0
 - Build provenance: https://github.com/zhongfly/mpv-winbuild/releases/tag/2026-08-24-654e9382c0
+- Binary mirror: https://github.com/StephanOrgiazzi/playdot-player/releases/tag/third-party-libmpv-2026-08-24-654e9382c0
 
 ## FFmpeg
 
