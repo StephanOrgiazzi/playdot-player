@@ -3,7 +3,8 @@ import { Effect, Fiber, Option, Schedule, Schema } from "effect";
 import { createMpvThumbnailConfig, getMpvLoadOptionsForSource } from "./config";
 import { command, destroy, init } from "./libmpv-api";
 
-const THUMBNAIL_INSTANCE_LABEL = "thumbnail-worker";
+// tauri-plugin-libmpv keys native mpv handles by windowLabel.
+const THUMBNAIL_WINDOW_LABEL = "thumbnail-worker";
 const EXACT_SEEK_DELAY_MS = 120;
 const FRAME_POLL_INTERVAL_MS = 18;
 const MAX_FRAME_POLLS = 20;
@@ -214,8 +215,7 @@ export class MpvThumbnailer {
             command(
               "seek",
               [pending.seconds, pending.exact ? "absolute+exact" : "absolute+keyframes"],
-              undefined,
-              THUMBNAIL_INSTANCE_LABEL,
+              THUMBNAIL_WINDOW_LABEL,
             ),
           );
         }
@@ -306,17 +306,14 @@ export class MpvThumbnailer {
     (source: string, target: ThumbnailTarget, initialSeek: PendingSeek) =>
       Effect.gen({ self: this }, function* () {
         const config = createMpvThumbnailConfig(target, initialSeek);
-        yield* attempt("worker initialization", () =>
-          init(config, undefined, THUMBNAIL_INSTANCE_LABEL),
-        );
+        yield* attempt("worker initialization", () => init(config, THUMBNAIL_WINDOW_LABEL));
         this.workerStarted = true;
         const loadOptions = getMpvLoadOptionsForSource(source, "thumbnail");
         yield* attempt("media loading", () =>
           command(
             "loadfile",
             loadOptions ? [source, "replace", -1, loadOptions] : [source],
-            undefined,
-            THUMBNAIL_INSTANCE_LABEL,
+            THUMBNAIL_WINDOW_LABEL,
           ),
         );
       }),
@@ -342,7 +339,7 @@ export class MpvThumbnailer {
     this.startedSource = null;
 
     const destroyWorker = this.workerStarted
-      ? attempt("worker shutdown", () => destroy(undefined, THUMBNAIL_INSTANCE_LABEL)).pipe(
+      ? attempt("worker shutdown", () => destroy(THUMBNAIL_WINDOW_LABEL)).pipe(
           Effect.matchEffect({
             onFailure: reportError,
             onSuccess: () => Effect.void,

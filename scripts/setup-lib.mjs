@@ -78,7 +78,9 @@ function sha256File(filePath) {
     const stream = fs.createReadStream(filePath);
 
     stream.on("error", reject);
-    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("data", (chunk) => {
+      hash.update(chunk);
+    });
     stream.on("end", () => resolve(hash.digest("hex")));
   });
 }
@@ -402,12 +404,7 @@ async function main() {
     }
 
     const mpvArchiveSha256 = findReleaseSha256(mpvSha, mpvArchive);
-    await extractFileFromRelease(
-      mpvBaseUrl,
-      mpvArchive,
-      "libmpv-2.dll",
-      mpvArchiveSha256,
-    );
+    await extractFileFromRelease(mpvBaseUrl, mpvArchive, "libmpv-2.dll", mpvArchiveSha256);
     await refreshExistingCargoResourceCopies();
     console.log(`Libraries are ready in ${targetDir}`);
   } finally {
