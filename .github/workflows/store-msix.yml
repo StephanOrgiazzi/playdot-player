@@ -63,3 +63,61 @@ jobs:
           path: artifacts/msix/*.msix
           if-no-files-found: error
           retention-days: 30
+
+      - name: Run Windows App Certification Kit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $appCert = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\App Certification Kit\appcert.exe'
+          if (-not (Test-Path -LiteralPath $appCert -PathType Leaf)) {
+            throw "Windows App Certification Kit was not found at $appCert"
+          }
+
+          $package = Get-ChildItem -LiteralPath 'artifacts\msix' -Filter '*.msix' -File | Select-Object -First 1
+          if (-not $package) {
+            throw 'No MSIX package was found for WACK validation.'
+          }
+
+          $reportDirectory = Join-Path $PWD 'artifacts\wack'
+          New-Item -ItemType Directory -Path $reportDirectory -Force | Out-Null
+          $reportPath = Join-Path $reportDirectory 'PLAY-WACK-report.xml'
+
+          & $appCert reset
+          if ($LASTEXITCODE -ne 0) {
+            throw "appcert reset failed with exit code $LASTEXITCODE."
+          }
+
+          & $appCert test -appxpackagepath $package.FullName -reportoutputpath $reportPath
+          $appCertExitCode = $LASTEXITCODE
+
+          if (-not (Test-Path -LiteralPath $reportPath -PathType Leaf)) {
+            throw "WACK did not produce a report (appcert exit code $appCertExitCode)."
+          }
+
+          $report = Select-Xml -XPath '//REPORT' -Path $reportPath | Select-Object -First 1
+          if (-not $report) {
+            throw 'WACK report does not contain a REPORT element.'
+          }
+
+          $overallResult = [string]$report.Node.OVERALL_RESULT
+          $tests = @(Select-Xml -XPath '//TEST' -Path $reportPath)
+          $failedTests = @($tests | Where-Object { [string]$_.Node.Result.InnerText -eq 'FAIL' })
+
+          Write-Host "WACK overall result: $overallResult"
+          Write-Host "WACK tests: $($tests.Count), failed: $($failedTests.Count)"
+          foreach ($failedTest in $failedTests) {
+            Write-Host "::error::WACK FAIL [$($failedTest.Node.Index)] $($failedTest.Node.Description)"
+          }
+
+          if ($appCertExitCode -ne 0 -or $overallResult -ne 'PASS' -or $failedTests.Count -gt 0) {
+            throw "Windows App Certification Kit failed. Report: $reportPath"
+          }
+
+      - name: Upload WACK report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PLAY-WACK-report
+          path: artifacts/wack/PLAY-WACK-report.xml
+          if-no-files-found: warn
+          retention-days: 30
