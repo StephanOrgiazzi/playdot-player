@@ -26,24 +26,27 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
 }
 
 if ($Version -notmatch '^(\d+)\.(\d+)\.(\d+)$') {
-  throw "Version '$Version' must contain exactly three numeric components, such as 0.16.0."
+  throw "Version '$Version' must contain exactly three numeric components, such as 1.16.0."
 }
 
 $appMajor = [int]$Matches[1]
 $appMinor = [int]$Matches[2]
 $appPatch = [int]$Matches[3]
-$packageMajor = $appMajor + 1
 
-foreach ($component in @($packageMajor, $appMinor, $appPatch)) {
+if ($appMajor -lt 1) {
+  throw "Microsoft Store package versions require a non-zero major version. Use PLAY. 1.x or later."
+}
+
+foreach ($component in @($appMajor, $appMinor, $appPatch)) {
   if ($component -lt 0 -or $component -gt 65535) {
     throw "Version '$Version' cannot be mapped to a valid Microsoft Store package version."
   }
 }
 
-# The Store requires a four-part package version whose first component is non-zero
-# and reserves the fourth component. Offset the semantic major by one so pre-1.0
-# PLAY. versions remain monotonic: 0.16.0 -> 1.16.0.0, 1.0.0 -> 2.0.0.0.
-$packageVersion = "$packageMajor.$appMinor.$appPatch.0"
+# Keep PLAY.'s public semantic version identical to the first three MSIX
+# components. Microsoft requires a four-part package version and reserves
+# the fourth component, so PLAY. 1.16.0 maps directly to MSIX 1.16.0.0.
+$packageVersion = "$appMajor.$appMinor.$appPatch.0"
 
 if (-not $SkipBuild) {
   & bun run setup-lib

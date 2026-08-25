@@ -1,6 +1,6 @@
 # Releasing PLAY.
 
-## Versioning before 1.0
+## Versioning
 
 - Publish a minor release for a meaningful batch of user-visible capabilities or behavior changes.
 - Publish a patch release for corrections to the latest supported release.
@@ -38,7 +38,7 @@ Partner Center identity used by the package:
 - Package/Properties/PublisherDisplayName: `Dev Jam Studio`
 - Store ID: `9NXXT91JCTHX`
 
-The Store package version is derived from PLAY.'s semantic version by adding one to the semantic major and reserving the fourth component for Store use. For example, PLAY. `0.16.0` produces package version `1.16.0.0`, and PLAY. `1.0.0` produces `2.0.0.0`.
+The Store package keeps PLAY.'s semantic version unchanged in its first three components and reserves the fourth component for Store use. For example, PLAY. `1.16.0` produces package version `1.16.0.0`. Store builds require PLAY. `1.x` or later because Microsoft package versions cannot start with zero.
 
 Build locally on Windows with the Windows SDK installed:
 
