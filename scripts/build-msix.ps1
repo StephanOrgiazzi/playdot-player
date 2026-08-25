@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
   [string]$Version,
-  [string]$OutputDirectory = (Join-Path $PSScriptRoot '..\artifacts\msix'),
+  [string]$OutputDirectory,
   [switch]$SkipBuild
 )
 
@@ -10,6 +10,10 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 $projectRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $projectRoot
+
+if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
+  $OutputDirectory = Join-Path $projectRoot 'artifacts\msix'
+}
 
 $identityName = 'DevJamStudio.622382E8743A9'
 $publisher = 'CN=300C6CAC-B727-40B2-8FF0-4C00EBAF31D9'
