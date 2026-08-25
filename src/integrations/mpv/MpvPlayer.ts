@@ -10,6 +10,7 @@ import {
 } from "./config";
 import { toggleFsrShaders } from "./fsr";
 import { MpvThumbnailer } from "./MpvThumbnailer";
+import { getNextPauseForTransportToggle } from "./playbackControl";
 import { applyObservedProperty } from "./stateUpdates";
 import { getNextAudioTrackSelection, getNextSubtitleTrackSelection } from "./tracks";
 import { setVideoViewportHidden } from "./videoViewport";
@@ -252,8 +253,7 @@ export class MpvPlayer {
 
   async togglePlayPause(): Promise<void> {
     const confirmedPaused = await this.readPlayerFlag("pause");
-    const playbackBlocked = this.state.pausedForCache || this.state.coreIdle;
-    const nextPause = playbackBlocked ? false : !(confirmedPaused ?? this.state.paused);
+    const nextPause = getNextPauseForTransportToggle(this.state, confirmedPaused);
     await this.setPlayerFlag("pause", nextPause);
   }
 
