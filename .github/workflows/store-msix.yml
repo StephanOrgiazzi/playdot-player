@@ -11,6 +11,18 @@ on:
       - "shaders/**"
       - "package.json"
       - "bun.lock"
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/store-msix.yml"
+      - "packaging/msix/**"
+      - "scripts/**"
+      - "src-tauri/**"
+      - "src/**"
+      - "shaders/**"
+      - "package.json"
+      - "bun.lock"
   workflow_dispatch:
 
 permissions:
