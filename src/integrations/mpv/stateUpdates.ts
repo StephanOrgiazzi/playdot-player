@@ -41,68 +41,48 @@ function getNumberOrZero(value: MpvNodeValue | undefined): number {
   return isMpvNumber(value) ? value : 0;
 }
 
+function updateField<Key extends keyof PlayerState>(
+  state: PlayerState,
+  key: Key,
+  value: PlayerState[Key],
+): PlayerState {
+  return value === state[key] ? state : { ...state, [key]: value };
+}
+
+type PropertyUpdater = (state: PlayerState, value: MpvNodeValue | undefined) => PlayerState;
+
+const PROPERTY_UPDATERS = {
+  pause: (state, value) => updateField(state, "paused", isMpvBoolean(value) ? value : false),
+  "paused-for-cache": (state, value) =>
+    updateField(state, "pausedForCache", isMpvBoolean(value) ? value : false),
+  "core-idle": (state, value) =>
+    updateField(state, "coreIdle", isMpvBoolean(value) ? value : false),
+  "eof-reached": (state, value) =>
+    updateField(state, "eofReached", isMpvBoolean(value) ? value : false),
+  "time-pos": (state, value) => updateField(state, "timePos", getNumberOrZero(value)),
+  duration: (state, value) => updateField(state, "duration", getNumberOrZero(value)),
+  volume: (state, value) => updateField(state, "volume", isMpvNumber(value) ? value : state.volume),
+  mute: (state, value) => updateField(state, "mute", isMpvBoolean(value) ? value : state.mute),
+  speed: (state, value) =>
+    updateField(state, "playbackSpeed", isMpvNumber(value) ? value : state.playbackSpeed),
+  filename: (state, value) => updateField(state, "filename", isMpvString(value) ? value : ""),
+  aid: (state, value) =>
+    updateField(state, "selectedAudioTrackId", isMpvNumber(value) ? value : null),
+  sid: (state, value) =>
+    updateField(state, "selectedSubtitleTrackId", isMpvNumber(value) ? value : null),
+  "track-list": (state, value) => {
+    const tracks = parseTracks(value);
+    return tracksAreEqual(state.tracks, tracks) ? state : { ...state, tracks };
+  },
+} satisfies Readonly<Record<string, PropertyUpdater>>;
+
+function hasPropertyUpdater(name: string): name is keyof typeof PROPERTY_UPDATERS {
+  return Object.hasOwn(PROPERTY_UPDATERS, name);
+}
+
 export function applyObservedProperty(
   state: PlayerState,
   event: MpvObservedPropertyEvent,
 ): PlayerState {
-  switch (event.name) {
-    case "pause": {
-      const paused = isMpvBoolean(event.data) ? event.data : false;
-      return paused === state.paused ? state : { ...state, paused };
-    }
-    case "paused-for-cache": {
-      const pausedForCache = isMpvBoolean(event.data) ? event.data : false;
-      return pausedForCache === state.pausedForCache ? state : { ...state, pausedForCache };
-    }
-    case "core-idle": {
-      const coreIdle = isMpvBoolean(event.data) ? event.data : false;
-      return coreIdle === state.coreIdle ? state : { ...state, coreIdle };
-    }
-    case "eof-reached": {
-      const eofReached = isMpvBoolean(event.data) ? event.data : false;
-      return eofReached === state.eofReached ? state : { ...state, eofReached };
-    }
-    case "time-pos": {
-      const timePos = getNumberOrZero(event.data);
-      return timePos === state.timePos ? state : { ...state, timePos };
-    }
-    case "duration": {
-      const duration = getNumberOrZero(event.data);
-      return duration === state.duration ? state : { ...state, duration };
-    }
-    case "volume": {
-      const volume = isMpvNumber(event.data) ? event.data : state.volume;
-      return volume === state.volume ? state : { ...state, volume };
-    }
-    case "mute": {
-      const mute = isMpvBoolean(event.data) ? event.data : state.mute;
-      return mute === state.mute ? state : { ...state, mute };
-    }
-    case "speed": {
-      const playbackSpeed = isMpvNumber(event.data) ? event.data : state.playbackSpeed;
-      return playbackSpeed === state.playbackSpeed ? state : { ...state, playbackSpeed };
-    }
-    case "filename": {
-      const filename = isMpvString(event.data) ? event.data : "";
-      return filename === state.filename ? state : { ...state, filename };
-    }
-    case "aid": {
-      const selectedAudioTrackId = isMpvNumber(event.data) ? event.data : null;
-      return selectedAudioTrackId === state.selectedAudioTrackId
-        ? state
-        : { ...state, selectedAudioTrackId };
-    }
-    case "sid": {
-      const selectedSubtitleTrackId = isMpvNumber(event.data) ? event.data : null;
-      return selectedSubtitleTrackId === state.selectedSubtitleTrackId
-        ? state
-        : { ...state, selectedSubtitleTrackId };
-    }
-    case "track-list": {
-      const tracks = parseTracks(event.data);
-      return tracksAreEqual(state.tracks, tracks) ? state : { ...state, tracks };
-    }
-    default:
-      return state;
-  }
+  return hasPropertyUpdater(event.name) ? PROPERTY_UPDATERS[event.name](state, event.data) : state;
 }

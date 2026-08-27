@@ -27,7 +27,7 @@ export type MpvConfig = {
   observedProperties?: readonly MpvObservableProperty[];
 };
 
-export type MpvEvent = {
+type MpvEvent = {
   event: string;
   name?: string;
   data?: MpvNodeValue;
@@ -125,7 +125,7 @@ export async function command(
   );
 }
 
-export async function listenEvents(
+async function listenEvents(
   callback: (event: MpvEvent) => void,
   windowLabel?: string,
 ): Promise<UnlistenFn> {

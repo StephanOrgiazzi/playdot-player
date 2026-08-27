@@ -1,6 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/config-schema.json",
-  "ignoreDependencies": ["@tauri-apps/plugin-log"],
+  "ignorePatterns": ["tools/oxlint/**"],
+  "ignoreDependencies": ["@oxlint/plugins", "@tauri-apps/plugin-log"],
   "usedClassMembers": [
     "start",
     "setSvpEnabled",

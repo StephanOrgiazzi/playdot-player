@@ -11,8 +11,10 @@ import type { MediaTrack } from "@features/player/model/playerState";
 import { PlayerIcon } from "@features/player/ui/PlayerIcons";
 import type { PlayerAction, TrackSelectionAction } from "@features/player/model/types";
 import { CONTEXT_MENU_SUBMENU_WIDTH, CONTEXT_MENU_WIDTH } from "./constants";
+import { EnhancementMenuItems } from "./EnhancementMenuItems";
 import { InterfaceMenuItems } from "./InterfaceMenuItems";
 import { MenuActionItem } from "./MenuActionItem";
+import { PlaybackOptionsSubmenu } from "./PlaybackOptionsSubmenu";
 import { useSubmenuViewportStyle } from "./useSubmenuViewportStyle";
 
 type PlayerContextMenuProps = {
@@ -63,152 +65,6 @@ function getTrackDisplayLabel(track: MediaTrack): string {
 
 function keepWheelInsideSubmenu(event: WheelEvent<HTMLDivElement>): void {
   event.stopPropagation();
-}
-
-type PlaybackOptionsSubmenuProps = {
-  hasMedia: boolean;
-  hasVideo: boolean;
-  isSubmenuOpenLeft: boolean;
-  isPlaybackSubmenuOpen: boolean;
-  runAction: (action: PlayerAction) => void;
-  setIsPlaybackSubmenuOpen: Dispatch<SetStateAction<boolean>>;
-  speedUpPlayback: PlayerAction;
-  slowDownPlayback: PlayerAction;
-  zoomIn: PlayerAction;
-  zoomOut: PlayerAction;
-  increaseGamma: PlayerAction;
-  decreaseGamma: PlayerAction;
-  increaseSubtitleScale: PlayerAction;
-  decreaseSubtitleScale: PlayerAction;
-};
-
-function PlaybackOptionsSubmenu({
-  hasMedia,
-  hasVideo,
-  isSubmenuOpenLeft,
-  isPlaybackSubmenuOpen,
-  runAction,
-  setIsPlaybackSubmenuOpen,
-  speedUpPlayback,
-  slowDownPlayback,
-  zoomIn,
-  zoomOut,
-  increaseGamma,
-  decreaseGamma,
-  increaseSubtitleScale,
-  decreaseSubtitleScale,
-}: PlaybackOptionsSubmenuProps): JSX.Element {
-  const { panelRef, panelStyle } = useSubmenuViewportStyle(isPlaybackSubmenuOpen && hasMedia);
-
-  return (
-    <div
-      className={`player-context-menu__submenu-group${isPlaybackSubmenuOpen ? " is-open" : ""}${
-        isSubmenuOpenLeft ? " is-open-left" : ""
-      }`}
-      onPointerEnter={(): void => {
-        setIsPlaybackSubmenuOpen(true);
-      }}
-      onPointerLeave={(): void => {
-        setIsPlaybackSubmenuOpen(false);
-      }}
-      onFocusCapture={(): void => {
-        setIsPlaybackSubmenuOpen(true);
-      }}
-      onBlurCapture={(event): void => {
-        if (!event.currentTarget.contains(event.relatedTarget)) {
-          setIsPlaybackSubmenuOpen(false);
-        }
-      }}
-    >
-      <button
-        className={`player-context-menu__item player-context-menu__item--submenu${
-          isSubmenuOpenLeft ? " is-open-left" : ""
-        }`}
-        type="button"
-        role="menuitem"
-        aria-haspopup="menu"
-        aria-expanded={isPlaybackSubmenuOpen}
-        disabled={!hasMedia}
-        onClick={(): void => {
-          setIsPlaybackSubmenuOpen((current) => !current);
-        }}
-      >
-        <span className="player-context-menu__item-label">Playback Options</span>
-      </button>
-      {isPlaybackSubmenuOpen && hasMedia ? (
-        <div
-          ref={panelRef}
-          className={`player-context-menu__submenu-panel${isSubmenuOpenLeft ? " is-open-left" : ""}`}
-          role="menu"
-          style={panelStyle}
-          onWheel={keepWheelInsideSubmenu}
-        >
-          <MenuActionItem
-            label="Speed Up"
-            shortcut="Ctrl+Right"
-            disabled={!hasMedia}
-            onClick={(): void => {
-              runAction(speedUpPlayback);
-            }}
-          />
-          <MenuActionItem
-            label="Slow Down"
-            shortcut="Ctrl+Left"
-            disabled={!hasMedia}
-            onClick={(): void => {
-              runAction(slowDownPlayback);
-            }}
-          />
-          {hasVideo ? (
-            <>
-              <MenuActionItem
-                label="Zoom In"
-                shortcut="Ctrl++"
-                onClick={(): void => {
-                  runAction(zoomIn);
-                }}
-              />
-              <MenuActionItem
-                label="Zoom Out"
-                shortcut="Ctrl+-"
-                onClick={(): void => {
-                  runAction(zoomOut);
-                }}
-              />
-              <MenuActionItem
-                label="Increase Gamma"
-                shortcut="Alt+Right"
-                onClick={(): void => {
-                  runAction(increaseGamma);
-                }}
-              />
-              <MenuActionItem
-                label="Decrease Gamma"
-                shortcut="Alt+Left"
-                onClick={(): void => {
-                  runAction(decreaseGamma);
-                }}
-              />
-              <MenuActionItem
-                label="Increase Subtitle Size"
-                shortcut="Ctrl+Up"
-                onClick={(): void => {
-                  runAction(increaseSubtitleScale);
-                }}
-              />
-              <MenuActionItem
-                label="Decrease Subtitle Size"
-                shortcut="Ctrl+Down"
-                onClick={(): void => {
-                  runAction(decreaseSubtitleScale);
-                }}
-              />
-            </>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 type TrackSelectionSubmenuProps = {
@@ -327,6 +183,74 @@ function TrackSelectionSubmenu({
   );
 }
 
+type TrackMenuItemsProps = Pick<
+  PlayerContextMenuProps,
+  | "hasMedia"
+  | "hasVideo"
+  | "audioTrackLabel"
+  | "subtitleTrackLabel"
+  | "audioTracks"
+  | "subtitleTracks"
+  | "selectAudioTrack"
+  | "selectSubtitleTrack"
+> & {
+  isSubmenuOpenLeft: boolean;
+  isAudioTracksSubmenuOpen: boolean;
+  isSubtitleTracksSubmenuOpen: boolean;
+  runAction: (action: PlayerAction) => void;
+  setIsAudioTracksSubmenuOpen: Dispatch<SetStateAction<boolean>>;
+  setIsSubtitleTracksSubmenuOpen: Dispatch<SetStateAction<boolean>>;
+};
+
+function TrackMenuItems({
+  hasMedia,
+  hasVideo,
+  audioTrackLabel,
+  subtitleTrackLabel,
+  audioTracks,
+  subtitleTracks,
+  selectAudioTrack,
+  selectSubtitleTrack,
+  isSubmenuOpenLeft,
+  isAudioTracksSubmenuOpen,
+  isSubtitleTracksSubmenuOpen,
+  runAction,
+  setIsAudioTracksSubmenuOpen,
+  setIsSubtitleTracksSubmenuOpen,
+}: TrackMenuItemsProps): JSX.Element {
+  return (
+    <>
+      <TrackSelectionSubmenu
+        buttonLabel={audioTrackLabel}
+        shortcut="A"
+        hasMedia={hasMedia}
+        isSubmenuOpenLeft={isSubmenuOpenLeft}
+        isOpen={isAudioTracksSubmenuOpen}
+        tracks={audioTracks}
+        selectedTrackId={audioTracks.find((track) => track.selected)?.id ?? null}
+        onSelect={selectAudioTrack}
+        runAction={runAction}
+        setIsOpen={setIsAudioTracksSubmenuOpen}
+      />
+      {hasVideo ? (
+        <TrackSelectionSubmenu
+          buttonLabel={subtitleTrackLabel}
+          shortcut="S"
+          hasMedia={hasMedia}
+          isSubmenuOpenLeft={isSubmenuOpenLeft}
+          isOpen={isSubtitleTracksSubmenuOpen}
+          tracks={subtitleTracks}
+          selectedTrackId={subtitleTracks.find((track) => track.selected)?.id ?? null}
+          includeOffOption
+          onSelect={selectSubtitleTrack}
+          runAction={runAction}
+          setIsOpen={setIsSubtitleTracksSubmenuOpen}
+        />
+      ) : null}
+    </>
+  );
+}
+
 export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuProps>(
   function PlayerContextMenu(
     {
@@ -417,85 +341,37 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
           increaseSubtitleScale={increaseSubtitleScale}
           decreaseSubtitleScale={decreaseSubtitleScale}
         />
-        {hasVideo ? (
-          <MenuActionItem
-            label="Upscale"
-            shortcut="U"
-            onClick={(): void => {
-              runAction(toggleFsr);
-            }}
-            icon={isFsrEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null}
-          />
-        ) : null}
-        {hasVideo ? (
-          <MenuActionItem
-            label="Audio Normalizer"
-            shortcut="N"
-            role="menuitemcheckbox"
-            ariaChecked={isAudioNormalizerEnabled}
-            onClick={(): void => {
-              runAction(toggleAudioNormalizer);
-            }}
-            icon={
-              isAudioNormalizerEnabled ? (
-                <PlayerIcon name="check" className="icon icon--xs" />
-              ) : null
-            }
-          />
-        ) : null}
-        <MenuActionItem
-          label="Stereo Downmix"
-          shortcut="D"
-          role="menuitemcheckbox"
-          ariaChecked={isStereoDownmixEnabled}
-          disabled={!hasMedia}
-          onClick={(): void => {
-            runAction(toggleStereoDownmix);
-          }}
-          icon={
-            isStereoDownmixEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null
-          }
-        />
-        {hasVideo && isSvpAvailable ? (
-          <MenuActionItem
-            label="Use Installed SVP"
-            role="menuitemcheckbox"
-            ariaChecked={isSvpEnabled}
-            disabled={!hasMedia}
-            onClick={(): void => {
-              runAction(toggleSvp);
-            }}
-            icon={isSvpEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null}
-          />
-        ) : null}
-        <div className="player-context-menu__separator" aria-hidden="true" />
-        <TrackSelectionSubmenu
-          buttonLabel={audioTrackLabel}
-          shortcut="A"
+        <EnhancementMenuItems
           hasMedia={hasMedia}
-          isSubmenuOpenLeft={isSubmenuOpenLeft}
-          isOpen={isAudioTracksSubmenuOpen}
-          tracks={audioTracks}
-          selectedTrackId={audioTracks.find((track) => track.selected)?.id ?? null}
-          onSelect={selectAudioTrack}
+          hasVideo={hasVideo}
+          isFsrEnabled={isFsrEnabled}
+          isAudioNormalizerEnabled={isAudioNormalizerEnabled}
+          isStereoDownmixEnabled={isStereoDownmixEnabled}
+          isSvpAvailable={isSvpAvailable}
+          isSvpEnabled={isSvpEnabled}
+          toggleFsr={toggleFsr}
+          toggleAudioNormalizer={toggleAudioNormalizer}
+          toggleStereoDownmix={toggleStereoDownmix}
+          toggleSvp={toggleSvp}
           runAction={runAction}
-          setIsOpen={setIsAudioTracksSubmenuOpen}
         />
-        {hasVideo ? (
-          <TrackSelectionSubmenu
-            buttonLabel={subtitleTrackLabel}
-            shortcut="S"
-            hasMedia={hasMedia}
-            isSubmenuOpenLeft={isSubmenuOpenLeft}
-            isOpen={isSubtitleTracksSubmenuOpen}
-            tracks={subtitleTracks}
-            selectedTrackId={subtitleTracks.find((track) => track.selected)?.id ?? null}
-            includeOffOption
-            onSelect={selectSubtitleTrack}
-            runAction={runAction}
-            setIsOpen={setIsSubtitleTracksSubmenuOpen}
-          />
-        ) : null}
+        <div className="player-context-menu__separator" aria-hidden="true" />
+        <TrackMenuItems
+          hasMedia={hasMedia}
+          hasVideo={hasVideo}
+          audioTrackLabel={audioTrackLabel}
+          subtitleTrackLabel={subtitleTrackLabel}
+          audioTracks={audioTracks}
+          subtitleTracks={subtitleTracks}
+          selectAudioTrack={selectAudioTrack}
+          selectSubtitleTrack={selectSubtitleTrack}
+          isSubmenuOpenLeft={isSubmenuOpenLeft}
+          isAudioTracksSubmenuOpen={isAudioTracksSubmenuOpen}
+          isSubtitleTracksSubmenuOpen={isSubtitleTracksSubmenuOpen}
+          runAction={runAction}
+          setIsAudioTracksSubmenuOpen={setIsAudioTracksSubmenuOpen}
+          setIsSubtitleTracksSubmenuOpen={setIsSubtitleTracksSubmenuOpen}
+        />
         <div className="player-context-menu__separator" aria-hidden="true" />
         <InterfaceMenuItems
           isFullscreen={isFullscreen}

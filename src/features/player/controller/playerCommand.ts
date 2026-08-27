@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { Effect, Queue, Schema, Stream } from "effect";
 
-export class PlayerCommandError extends Schema.TaggedErrorClass<PlayerCommandError>()(
+class PlayerCommandError extends Schema.TaggedErrorClass<PlayerCommandError>()(
   "PlayerCommand.Error",
   {
     fallbackMessage: Schema.String,

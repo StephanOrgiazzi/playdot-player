@@ -45,7 +45,7 @@ export const AUDIO_NORMALIZER_FILTER = "lavfi=[loudnorm=I=-16:TP=-1.5:LRA=11]";
 const NETWORK_SOURCE_PROTOCOLS = /^(?:https?|ftp|ftps|rtmps?|rtsp|rtsps|srt|udp|tcp|smb):\/\//i;
 const UPSCALE_SHADER_FALLBACK_DIRECTORIES = [["lib", "shaders"], ["shaders"], ["_up_", "shaders"]];
 
-export const MPV_STREAM_LOAD_OPTIONS = {
+const MPV_STREAM_LOAD_OPTIONS = {
   cache: "yes",
   "cache-secs": "120",
   "cache-pause": "yes",
@@ -71,7 +71,7 @@ const MPV_THUMBNAIL_STREAM_LOAD_OPTIONS = {
   "demuxer-max-bytes": "16MiB",
 } as const satisfies MpvPerFileOptions;
 
-export function isMpvNetworkSource(source: string): boolean {
+function isMpvNetworkSource(source: string): boolean {
   return NETWORK_SOURCE_PROTOCOLS.test(source.trim());
 }
 
