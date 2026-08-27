@@ -226,6 +226,16 @@ export function createMpvThumbnailConfig(
   target: MpvThumbnailTarget,
   initialSeek: MpvThumbnailSeek,
 ): MpvConfig {
+  const videoFilter = [
+    "zscale=transfer=linear:npl=100",
+    "format=gbrpf32le",
+    "tonemap=tonemap=mobius:desat=2",
+    "zscale=primaries=bt709:transfer=iec61966-2-1",
+    `scale=w=${target.width}:h=${target.height}:flags=lanczos:force_original_aspect_ratio=decrease:reset_sar=1`,
+    `pad=w=${target.width}:h=${target.height}:x=(ow-iw)/2:y=(oh-ih)/2:color=black`,
+    "format=bgra",
+  ].join(",");
+
   return {
     initialOptions: {
       idle: "yes",
@@ -242,13 +252,7 @@ export function createMpvThumbnailConfig(
       "vd-lavc-skiploopfilter": "all",
       "vd-lavc-fast": "yes",
       "vd-lavc-threads": 2,
-      "sws-scaler": "fast-bilinear",
-      "target-trc": "srgb",
-      "target-prim": "bt.709",
-      "tone-mapping": "bt.2390",
-      "hdr-compute-peak": "yes",
-      "hdr-peak-decay-rate": 0,
-      vf: `gpu=api=vulkan:w=${target.width}:h=${target.height},format=fmt=bgra`,
+      vf: `lavfi=[${videoFilter}]`,
       ovc: "rawvideo",
       of: "image2",
       ofopts: "update=1",
