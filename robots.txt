@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://stephanorgiazzi.github.io/playdot-player/sitemap-index.xml
