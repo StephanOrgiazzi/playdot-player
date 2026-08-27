@@ -13,6 +13,9 @@
   --control-active: rgba(255, 255, 255, 0.18);
   --window-hover: rgba(255, 255, 255, 0.1);
   --window-close-hover: #e81123;
+  --window-frame-width: 8px;
+  --window-frame-radius: 24px;
+  --window-frame-bg: #000;
   --error: #ff7b72;
 }
 
@@ -96,6 +99,32 @@ button {
   overflow: hidden;
   background: transparent;
   animation: window-enter 260ms ease-out;
+}
+
+.app-shell.is-modern-interface:not(.is-fullscreen):not(.is-maximized) {
+  padding: var(--window-frame-width);
+}
+
+.app-shell.is-modern-interface:not(.is-fullscreen):not(.is-maximized)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  border: var(--window-frame-width) solid var(--window-frame-bg);
+  border-radius: var(--window-frame-radius);
+  pointer-events: none;
+}
+
+.app-shell.is-modern-interface:not(.is-fullscreen):not(.is-maximized) .stage {
+  border-radius: calc(var(--window-frame-radius) - var(--window-frame-width));
+}
+
+.app-shell.is-modern-interface:not(.is-fullscreen):not(.is-maximized) .titlebar {
+  top: 6px;
+}
+
+.app-shell.is-modern-interface:not(.is-fullscreen):not(.is-maximized) .window-controls {
+  padding-right: 4px;
 }
 
 .app-shell.is-empty {

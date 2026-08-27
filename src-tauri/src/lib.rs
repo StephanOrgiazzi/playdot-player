@@ -2,18 +2,42 @@ mod audio_artwork;
 mod launch;
 mod svp;
 mod thumbnail_frame;
+#[cfg(windows)]
+mod window_frame;
 
 use tauri::{Emitter, Manager};
+
+#[tauri::command]
+fn set_modern_interface_enabled(window: tauri::Window, enabled: bool) -> Result<(), String> {
+    #[cfg(windows)]
+    return window_frame::set_enabled(&window, enabled);
+
+    #[cfg(not(windows))]
+    {
+        let _ = (window, enabled);
+        Ok(())
+    }
+}
 
 pub fn run() {
     tauri::Builder::default()
         .manage(audio_artwork::AudioArtwork::default())
         .on_page_load(|webview, payload| {
             if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                #[cfg(windows)]
+                let _ = window_frame::sync(&webview.window());
                 let _ = webview.window().show();
             }
         })
         .on_window_event(|window, event| {
+            #[cfg(windows)]
+            if matches!(
+                event,
+                tauri::WindowEvent::Resized(_) | tauri::WindowEvent::ScaleFactorChanged { .. }
+            ) {
+                let _ = window_frame::sync(window);
+            }
+
             if matches!(event, tauri::WindowEvent::CloseRequested { .. }) {
                 let _ = window.hide();
             }
@@ -41,7 +65,8 @@ pub fn run() {
             thumbnail_frame::create_thumbnail_target,
             thumbnail_frame::discard_thumbnail_frame,
             thumbnail_frame::promote_thumbnail_frame,
-            thumbnail_frame::remove_thumbnail_target
+            thumbnail_frame::remove_thumbnail_target,
+            set_modern_interface_enabled
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

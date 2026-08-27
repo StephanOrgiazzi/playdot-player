@@ -11,7 +11,7 @@ type UsePlayerLifecycleOptions = {
   player: MpvPlayer;
   appWindow: Window;
   setError: StateSetter<string>;
-  syncWindowState: () => Promise<void>;
+  syncWindowState: () => Effect.Effect<void, unknown>;
   beforeStart?: () => Promise<void>;
 };
 
@@ -194,11 +194,17 @@ export function usePlayerLifecycle({
         );
         yield* Stream.fromQueue(windowResizes).pipe(
           Stream.runForEach(() =>
-            lifecyclePromise(
-              "synchronize window state",
-              "Failed to synchronize window state",
-              syncWindowState,
-            ).pipe(Effect.catch(reportFailure)),
+            syncWindowState().pipe(
+              Effect.mapError(
+                (cause) =>
+                  new PlayerLifecycleError({
+                    operation: "synchronize window state",
+                    displayMessage: "Failed to synchronize window state",
+                    cause,
+                  }),
+              ),
+              Effect.catch(reportFailure),
+            ),
           ),
           Effect.forkScoped,
         );

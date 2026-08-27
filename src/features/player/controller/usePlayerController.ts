@@ -1,11 +1,13 @@
 import { useCallback, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { Effect } from "effect";
 import { AUTO_HIDE_DELAY_MS } from "@features/playerChrome/constants";
 import type { TitlebarPointerDown } from "@features/playerChrome/types";
 import { useBlurActiveControlWhenChromeHidden } from "@features/playerChrome/useBlurActiveControlWhenChromeHidden";
 import { useAutoHiddenFlag } from "@features/playerChrome/useAutoHiddenFlag";
 import { useTitlebarDrag } from "@features/playerChrome/useTitlebarDrag";
+import { useModernInterface } from "@features/playerChrome/useModernInterface";
 import { useGlobalShortcuts } from "@features/shortcuts/useGlobalShortcuts";
 import type { ToastState } from "@features/toaster/types";
 import { useToastAutoHide } from "@features/toaster/useToastEffects";
@@ -24,6 +26,15 @@ import { playerCommand, runPlayerCommand } from "./playerCommand";
 
 const appWindow = getCurrentWindow();
 const appWebview = getCurrentWebview();
+const readWindowState = Effect.fn("WindowState.read")(() =>
+  Effect.all(
+    {
+      isFullscreen: Effect.tryPromise(() => appWindow.isFullscreen()),
+      isMaximized: Effect.tryPromise(() => appWindow.isMaximized()),
+    },
+    { concurrency: "unbounded" },
+  ),
+);
 const withPlayerFocusRestore = async <T>(task: () => Promise<T>): Promise<T> => {
   try {
     return await task();
@@ -101,13 +112,25 @@ function useTitlebarInteractions({
 
 function useWindowStateSync() {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
 
-  const syncWindowState = useCallback(async (): Promise<void> => {
-    setIsFullscreen(await appWindow.isFullscreen());
-  }, []);
+  const syncWindowState = useCallback(
+    () =>
+      readWindowState().pipe(
+        Effect.tap(({ isFullscreen, isMaximized }) =>
+          Effect.sync(() => {
+            setIsFullscreen(isFullscreen);
+            setIsMaximized(isMaximized);
+          }),
+        ),
+        Effect.asVoid,
+      ),
+    [],
+  );
 
   return {
     isFullscreen,
+    isMaximized,
     syncWindowState,
   };
 }
@@ -115,7 +138,8 @@ function useWindowStateSync() {
 export function usePlayerController(): PlayerScreenProps {
   const [error, setError] = useState("");
   const [toast, setToast] = useState<ToastState | null>(null);
-  const { isFullscreen, syncWindowState } = useWindowStateSync();
+  const { isFullscreen, isMaximized, syncWindowState } = useWindowStateSync();
+  const { isModernInterfaceEnabled, toggleModernInterface } = useModernInterface(setError);
   const { isControlDockHovered, handleControlDockMouseEnter, handleControlDockMouseLeave } =
     useControlDockHoverState();
   const {
@@ -223,7 +247,7 @@ export function usePlayerController(): PlayerScreenProps {
     runCommand("Failed to toggle fullscreen", async () => {
       const next = !(await appWindow.isFullscreen());
       await appWindow.setFullscreen(next);
-      await syncWindowState();
+      await Effect.runPromise(syncWindowState());
     });
   }, [runCommand, syncWindowState]);
   const requestTimelineThumbnail = useCallback((value: number): void => {
@@ -296,6 +320,8 @@ export function usePlayerController(): PlayerScreenProps {
     error,
     toast,
     isFullscreen,
+    isMaximized,
+    isModernInterfaceEnabled,
     isFsrEnabled,
     isAudioNormalizerEnabled,
     isStereoDownmixEnabled,
@@ -324,6 +350,7 @@ export function usePlayerController(): PlayerScreenProps {
     toggleAudioNormalizer,
     toggleStereoDownmix,
     toggleSvp,
+    toggleModernInterface,
     toggleFullscreen,
     handleTitlebarMouseDown,
     handleTitlePillClick,

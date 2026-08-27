@@ -11,6 +11,7 @@ import type { MediaTrack } from "@features/player/model/playerState";
 import { PlayerIcon } from "@features/player/ui/PlayerIcons";
 import type { PlayerAction, TrackSelectionAction } from "@features/player/model/types";
 import { CONTEXT_MENU_SUBMENU_WIDTH, CONTEXT_MENU_WIDTH } from "./constants";
+import { InterfaceMenuItems } from "./InterfaceMenuItems";
 import { MenuActionItem } from "./MenuActionItem";
 import { useSubmenuViewportStyle } from "./useSubmenuViewportStyle";
 
@@ -24,6 +25,7 @@ type PlayerContextMenuProps = {
   isSvpAvailable: boolean;
   isSvpEnabled: boolean;
   isFullscreen: boolean;
+  isModernInterfaceEnabled: boolean;
   onClose: () => void;
   showOpenUrlDialog: PlayerAction;
   slowDownPlayback: PlayerAction;
@@ -44,6 +46,7 @@ type PlayerContextMenuProps = {
   toggleAudioNormalizer: PlayerAction;
   toggleStereoDownmix: PlayerAction;
   toggleSvp: PlayerAction;
+  toggleModernInterface: PlayerAction;
   toggleFullscreen: PlayerAction;
 };
 
@@ -336,6 +339,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
       isSvpAvailable,
       isSvpEnabled,
       isFullscreen,
+      isModernInterfaceEnabled,
       onClose,
       showOpenUrlDialog,
       slowDownPlayback,
@@ -356,6 +360,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
       toggleAudioNormalizer,
       toggleStereoDownmix,
       toggleSvp,
+      toggleModernInterface,
       toggleFullscreen,
     },
     ref,
@@ -492,19 +497,13 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
           />
         ) : null}
         <div className="player-context-menu__separator" aria-hidden="true" />
-        <button
-          className="player-context-menu__item"
-          type="button"
-          role="menuitem"
-          onClick={(): void => {
-            runAction(toggleFullscreen);
-          }}
-        >
-          <span className="player-context-menu__item-label">
-            {isFullscreen ? "Exit Full Screen" : "Enter Full Screen"}
-          </span>
-          <span className="player-context-menu__item-shortcut">Alt+Enter</span>
-        </button>
+        <InterfaceMenuItems
+          isFullscreen={isFullscreen}
+          isModernInterfaceEnabled={isModernInterfaceEnabled}
+          runAction={runAction}
+          toggleFullscreen={toggleFullscreen}
+          toggleModernInterface={toggleModernInterface}
+        />
       </div>
     );
   },

@@ -2923,6 +2923,7 @@ dependencies = [
  "tauri-plugin-libmpv",
  "tauri-plugin-log",
  "tauri-plugin-single-instance",
+ "windows",
 ]
 
 [[package]]

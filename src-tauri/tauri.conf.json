@@ -14,13 +14,14 @@
     "windows": [
       {
         "title": "PLAY.",
-        "width": 1400,
-        "height": 840,
+        "width": 1440,
+        "height": 817,
         "minWidth": 800,
         "minHeight": 500,
         "visible": false,
         "decorations": false,
         "resizable": true,
+        "shadow": false,
         "transparent": true,
         "backgroundColor": "#000000",
         "center": true
