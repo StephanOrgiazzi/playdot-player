@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, type Dispatch, type SetStateAction } from "react";
-import { Effect, FiberSet, Queue, Schema, Semaphore, Stream } from "effect";
+import { Effect, Queue, Schema, Semaphore, Stream } from "effect";
 import { getStartupMediaSource } from "@features/mediaOpen/startup";
 import { listen } from "@tauri-apps/api/event";
 import type { Window } from "@tauri-apps/api/window";
@@ -92,31 +92,11 @@ export function usePlayerLifecycle({
     const lifecycle = Effect.scoped(
       Effect.gen(function* () {
         yield* Effect.addFinalizer(() => stopPlayer);
-        const runScoped = yield* FiberSet.makeRuntime<never, void, never>();
         const mediaSources = yield* Queue.sliding<MediaSourceRequest>(1);
         const windowResizes = yield* Queue.sliding<void>(1);
         const offerMediaSource = (request: MediaSourceRequest): void => {
           Effect.runSync(Queue.offer(mediaSources, request));
         };
-
-        let autoCloseStarted = false;
-        yield* Effect.acquireRelease(
-          Effect.sync(() =>
-            player.subscribe((next) => {
-              if (!mounted || autoCloseStarted || !next.filename || !next.eofReached) {
-                return;
-              }
-
-              autoCloseStarted = true;
-              runScoped(
-                lifecyclePromise("close window", "Failed to close window", () =>
-                  appWindow.close(),
-                ).pipe(Effect.catch((error) => Effect.logError(error.operation, error))),
-              );
-            }),
-          ),
-          (unsubscribe) => Effect.sync(unsubscribe),
-        );
 
         yield* Effect.acquireRelease(
           optionalListener(

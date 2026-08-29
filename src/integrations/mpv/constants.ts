@@ -32,7 +32,6 @@ export const OBSERVED_PROPERTIES = [
   ["pause", "flag"],
   ["paused-for-cache", "flag"],
   ["core-idle", "flag"],
-  ["eof-reached", "flag", "none"],
   ["time-pos", "double", "none"],
   ["duration", "double", "none"],
   ["volume", "double"],

@@ -57,8 +57,6 @@ const PROPERTY_UPDATERS = {
     updateField(state, "pausedForCache", isMpvBoolean(value) ? value : false),
   "core-idle": (state, value) =>
     updateField(state, "coreIdle", isMpvBoolean(value) ? value : false),
-  "eof-reached": (state, value) =>
-    updateField(state, "eofReached", isMpvBoolean(value) ? value : false),
   "time-pos": (state, value) => updateField(state, "timePos", getNumberOrZero(value)),
   duration: (state, value) => updateField(state, "duration", getNumberOrZero(value)),
   volume: (state, value) => updateField(state, "volume", isMpvNumber(value) ? value : state.volume),
