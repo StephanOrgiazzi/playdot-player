@@ -16,7 +16,6 @@ export type PlayerState = {
   paused: boolean;
   pausedForCache: boolean;
   coreIdle: boolean;
-  eofReached: boolean;
   timePos: number;
   duration: number;
   volume: number;
@@ -35,7 +34,6 @@ export const EMPTY_PLAYER_STATE: PlayerState = {
   paused: true,
   pausedForCache: false,
   coreIdle: false,
-  eofReached: false,
   timePos: 0,
   duration: 0,
   volume: DEFAULT_PLAYER_VOLUME,
