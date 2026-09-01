@@ -15,6 +15,7 @@ import { applyObservedProperty } from "./stateUpdates";
 import { getNextAudioTrackSelection, getNextSubtitleTrackSelection } from "./tracks";
 import { setVideoViewportHidden } from "./videoViewport";
 import { syncSvpMpvFilter } from "@integrations/svp/mpv";
+import { getErrorMessage } from "@shared/lib/errorMessage";
 import { LatestValueWriter } from "@shared/lib/LatestValueWriter";
 import {
   DEFAULT_PLAYBACK_SPEED,
@@ -269,24 +270,45 @@ export class MpvPlayer {
     await command("seek", [seconds, "relative"]);
   }
 
+  private async initializeMpv(
+    resourcePaths: Awaited<ReturnType<typeof getMpvResourcePaths>>,
+  ): Promise<void> {
+    const featureFlags = {
+      audioNormalizerEnabled: this.audioNormalizerEnabled,
+      stereoDownmixEnabled: this.stereoDownmixEnabled,
+      svpAvailable: this.svpAvailable,
+    };
+
+    try {
+      await init(await createMpvConfig(resourcePaths, featureFlags, "preferred"));
+      return;
+    } catch (preferredCause) {
+      await destroy().catch(() => undefined);
+
+      try {
+        await init(await createMpvConfig(resourcePaths, featureFlags, "compatibility"));
+        return;
+      } catch (compatibilityCause) {
+        const preferredMessage = getErrorMessage(preferredCause) ?? "unknown error";
+        const compatibilityMessage = getErrorMessage(compatibilityCause) ?? "unknown error";
+        throw new Error(
+          `libmpv could not start. Preferred profile: ${preferredMessage}. Compatibility profile: ${compatibilityMessage}.`,
+          { cause: compatibilityCause },
+        );
+      }
+    }
+  }
+
   private async initialize(): Promise<void> {
     if (this.started || this.unlisten) {
       await destroy().catch(() => undefined);
     }
 
     const resourcePaths = await getMpvResourcePaths();
-    const config = await createMpvConfig(resourcePaths, {
-      audioNormalizerEnabled: this.audioNormalizerEnabled,
-      stereoDownmixEnabled: this.stereoDownmixEnabled,
-      svpAvailable: this.svpAvailable,
-    });
-    await init(config);
+    await this.initializeMpv(resourcePaths);
     this.upscaleShaderBundles = resourcePaths.upscaleShaderBundles;
     this.appliedUpscaleShaderPaths = [];
     this.started = true;
-
-    this.state = { ...this.state, initialized: true };
-    this.emit();
 
     this.unlisten = await observeProperties(OBSERVED_PROPERTIES, (event) => {
       if (event.name === "vf") {
@@ -308,6 +330,9 @@ export class MpvPlayer {
       this.state = nextState;
       this.emit();
     });
+
+    this.state = { ...this.state, initialized: true };
+    this.emit();
   }
 
   private async syncSvpFilterState(): Promise<void> {

@@ -184,9 +184,14 @@ button {
     background-color 140ms ease;
 }
 
-.title-pill:hover {
+.title-pill:not(:disabled):hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-main);
+}
+
+.title-pill:disabled {
+  color: var(--text-soft);
+  cursor: default;
 }
 
 .title-pill__label {
@@ -395,13 +400,18 @@ button {
   padding: 12px 24px;
 }
 
-.hero-open-button:hover {
+.hero-open-button:not(:disabled):hover {
   background: rgba(255, 255, 255, 0.14);
   border-color: rgba(255, 255, 255, 0.22);
 }
 
-.hero-open-button:active {
+.hero-open-button:not(:disabled):active {
   transform: scale(0.98);
+}
+
+.hero-open-button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .status-message {
