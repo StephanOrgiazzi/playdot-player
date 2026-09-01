@@ -1,6 +1,7 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { Effect, Schema } from "effect";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
+import { getErrorMessage } from "@shared/lib/errorMessage";
 import type { OpenWebUrlResult } from "./types";
 
 const WEB_URL_PROTOCOLS = new Set(["http:", "https:"]);
@@ -10,9 +11,7 @@ class MediaLoadError extends Schema.TaggedErrorClass<MediaLoadError>()("MediaOpe
   cause: Schema.Defect(),
 }) {
   override get message(): string {
-    return this.cause instanceof Error && this.cause.message
-      ? this.cause.message
-      : this.fallbackMessage;
+    return getErrorMessage(this.cause) ?? this.fallbackMessage;
   }
 }
 
@@ -79,6 +78,10 @@ export function createMediaOpenActions({
   isOpeningPastedWebUrlRef,
 }: CreateMediaOpenActionsOptions) {
   const pickAndOpenMediaFile = async (): Promise<void> => {
+    if (!player.getSnapshot().initialized) {
+      return;
+    }
+
     const picked = await open({
       multiple: false,
       directory: false,
@@ -102,7 +105,7 @@ export function createMediaOpenActions({
   };
 
   const openWebUrl = async (rawUrl: string): Promise<OpenWebUrlResult> => {
-    if (isOpeningPastedWebUrlRef.current) {
+    if (!player.getSnapshot().initialized || isOpeningPastedWebUrlRef.current) {
       return "failed";
     }
 

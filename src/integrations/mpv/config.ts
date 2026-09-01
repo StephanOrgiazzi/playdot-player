@@ -27,6 +27,8 @@ type MpvFeatureFlags = {
   svpAvailable?: boolean;
 };
 
+export type MpvInitializationProfile = "preferred" | "compatibility";
+
 type MpvPerFileOptions = Readonly<Record<string, string>>;
 
 type MpvThumbnailTarget = {
@@ -156,6 +158,7 @@ export async function getMpvResourcePaths(): Promise<MpvResourcePaths> {
 async function createMpvInitialOptions(
   resourcePaths?: MpvResourcePaths,
   featureFlags?: MpvFeatureFlags,
+  profile: MpvInitializationProfile = "preferred",
 ): Promise<NonNullable<MpvConfig["initialOptions"]>> {
   const { subtitleFontsDir } = resourcePaths ?? (await getMpvResourcePaths());
   const {
@@ -164,13 +167,23 @@ async function createMpvInitialOptions(
     svpAvailable = false,
   } = featureFlags ?? {};
   const svpInitialOptions = getSvpMpvInitialOptions(svpAvailable);
+  const renderingOptions: NonNullable<MpvConfig["initialOptions"]> =
+    profile === "preferred"
+      ? {
+          vo: "gpu-next",
+          "gpu-api": "d3d11",
+          hwdec: "auto-safe",
+          "target-colorspace-hint": "auto",
+          "target-colorspace-hint-mode": "target",
+        }
+      : {
+          vo: "gpu",
+          "gpu-api": "d3d11",
+          hwdec: "no",
+        };
 
   const initialOptions: NonNullable<MpvConfig["initialOptions"]> = {
-    vo: "gpu-next",
-    "gpu-api": "d3d11",
-    hwdec: "auto-safe",
-    "target-colorspace-hint": "auto",
-    "target-colorspace-hint-mode": "target",
+    ...renderingOptions,
     deband: "yes",
     "keep-open": "yes",
     "force-window": "yes",
@@ -215,9 +228,10 @@ async function createMpvInitialOptions(
 export async function createMpvConfig(
   resourcePaths?: MpvResourcePaths,
   featureFlags?: MpvFeatureFlags,
+  profile: MpvInitializationProfile = "preferred",
 ): Promise<MpvConfig> {
   return {
-    initialOptions: await createMpvInitialOptions(resourcePaths, featureFlags),
+    initialOptions: await createMpvInitialOptions(resourcePaths, featureFlags, profile),
     observedProperties: OBSERVED_PROPERTIES,
   };
 }

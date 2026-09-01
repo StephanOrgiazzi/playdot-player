@@ -4,6 +4,7 @@ import { getStartupMediaSource } from "@features/mediaOpen/startup";
 import { listen } from "@tauri-apps/api/event";
 import type { Window } from "@tauri-apps/api/window";
 import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
+import { getErrorMessage } from "@shared/lib/errorMessage";
 
 type StateSetter<T> = Dispatch<SetStateAction<T>>;
 
@@ -29,7 +30,8 @@ class PlayerLifecycleError extends Schema.TaggedErrorClass<PlayerLifecycleError>
   },
 ) {
   override get message(): string {
-    return this.displayMessage;
+    const causeMessage = getErrorMessage(this.cause);
+    return causeMessage ? `${this.displayMessage}: ${causeMessage}` : this.displayMessage;
   }
 }
 
