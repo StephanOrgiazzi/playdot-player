@@ -7,7 +7,6 @@ import type { TitlebarPointerDown } from "@features/playerChrome/types";
 import { useBlurActiveControlWhenChromeHidden } from "@features/playerChrome/useBlurActiveControlWhenChromeHidden";
 import { useAutoHiddenFlag } from "@features/playerChrome/useAutoHiddenFlag";
 import { useTitlebarDrag } from "@features/playerChrome/useTitlebarDrag";
-import { useModernInterface } from "@features/playerChrome/useModernInterface";
 import { useGlobalShortcuts } from "@features/shortcuts/useGlobalShortcuts";
 import type { ToastState } from "@features/toaster/types";
 import { useToastAutoHide } from "@features/toaster/useToastEffects";
@@ -27,13 +26,7 @@ import { playerCommand, runPlayerCommand } from "./playerCommand";
 const appWindow = getCurrentWindow();
 const appWebview = getCurrentWebview();
 const readWindowState = Effect.fn("WindowState.read")(() =>
-  Effect.all(
-    {
-      isFullscreen: Effect.tryPromise(() => appWindow.isFullscreen()),
-      isMaximized: Effect.tryPromise(() => appWindow.isMaximized()),
-    },
-    { concurrency: "unbounded" },
-  ),
+  Effect.tryPromise(() => appWindow.isFullscreen()),
 );
 const withPlayerFocusRestore = async <T>(task: () => Promise<T>): Promise<T> => {
   try {
@@ -112,15 +105,13 @@ function useTitlebarInteractions({
 
 function useWindowStateSync() {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isMaximized, setIsMaximized] = useState(false);
 
   const syncWindowState = useCallback(
     () =>
       readWindowState().pipe(
-        Effect.tap(({ isFullscreen, isMaximized }) =>
+        Effect.tap((isFullscreen) =>
           Effect.sync(() => {
             setIsFullscreen(isFullscreen);
-            setIsMaximized(isMaximized);
           }),
         ),
         Effect.asVoid,
@@ -130,7 +121,6 @@ function useWindowStateSync() {
 
   return {
     isFullscreen,
-    isMaximized,
     syncWindowState,
   };
 }
@@ -138,8 +128,7 @@ function useWindowStateSync() {
 export function usePlayerController(): PlayerScreenProps {
   const [error, setError] = useState("");
   const [toast, setToast] = useState<ToastState | null>(null);
-  const { isFullscreen, isMaximized, syncWindowState } = useWindowStateSync();
-  const { isModernInterfaceEnabled, toggleModernInterface } = useModernInterface(setError);
+  const { isFullscreen, syncWindowState } = useWindowStateSync();
   const { isControlDockHovered, handleControlDockMouseEnter, handleControlDockMouseLeave } =
     useControlDockHoverState();
   const {
@@ -320,8 +309,6 @@ export function usePlayerController(): PlayerScreenProps {
     error,
     toast,
     isFullscreen,
-    isMaximized,
-    isModernInterfaceEnabled,
     isFsrEnabled,
     isAudioNormalizerEnabled,
     isStereoDownmixEnabled,
@@ -350,7 +337,6 @@ export function usePlayerController(): PlayerScreenProps {
     toggleAudioNormalizer,
     toggleStereoDownmix,
     toggleSvp,
-    toggleModernInterface,
     toggleFullscreen,
     handleTitlebarMouseDown,
     handleTitlePillClick,

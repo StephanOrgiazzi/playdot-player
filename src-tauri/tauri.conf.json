@@ -14,8 +14,8 @@
     "windows": [
       {
         "title": "PLAY.",
-        "width": 1440,
-        "height": 817,
+        "width": 1400,
+        "height": 840,
         "minWidth": 800,
         "minHeight": 500,
         "visible": false,

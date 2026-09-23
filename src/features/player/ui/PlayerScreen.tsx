@@ -38,7 +38,7 @@ export function PlayerScreen(props: PlayerScreenProps) {
 
   return (
     <main
-      className={`app-shell${showEmptyState ? " is-empty" : ""}${props.isAudioArtworkActive ? " is-audio-artwork" : ""}${props.isCursorHidden ? " is-cursor-hidden" : ""}${props.isFullscreen ? " is-fullscreen" : ""}${props.isMaximized ? " is-maximized" : ""}${props.isModernInterfaceEnabled ? " is-modern-interface" : ""}`}
+      className={`app-shell${showEmptyState ? " is-empty" : ""}${props.isAudioArtworkActive ? " is-audio-artwork" : ""}${props.isCursorHidden ? " is-cursor-hidden" : ""}`}
     >
       <PlayerIconSprite />
 
@@ -137,7 +137,6 @@ export function PlayerScreen(props: PlayerScreenProps) {
             isSvpAvailable={props.isSvpAvailable}
             isSvpEnabled={props.isSvpEnabled}
             isFullscreen={props.isFullscreen}
-            isModernInterfaceEnabled={props.isModernInterfaceEnabled}
             onClose={closeContextMenu}
             showOpenUrlDialog={showOpenUrlDialog}
             slowDownPlayback={props.slowDownPlayback}
@@ -158,7 +157,6 @@ export function PlayerScreen(props: PlayerScreenProps) {
             toggleAudioNormalizer={props.toggleAudioNormalizer}
             toggleStereoDownmix={props.toggleStereoDownmix}
             toggleSvp={props.toggleSvp}
-            toggleModernInterface={props.toggleModernInterface}
             toggleFullscreen={props.toggleFullscreen}
           />
         )}

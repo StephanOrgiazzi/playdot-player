@@ -7,18 +7,6 @@ mod window_frame;
 
 use tauri::{Emitter, Manager};
 
-#[tauri::command]
-fn set_modern_interface_enabled(window: tauri::Window, enabled: bool) -> Result<(), String> {
-    #[cfg(windows)]
-    return window_frame::set_enabled(&window, enabled);
-
-    #[cfg(not(windows))]
-    {
-        let _ = (window, enabled);
-        Ok(())
-    }
-}
-
 pub fn run() {
     tauri::Builder::default()
         .manage(audio_artwork::AudioArtwork::default())
@@ -65,8 +53,7 @@ pub fn run() {
             thumbnail_frame::create_thumbnail_target,
             thumbnail_frame::discard_thumbnail_frame,
             thumbnail_frame::promote_thumbnail_frame,
-            thumbnail_frame::remove_thumbnail_target,
-            set_modern_interface_enabled
+            thumbnail_frame::remove_thumbnail_target
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

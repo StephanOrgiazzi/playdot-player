@@ -12,8 +12,6 @@ export type PlayerScreenProps = {
   error: string;
   toast: ToastState | null;
   isFullscreen: boolean;
-  isMaximized: boolean;
-  isModernInterfaceEnabled: boolean;
   isFsrEnabled: boolean;
   isAudioNormalizerEnabled: boolean;
   isStereoDownmixEnabled: boolean;
@@ -42,7 +40,6 @@ export type PlayerScreenProps = {
   toggleAudioNormalizer: PlayerAction;
   toggleStereoDownmix: PlayerAction;
   toggleSvp: PlayerAction;
-  toggleModernInterface: PlayerAction;
   toggleFullscreen: PlayerAction;
   handleTitlebarMouseDown: (event: ReactMouseEvent<HTMLElement>) => void;
   handleTitlePillClick: () => void;

@@ -23,4 +23,4 @@ tauri-plugin-log = "2.8.0"
 tauri-plugin-single-instance = "2.4.2"
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.61.3", features = ["Win32_Foundation", "Win32_Graphics_Gdi"] }
+windows = { version = "0.61.3", features = ["Win32_Foundation", "Win32_Graphics_Dwm"] }
