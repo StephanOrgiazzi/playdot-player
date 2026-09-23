@@ -150,7 +150,6 @@ export function usePlayerController(): PlayerScreenProps {
     paused: isControlDockHovered,
     delayMs: AUTO_HIDE_DELAY_MS,
   });
-  const isCursorHidden = isChromeHidden;
   const {
     isSvpAvailable,
     isSvpEnabled,
@@ -316,7 +315,6 @@ export function usePlayerController(): PlayerScreenProps {
     isSvpEnabled,
     isSwitchingSvp,
     isChromeHidden,
-    isCursorHidden,
     isCyclingAudio,
     isCyclingSubtitles,
     hasMedia,

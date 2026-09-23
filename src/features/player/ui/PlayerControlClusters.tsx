@@ -58,6 +58,7 @@ export function VolumeCluster({
       </button>
       <input
         className="volume"
+        aria-label="Volume"
         // SAFETY: The custom CSS property is consumed by the volume slider stylesheet.
         style={{ "--progress": volumePercent } as VolumeStyle}
         type="range"

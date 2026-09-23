@@ -25,7 +25,7 @@ import type { MpvPlayer } from "@integrations/mpv/MpvPlayer";
 import { getPersistedBoolean, persistBoolean } from "@shared/lib/persistedBoolean";
 import { getPlayerTrackDerivedState } from "../model/playerDerived";
 import { hasMedia as hasLoadedMedia } from "../model/playerSelectors";
-import { usePlayerStateSelector } from "./playerSession";
+import { usePlayerState } from "./playerSession";
 import { useAudioNormalizer } from "./useAudioNormalizer";
 import { playerCommand, runPlayerCommand } from "./playerCommand";
 
@@ -172,13 +172,13 @@ function useSavedFsrPreferenceSync({
 }
 
 export function usePlayerMediaState() {
-  const initialized = usePlayerStateSelector((state) => state.initialized);
-  const filename = usePlayerStateSelector((state) => state.filename);
-  const selectedAudioTrackId = usePlayerStateSelector((state) => state.selectedAudioTrackId);
-  const selectedSubtitleTrackId = usePlayerStateSelector((state) => state.selectedSubtitleTrackId);
-  const isAudioArtworkActive = usePlayerStateSelector((state) => state.isAudioArtworkActive);
-  const audioArtworkUrl = usePlayerStateSelector((state) => state.audioArtworkUrl);
-  const tracks = usePlayerStateSelector((state) => state.tracks);
+  const initialized = usePlayerState("initialized");
+  const filename = usePlayerState("filename");
+  const selectedAudioTrackId = usePlayerState("selectedAudioTrackId");
+  const selectedSubtitleTrackId = usePlayerState("selectedSubtitleTrackId");
+  const isAudioArtworkActive = usePlayerState("isAudioArtworkActive");
+  const audioArtworkUrl = usePlayerState("audioArtworkUrl");
+  const tracks = usePlayerState("tracks");
   const derivedState = useMemo(
     () =>
       getPlayerTrackDerivedState({
@@ -327,14 +327,7 @@ export function useTrackActions({
         setError,
       );
     },
-    [
-      hasMedia,
-      isCyclingSubtitles,
-      player,
-      selectedSubtitleTrack,
-      selectedSubtitleTrack?.id,
-      setError,
-    ],
+    [hasMedia, isCyclingSubtitles, player, selectedSubtitleTrack, setError],
   );
 
   return {

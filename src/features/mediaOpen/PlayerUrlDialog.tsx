@@ -10,7 +10,6 @@ import {
 import { Effect, Schema } from "effect";
 
 type PlayerUrlDialogProps = {
-  isOpen: boolean;
   isOpeningUrl: boolean;
   inputRef: RefObject<HTMLInputElement | null>;
   urlInputValue: string;
@@ -61,7 +60,6 @@ function getClampedMenuPosition(event: ReactMouseEvent<HTMLInputElement>) {
 }
 
 export function PlayerUrlDialog({
-  isOpen,
   isOpeningUrl,
   inputRef,
   urlInputValue,
@@ -71,26 +69,17 @@ export function PlayerUrlDialog({
   onSubmit,
 }: PlayerUrlDialogProps) {
   const [inputContextMenu, setInputContextMenu] = useState<InputContextMenuState | null>(null);
-  const isOpenRef = useRef(isOpen);
+  const isActiveRef = useRef(true);
   const interruptClipboardRef = useRef<(() => void) | null>(null);
-  isOpenRef.current = isOpen;
 
   useEffect(() => {
-    if (!isOpen) {
-      setInputContextMenu(null);
-      interruptClipboardRef.current?.();
-      interruptClipboardRef.current = null;
-    }
-
+    isActiveRef.current = true;
     return () => {
+      isActiveRef.current = false;
       interruptClipboardRef.current?.();
       interruptClipboardRef.current = null;
     };
-  }, [isOpen]);
-
-  if (!isOpen) {
-    return null;
-  }
+  }, []);
 
   const hasSelection =
     inputContextMenu !== null && inputContextMenu.selectionEnd > inputContextMenu.selectionStart;
@@ -156,7 +145,7 @@ export function PlayerUrlDialog({
         navigator.clipboard.readText(),
       );
       yield* Effect.sync(() => {
-        if (!isOpenRef.current) {
+        if (!isActiveRef.current) {
           return;
         }
 
@@ -168,7 +157,7 @@ export function PlayerUrlDialog({
 
         onInputChange(nextValue);
         window.requestAnimationFrame(() => {
-          if (isOpenRef.current) {
+          if (isActiveRef.current) {
             restoreInputSelection(cursorPosition, cursorPosition);
           }
         });

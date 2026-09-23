@@ -1,57 +1,63 @@
-import {
-  type ChangeEvent,
-  type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { type CSSProperties } from "react";
 import { UI_VOLUME_MAX, getUiVolumeFromMpvVolume } from "@integrations/mpv/constants";
 import { formatTime } from "@shared/lib/format";
-import { usePlayerStateSelector } from "../controller/playerSession";
+import { usePlayerState } from "../controller/playerSession";
 import type { PlayerControlsProps } from "../model/types";
 import { ToolCluster, TransportCluster, VolumeCluster } from "./PlayerControlClusters";
-import { useTimelineControl, type TimelinePreview } from "./useTimelineControl";
-
-type TimelineRowProps = {
-  displayedCurrentTime: string;
-  totalTime: string;
-  progressMax: number;
-  timelineValue: number;
-  timelineProgressPercent: string;
-  isTimelineScrubbing: boolean;
-  hasMedia: boolean;
-  timelinePreview: TimelinePreview | null;
-  thumbnailUrl: string;
-  clearTimelinePreview: () => void;
-  handleTimelineChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  handleTimelinePointerDown: (event: ReactPointerEvent<HTMLInputElement>) => void;
-  handleTimelinePointerMove: (event: ReactPointerEvent<HTMLInputElement>) => void;
-};
+import { useTimelineControl } from "./useTimelineControl";
 
 type TimelineStyle = CSSProperties & {
   "--preview-position"?: string;
   "--progress"?: string;
 };
 
-function TimelineRow({
-  displayedCurrentTime,
-  totalTime,
-  progressMax,
-  timelineValue,
-  timelineProgressPercent,
-  isTimelineScrubbing,
+function TimelineRowContainer({
   hasMedia,
-  timelinePreview,
-  thumbnailUrl,
-  clearTimelinePreview,
-  handleTimelineChange,
-  handleTimelinePointerDown,
-  handleTimelinePointerMove,
-}: TimelineRowProps) {
+  setTimelinePosition,
+  requestTimelineThumbnail,
+  clearTimelineThumbnail,
+  subscribeTimelineThumbnail,
+}: Pick<
+  PlayerControlsProps,
+  | "hasMedia"
+  | "setTimelinePosition"
+  | "requestTimelineThumbnail"
+  | "clearTimelineThumbnail"
+  | "subscribeTimelineThumbnail"
+>) {
+  const duration = usePlayerState("duration");
+  const timePos = usePlayerState("timePos");
+  const totalTime = formatTime(duration);
+  const {
+    displayedCurrentTime,
+    isTimelineScrubbing,
+    timelinePreview,
+    timelineProgressPercent,
+    timelineValue,
+    progressMax,
+    thumbnailUrl,
+    clearTimelinePreview,
+    handleTimelineChange,
+    handleTimelinePointerDown,
+    handleTimelinePointerMove,
+  } = useTimelineControl({
+    duration,
+    hasMedia,
+    setTimelinePosition,
+    requestTimelineThumbnail,
+    clearTimelineThumbnail,
+    subscribeTimelineThumbnail,
+    timePos,
+  });
+
   return (
     <div className="dock-row dock-row--top">
       <span className="time-readout">{displayedCurrentTime}</span>
       <div className="timeline-slot">
         <input
           className={`timeline${isTimelineScrubbing ? " is-scrubbing" : ""}`}
+          aria-label="Seek position"
+          aria-valuetext={displayedCurrentTime}
           // SAFETY: The custom CSS property is consumed by the timeline stylesheet.
           style={{ "--progress": timelineProgressPercent } as TimelineStyle}
           type="range"
@@ -89,70 +95,12 @@ function TimelineRow({
   );
 }
 
-function TimelineRowContainer({
-  hasMedia,
-  setTimelinePosition,
-  requestTimelineThumbnail,
-  clearTimelineThumbnail,
-  subscribeTimelineThumbnail,
-}: Pick<
-  PlayerControlsProps,
-  | "hasMedia"
-  | "setTimelinePosition"
-  | "requestTimelineThumbnail"
-  | "clearTimelineThumbnail"
-  | "subscribeTimelineThumbnail"
->) {
-  const duration = usePlayerStateSelector((state) => state.duration);
-  const timePos = usePlayerStateSelector((state) => state.timePos);
-  const totalTime = formatTime(duration);
-  const {
-    displayedCurrentTime,
-    isTimelineScrubbing,
-    timelinePreview,
-    timelineProgressPercent,
-    timelineValue,
-    progressMax,
-    thumbnailUrl,
-    clearTimelinePreview,
-    handleTimelineChange,
-    handleTimelinePointerDown,
-    handleTimelinePointerMove,
-  } = useTimelineControl({
-    duration,
-    hasMedia,
-    setTimelinePosition,
-    requestTimelineThumbnail,
-    clearTimelineThumbnail,
-    subscribeTimelineThumbnail,
-    timePos,
-  });
-
-  return (
-    <TimelineRow
-      displayedCurrentTime={displayedCurrentTime}
-      totalTime={totalTime}
-      progressMax={progressMax}
-      timelineValue={timelineValue}
-      timelineProgressPercent={timelineProgressPercent}
-      isTimelineScrubbing={isTimelineScrubbing}
-      hasMedia={hasMedia}
-      timelinePreview={timelinePreview}
-      thumbnailUrl={thumbnailUrl}
-      clearTimelinePreview={clearTimelinePreview}
-      handleTimelineChange={handleTimelineChange}
-      handleTimelinePointerDown={handleTimelinePointerDown}
-      handleTimelinePointerMove={handleTimelinePointerMove}
-    />
-  );
-}
-
 function VolumeClusterContainer({
   setVolume,
   toggleMute,
 }: Pick<PlayerControlsProps, "setVolume" | "toggleMute">) {
-  const isMuted = usePlayerStateSelector((state) => state.mute);
-  const volume = usePlayerStateSelector((state) => state.volume);
+  const isMuted = usePlayerState("mute");
+  const volume = usePlayerState("volume");
   const displayVolume = getUiVolumeFromMpvVolume(volume);
   const volumePercent = `${(displayVolume / UI_VOLUME_MAX) * 100}%`;
 
@@ -192,7 +140,7 @@ export function PlayerControls({
   subscribeTimelineThumbnail,
   setVolume,
 }: PlayerControlsProps) {
-  const paused = usePlayerStateSelector((state) => state.paused);
+  const paused = usePlayerState("paused");
 
   return (
     <section

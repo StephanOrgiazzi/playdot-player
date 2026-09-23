@@ -180,74 +180,6 @@ function TrackSelectionSubmenu({
   );
 }
 
-type TrackMenuItemsProps = Pick<
-  PlayerContextMenuProps,
-  | "hasMedia"
-  | "hasVideo"
-  | "audioTrackLabel"
-  | "subtitleTrackLabel"
-  | "audioTracks"
-  | "subtitleTracks"
-  | "selectAudioTrack"
-  | "selectSubtitleTrack"
-> & {
-  isSubmenuOpenLeft: boolean;
-  isAudioTracksSubmenuOpen: boolean;
-  isSubtitleTracksSubmenuOpen: boolean;
-  runAction: (action: PlayerAction) => void;
-  setIsAudioTracksSubmenuOpen: Dispatch<SetStateAction<boolean>>;
-  setIsSubtitleTracksSubmenuOpen: Dispatch<SetStateAction<boolean>>;
-};
-
-function TrackMenuItems({
-  hasMedia,
-  hasVideo,
-  audioTrackLabel,
-  subtitleTrackLabel,
-  audioTracks,
-  subtitleTracks,
-  selectAudioTrack,
-  selectSubtitleTrack,
-  isSubmenuOpenLeft,
-  isAudioTracksSubmenuOpen,
-  isSubtitleTracksSubmenuOpen,
-  runAction,
-  setIsAudioTracksSubmenuOpen,
-  setIsSubtitleTracksSubmenuOpen,
-}: TrackMenuItemsProps): JSX.Element {
-  return (
-    <>
-      <TrackSelectionSubmenu
-        buttonLabel={audioTrackLabel}
-        shortcut="A"
-        hasMedia={hasMedia}
-        isSubmenuOpenLeft={isSubmenuOpenLeft}
-        isOpen={isAudioTracksSubmenuOpen}
-        tracks={audioTracks}
-        selectedTrackId={audioTracks.find((track) => track.selected)?.id ?? null}
-        onSelect={selectAudioTrack}
-        runAction={runAction}
-        setIsOpen={setIsAudioTracksSubmenuOpen}
-      />
-      {hasVideo ? (
-        <TrackSelectionSubmenu
-          buttonLabel={subtitleTrackLabel}
-          shortcut="S"
-          hasMedia={hasMedia}
-          isSubmenuOpenLeft={isSubmenuOpenLeft}
-          isOpen={isSubtitleTracksSubmenuOpen}
-          tracks={subtitleTracks}
-          selectedTrackId={subtitleTracks.find((track) => track.selected)?.id ?? null}
-          includeOffOption
-          onSelect={selectSubtitleTrack}
-          runAction={runAction}
-          setIsOpen={setIsSubtitleTracksSubmenuOpen}
-        />
-      ) : null}
-    </>
-  );
-}
-
 export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuProps>(
   function PlayerContextMenu(
     {
@@ -351,22 +283,33 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
           runAction={runAction}
         />
         <div className="player-context-menu__separator" aria-hidden="true" />
-        <TrackMenuItems
+        <TrackSelectionSubmenu
+          buttonLabel={audioTrackLabel}
+          shortcut="A"
           hasMedia={hasMedia}
-          hasVideo={hasVideo}
-          audioTrackLabel={audioTrackLabel}
-          subtitleTrackLabel={subtitleTrackLabel}
-          audioTracks={audioTracks}
-          subtitleTracks={subtitleTracks}
-          selectAudioTrack={selectAudioTrack}
-          selectSubtitleTrack={selectSubtitleTrack}
           isSubmenuOpenLeft={isSubmenuOpenLeft}
-          isAudioTracksSubmenuOpen={isAudioTracksSubmenuOpen}
-          isSubtitleTracksSubmenuOpen={isSubtitleTracksSubmenuOpen}
+          isOpen={isAudioTracksSubmenuOpen}
+          tracks={audioTracks}
+          selectedTrackId={audioTracks.find((track) => track.selected)?.id ?? null}
+          onSelect={selectAudioTrack}
           runAction={runAction}
-          setIsAudioTracksSubmenuOpen={setIsAudioTracksSubmenuOpen}
-          setIsSubtitleTracksSubmenuOpen={setIsSubtitleTracksSubmenuOpen}
+          setIsOpen={setIsAudioTracksSubmenuOpen}
         />
+        {hasVideo ? (
+          <TrackSelectionSubmenu
+            buttonLabel={subtitleTrackLabel}
+            shortcut="S"
+            hasMedia={hasMedia}
+            isSubmenuOpenLeft={isSubmenuOpenLeft}
+            isOpen={isSubtitleTracksSubmenuOpen}
+            tracks={subtitleTracks}
+            selectedTrackId={subtitleTracks.find((track) => track.selected)?.id ?? null}
+            includeOffOption
+            onSelect={selectSubtitleTrack}
+            runAction={runAction}
+            setIsOpen={setIsSubtitleTracksSubmenuOpen}
+          />
+        ) : null}
         <div className="player-context-menu__separator" aria-hidden="true" />
         <MenuActionItem
           label={isFullscreen ? "Exit Full Screen" : "Enter Full Screen"}

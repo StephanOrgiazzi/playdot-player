@@ -49,20 +49,18 @@ function isTestFrameworkObject(
 }
 
 function moduleMockCall(sourceCode: SourceCode, callee: ESTree.Expression): boolean {
-  if (!("property" in callee) || !("object" in callee) || !("computed" in callee)) return false;
-  if (!isTestFrameworkObject(sourceCode, callee.object)) return false;
-  const property = callee.property;
-  const method = callee.computed
-    ? property.type === "Literal" &&
-      (property.value === "doMock" ||
-        property.value === "mock" ||
-        property.value === "unstable_mockModule")
-      ? property.value
-      : null
-    : property.type === "Identifier"
-      ? property.name
-      : null;
-  return method !== null && moduleMockMethods.has(method);
+	if (!("property" in callee) || !("object" in callee) || !("computed" in callee)) return false;
+	if (!isTestFrameworkObject(sourceCode, callee.object)) return false;
+	const property = callee.property;
+	if (callee.computed) {
+		return (
+			property.type === "Literal" &&
+			(property.value === "doMock" ||
+				property.value === "mock" ||
+				property.value === "unstable_mockModule")
+		);
+	}
+	return property.type === "Identifier" && moduleMockMethods.has(property.name);
 }
 
 /** Ban test framework module mocking in favor of real dependency seams. */

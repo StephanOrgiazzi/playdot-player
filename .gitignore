@@ -7,5 +7,6 @@ release/
 src-tauri/target/
 src-tauri/gen/
 src-tauri/lib/*.dll
+src-tauri/lib/licenses/
 *.log
 *.tsbuildinfo

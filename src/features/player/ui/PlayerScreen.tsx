@@ -38,7 +38,7 @@ export function PlayerScreen(props: PlayerScreenProps) {
 
   return (
     <main
-      className={`app-shell${showEmptyState ? " is-empty" : ""}${props.isAudioArtworkActive ? " is-audio-artwork" : ""}${props.isCursorHidden ? " is-cursor-hidden" : ""}`}
+      className={`app-shell${showEmptyState ? " is-empty" : ""}${props.isAudioArtworkActive ? " is-audio-artwork" : ""}${props.isChromeHidden ? " is-cursor-hidden" : ""}`}
     >
       <PlayerIconSprite />
 
@@ -160,16 +160,17 @@ export function PlayerScreen(props: PlayerScreenProps) {
             toggleFullscreen={props.toggleFullscreen}
           />
         )}
-        <PlayerUrlDialog
-          isOpen={isUrlDialogOpen}
-          isOpeningUrl={isOpeningUrl}
-          inputRef={urlInputRef}
-          urlInputValue={urlInputValue}
-          urlDialogError={urlDialogError}
-          onInputChange={setUrlInputValue}
-          onClose={closeUrlDialog}
-          onSubmit={submitUrlDialog}
-        />
+        {isUrlDialogOpen && (
+          <PlayerUrlDialog
+            isOpeningUrl={isOpeningUrl}
+            inputRef={urlInputRef}
+            urlInputValue={urlInputValue}
+            urlDialogError={urlDialogError}
+            onInputChange={setUrlInputValue}
+            onClose={closeUrlDialog}
+            onSubmit={submitUrlDialog}
+          />
+        )}
         <PlayerControls
           hasMedia={props.hasMedia}
           isFullscreen={props.isFullscreen}

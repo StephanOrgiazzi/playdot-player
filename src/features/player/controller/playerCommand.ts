@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Effect, Queue, Schema, Stream } from "effect";
 
 class PlayerCommandError extends Schema.TaggedErrorClass<PlayerCommandError>()(
@@ -45,9 +45,9 @@ const handlePlayerCommand = Effect.fn("PlayerCommand.handle")(
 );
 
 export function useLatestPlayerCommand(setError: (message: string) => void) {
-  const queueRef = useRef<Queue.Queue<Effect.Effect<void, PlayerCommandError>> | null>(null);
-  queueRef.current ??= Effect.runSync(Queue.sliding<Effect.Effect<void, PlayerCommandError>>(1));
-  const queue = queueRef.current;
+  const [queue] = useState(() =>
+    Effect.runSync(Queue.sliding<Effect.Effect<void, PlayerCommandError>>(1)),
+  );
 
   useEffect(() => {
     const worker = Stream.fromQueue(queue).pipe(

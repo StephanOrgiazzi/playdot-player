@@ -19,7 +19,6 @@ export type PlayerScreenProps = {
   isSvpEnabled: boolean;
   isSwitchingSvp: boolean;
   isChromeHidden: boolean;
-  isCursorHidden: boolean;
   isCyclingAudio: boolean;
   isCyclingSubtitles: boolean;
   hasMedia: boolean;
