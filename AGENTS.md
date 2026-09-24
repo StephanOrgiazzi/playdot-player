@@ -12,3 +12,7 @@ Everything under `vendor/` is read-only reference material. Never edit, format, 
 - `vendor/tauri/`: upstream Tauri framework source.
 - `vendor/tauri-plugin-libmpv/`: upstream libmpv integration plugin source.
 - `vendor/effect/`: upstream Effect TypeScript monorepo. Its primary implementation is in `packages/` (`effect` is the core runtime; the other packages provide platform, Atom, AI, SQL, telemetry, and tooling integrations). `cookbooks/` contains usage examples, `migration/` contains migration guidance, and `ai-docs/` contains agent-oriented documentation.
+
+# Effect work
+
+When changing Effect code or Effect tooling in this project, read `skills/playdot-effect/SKILL.md`. Use the installed `effect` package as the authority for available APIs and keep the existing Effect diagnostics passing.

@@ -5,7 +5,7 @@ import type { OpenWebUrlResult } from "./types";
 
 const WEB_URL_PROTOCOLS = new Set(["http:", "https:"]);
 
-class MediaLoadError extends Schema.TaggedErrorClass<MediaLoadError>()("MediaOpen.LoadError", {
+class MediaLoadError extends Schema.TaggedError<MediaLoadError>()("MediaOpen.LoadError", {
   fallbackMessage: Schema.String,
   cause: Schema.Defect(),
 }) {

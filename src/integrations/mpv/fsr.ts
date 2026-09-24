@@ -6,7 +6,7 @@ export type FsrToggleResult = {
   appliedShaderPaths: string[];
 };
 
-class FsrShaderError extends Schema.TaggedErrorClass<FsrShaderError>()("Fsr.ShaderError", {
+class FsrShaderError extends Schema.TaggedError<FsrShaderError>()("Fsr.ShaderError", {
   cause: Schema.Defect(),
 }) {
   override get message(): string {

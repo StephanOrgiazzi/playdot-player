@@ -30,7 +30,7 @@ type PendingSeek = {
 type WorkerPreparation = "existing" | "started";
 type ThumbnailListener = (url: string) => void;
 
-class ThumbnailError extends Schema.TaggedErrorClass<ThumbnailError>()("MpvThumbnailer.Error", {
+class ThumbnailError extends Schema.TaggedError<ThumbnailError>()("MpvThumbnailer.Error", {
   operation: Schema.String,
   cause: Schema.Defect(),
 }) {

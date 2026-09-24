@@ -3,7 +3,7 @@ import { Effect, Schema } from "effect";
 import type { Window } from "@tauri-apps/api/window";
 import type { TitlebarPointerDownRef } from "./types";
 
-class TitlebarDragError extends Schema.TaggedErrorClass<TitlebarDragError>()("Titlebar.DragError", {
+class TitlebarDragError extends Schema.TaggedError<TitlebarDragError>()("Titlebar.DragError", {
   cause: Schema.Defect(),
 }) {
   override get message(): string {

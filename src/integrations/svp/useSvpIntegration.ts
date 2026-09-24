@@ -27,7 +27,7 @@ type UseSvpIntegrationResult = {
 
 const SVP_PREFERENCE_STORAGE_KEY = "playdot-player.player.svp-enabled";
 
-class SvpToggleError extends Schema.TaggedErrorClass<SvpToggleError>()("Svp.ToggleError", {
+class SvpToggleError extends Schema.TaggedError<SvpToggleError>()("Svp.ToggleError", {
   cause: Schema.Defect(),
 }) {
   override get message(): string {

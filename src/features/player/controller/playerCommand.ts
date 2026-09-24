@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Effect, Queue, Schema, Stream } from "effect";
 
-class PlayerCommandError extends Schema.TaggedErrorClass<PlayerCommandError>()(
-  "PlayerCommand.Error",
-  {
-    fallbackMessage: Schema.String,
-    cause: Schema.Defect(),
-  },
-) {
+class PlayerCommandError extends Schema.TaggedError<PlayerCommandError>()("PlayerCommand.Error", {
+  fallbackMessage: Schema.String,
+  cause: Schema.Defect(),
+}) {
   override get message(): string {
     return this.cause instanceof Error && this.cause.message
       ? this.cause.message

@@ -16,7 +16,7 @@ const HIDDEN_RATIO: Required<VideoMarginRatio> = {
   bottom: 0,
 };
 
-class VideoViewportError extends Schema.TaggedErrorClass<VideoViewportError>()(
+class VideoViewportError extends Schema.TaggedError<VideoViewportError>()(
   "VideoViewport.MarginUpdateError",
   { cause: Schema.Defect() },
 ) {

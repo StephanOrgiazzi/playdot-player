@@ -20,7 +20,7 @@ type MediaSourceRequest = {
   failureMessage: string;
 };
 
-class PlayerLifecycleError extends Schema.TaggedErrorClass<PlayerLifecycleError>()(
+class PlayerLifecycleError extends Schema.TaggedError<PlayerLifecycleError>()(
   "PlayerLifecycle.Error",
   {
     operation: Schema.String,

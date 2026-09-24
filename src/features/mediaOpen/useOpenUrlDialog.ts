@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Effect, Schema } from "effect";
 import type { OpenWebUrlResult } from "./types";
 
-class OpenUrlSubmissionError extends Schema.TaggedErrorClass<OpenUrlSubmissionError>()(
+class OpenUrlSubmissionError extends Schema.TaggedError<OpenUrlSubmissionError>()(
   "OpenUrlDialog.SubmissionError",
   { cause: Schema.Defect() },
 ) {

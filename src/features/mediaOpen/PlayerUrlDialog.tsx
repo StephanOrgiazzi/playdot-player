@@ -26,7 +26,7 @@ type InputContextMenuState = {
   selectionEnd: number;
 };
 
-class ClipboardError extends Schema.TaggedErrorClass<ClipboardError>()(
+class ClipboardError extends Schema.TaggedError<ClipboardError>()(
   "PlayerUrlDialog.ClipboardError",
   {
     operation: Schema.String,
