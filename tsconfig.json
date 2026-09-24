@@ -1,4 +1,5 @@
 {
+  "$schema": "./node_modules/@effect/tsgo/schema.json",
   "compilerOptions": {
     "target": "ES2022",
     "useDefineForClassFields": true,
@@ -22,6 +23,18 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "forceConsistentCasingInFileNames": true,
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "diagnosticSeverity": {
+          "runEffectInsideEffect": "error",
+          "tryCatchInEffectGen": "error",
+          "returnEffectInGen": "error",
+          "leakingRequirements": "error",
+          "catchUnfailableEffect": "error"
+        }
+      }
+    ],
     "paths": {
       "@app/*": ["./src/app/*"],
       "@features/*": ["./src/features/*"],

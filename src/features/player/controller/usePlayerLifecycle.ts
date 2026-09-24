@@ -95,7 +95,7 @@ export function usePlayerLifecycle({
         const mediaSources = yield* Queue.sliding<MediaSourceRequest>(1);
         const windowResizes = yield* Queue.sliding<void>(1);
         const offerMediaSource = (request: MediaSourceRequest): void => {
-          Effect.runSync(Queue.offer(mediaSources, request));
+          Queue.offerUnsafe(mediaSources, request);
         };
 
         yield* Effect.acquireRelease(
@@ -120,7 +120,7 @@ export function usePlayerLifecycle({
           optionalListener(
             lifecyclePromise("register resize listener", "Failed to listen for window resize", () =>
               appWindow.onResized(() => {
-                Effect.runSync(Queue.offer(windowResizes, undefined));
+                Queue.offerUnsafe(windowResizes, undefined);
               }),
             ),
           ),
@@ -189,7 +189,7 @@ export function usePlayerLifecycle({
           Effect.forkScoped,
         );
         yield* Queue.offer(windowResizes, undefined);
-        yield* Effect.never;
+        return yield* Effect.never;
       }).pipe(Effect.catch(reportFailure)),
     );
 
