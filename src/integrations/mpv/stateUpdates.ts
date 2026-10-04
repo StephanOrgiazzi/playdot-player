@@ -33,7 +33,7 @@ function tracksAreEqual(
   });
 }
 
-const isMpvNumber = Schema.is(Schema.Number);
+const isMpvNumber = Schema.is(Schema.Finite);
 const isMpvBoolean = Schema.is(Schema.Boolean);
 const isMpvString = Schema.is(Schema.String);
 

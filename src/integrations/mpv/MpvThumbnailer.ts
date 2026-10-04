@@ -15,8 +15,8 @@ const framePollSchedule = Schedule.spaced(FRAME_POLL_INTERVAL_MS).pipe(
 const ThumbnailTarget = Schema.Struct({
   rawPath: Schema.String,
   imagePath: Schema.String,
-  width: Schema.Number,
-  height: Schema.Number,
+  width: Schema.Finite,
+  height: Schema.Finite,
 });
 
 interface ThumbnailTarget extends Schema.Schema.Type<typeof ThumbnailTarget> {}

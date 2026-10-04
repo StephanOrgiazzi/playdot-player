@@ -80,7 +80,7 @@ const enableFsrShaders = Effect.fn("Fsr.enableShaders")(function* (shaderBundles
   }
 
   if (lastError) {
-    return yield* Effect.fail(lastError);
+    return yield* lastError;
   }
 
   return null;

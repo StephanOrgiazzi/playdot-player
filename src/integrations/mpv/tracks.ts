@@ -6,7 +6,7 @@ import type { MpvNodeValue } from "./libmpv-api";
 export type TrackSelection = number | "no";
 
 const isMpvString = Schema.is(Schema.String);
-const isMpvNumber = Schema.is(Schema.Number);
+const isMpvNumber = Schema.is(Schema.Finite);
 const isMpvBoolean = Schema.is(Schema.Boolean);
 const isMpvNodeObjectValue = Schema.is(Schema.Record(Schema.String, Schema.Unknown));
 
