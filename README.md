@@ -35,7 +35,7 @@ _PLAY._ is an open source premium video player for Windows built around one goal
 - **Strong playback performance** on high resolutions, high bitrates, and complex media libraries
 - **Better image presentation** with high-quality scaling, tone mapping, and sharper overall rendering
 - **Better HDR-to-SDR viewing results** than many mainstream desktop players
-- **Built-in `FSR` upscaling** for sharper playback when you want more from lower-resolution sources
+- **Built-in `FSR` upscaling** with two-pass HQ Adaptive-sharpen after resizing for sharper playback when you want more from lower-resolution sources
 - **Optional `SVP` integration** for high-frame-rate motion interpolation on systems that have it installed
 - **Premium desktop feel** with fast controls, polished interaction, and a player UI built around the video
 
