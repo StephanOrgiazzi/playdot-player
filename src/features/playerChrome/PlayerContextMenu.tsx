@@ -18,6 +18,7 @@ import { useSubmenuViewportStyle } from "./useSubmenuViewportStyle";
 
 type PlayerContextMenuProps = {
   position: { x: number; y: number };
+  initialized: boolean;
   hasMedia: boolean;
   hasVideo: boolean;
   isFsrEnabled: boolean;
@@ -184,6 +185,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
   function PlayerContextMenu(
     {
       position,
+      initialized,
       hasMedia,
       hasVideo,
       isFsrEnabled,
@@ -244,6 +246,7 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
           className="player-context-menu__item"
           type="button"
           role="menuitem"
+          disabled={!initialized}
           onClick={(): void => {
             runAction(showOpenUrlDialog);
           }}

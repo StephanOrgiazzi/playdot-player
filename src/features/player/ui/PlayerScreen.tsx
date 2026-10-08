@@ -47,7 +47,12 @@ export function PlayerScreen(props: PlayerScreenProps) {
         onMouseDown={props.handleTitlebarMouseDown}
       >
         <div className="titlebar__drag" />
-        <button className="title-pill" type="button" onClick={props.handleTitlePillClick}>
+        <button
+          className="title-pill"
+          type="button"
+          disabled={!props.initialized}
+          onClick={props.handleTitlePillClick}
+        >
           <PlayerIcon name="app-mark" className="icon icon--sm icon--app-mark" />
           <span className="title-pill__label">{props.filename || "No media loaded"}</span>
         </button>
@@ -114,6 +119,7 @@ export function PlayerScreen(props: PlayerScreenProps) {
             <button
               className="hero-open-button"
               type="button"
+              disabled={!props.initialized}
               onClick={() => {
                 props.pickAndOpenMediaFile();
               }}
@@ -129,6 +135,7 @@ export function PlayerScreen(props: PlayerScreenProps) {
           <PlayerContextMenu
             ref={contextMenuRef}
             position={contextMenuPosition}
+            initialized={props.initialized}
             hasMedia={props.hasMedia}
             hasVideo={props.hasVideo}
             isFsrEnabled={props.isFsrEnabled}
