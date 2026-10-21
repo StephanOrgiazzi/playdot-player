@@ -170,7 +170,7 @@ See [docs/releasing.md](docs/releasing.md) for versioning, commit, and publicati
 
 On Windows, enable **Dolby Surround** in the playback context menu to switch to
 Duplicate displays, send PLAY.'s audio to EAZZE_D1Max and mirror full stereo to
-the Realtek PC speakers at 100% gain with 200 ms additional delay. The HDMI audio
+the Realtek PC speakers at 100% gain with 280 ms additional delay. The HDMI audio
 output is allowed up to ten seconds to become available after the display change.
 Turning the option off stops the copy, switches to PC screen only and restores
 the previous PLAY. audio output. Failed audio activation also returns to PC

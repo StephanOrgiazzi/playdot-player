@@ -8,7 +8,7 @@ namespace PlaydotAudioMirror
 {
     static class Program
     {
-        const int DelayMilliseconds = 200, VolumePercent = 100;
+        const int DelayMilliseconds = 280, VolumePercent = 100;
 
         static DeviceChoice FindDevice(bool source)
         {

@@ -8,7 +8,7 @@ Defaults reproduce the working AudioBridge setup:
 
 - Source: the single active output whose name contains `D1Max` (EAZZE_D1Max).
 - Copy: the single active Realtek `Speakers` / `Haut-parleurs` output.
-- Full stereo, 100% copy gain, 200 ms additional delay.
+- Full stereo, 100% copy gain, 280 ms additional delay.
 
 The frontend switches Windows to Duplicate before starting the worker and
 temporarily selects its exact WASAPI source in mpv. The worker waits up to ten
