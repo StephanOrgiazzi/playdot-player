@@ -8,5 +8,6 @@ src-tauri/target/
 src-tauri/gen/
 src-tauri/lib/*.dll
 src-tauri/lib/licenses/
+src-tauri/lib/audio-mirror/
 *.log
 *.tsbuildinfo

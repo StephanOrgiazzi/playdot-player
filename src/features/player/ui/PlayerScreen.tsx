@@ -1,3 +1,4 @@
+import { useAudioBridge } from "../controller/useAudioBridge";
 import { PlayerUrlDialog } from "@features/mediaOpen/PlayerUrlDialog";
 import { useOpenUrlDialog } from "@features/mediaOpen/useOpenUrlDialog";
 import { PlayerContextMenu } from "@features/playerChrome/PlayerContextMenu";
@@ -19,6 +20,7 @@ function getTrackMenuLabel(
 }
 
 export function PlayerScreen(props: PlayerScreenProps) {
+  const audioBridge = useAudioBridge(props.hasMedia);
   const showEmptyState = !props.hasMedia && !props.isSwitchingSvp;
   const {
     isOpen: isUrlDialogOpen,
@@ -123,7 +125,9 @@ export function PlayerScreen(props: PlayerScreenProps) {
           </div>
         )}
 
-        {props.error && <p className="status-message">{props.error}</p>}
+        {(props.error || audioBridge.error) && (
+          <p className="status-message">{props.error || audioBridge.error}</p>
+        )}
         <ToastOverlay toast={props.toast} />
         {contextMenuPosition && (
           <PlayerContextMenu
@@ -134,6 +138,9 @@ export function PlayerScreen(props: PlayerScreenProps) {
             isFsrEnabled={props.isFsrEnabled}
             isAudioNormalizerEnabled={props.isAudioNormalizerEnabled}
             isStereoDownmixEnabled={props.isStereoDownmixEnabled}
+            isAudioBridgeEnabled={audioBridge.enabled}
+            isSwitchingAudioBridge={audioBridge.isSwitching}
+            toggleAudioBridge={audioBridge.toggle}
             isSvpAvailable={props.isSvpAvailable}
             isSvpEnabled={props.isSvpEnabled}
             isFullscreen={props.isFullscreen}

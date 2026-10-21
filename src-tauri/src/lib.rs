@@ -1,4 +1,5 @@
 mod audio_artwork;
+mod audio_bridge;
 mod launch;
 mod svp;
 mod thumbnail_frame;
@@ -10,6 +11,7 @@ use tauri::{Emitter, Manager};
 pub fn run() {
     tauri::Builder::default()
         .manage(audio_artwork::AudioArtwork::default())
+        .manage(audio_bridge::AudioBridgeState::default())
         .on_page_load(|webview, payload| {
             if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
                 #[cfg(windows)]
@@ -27,6 +29,9 @@ pub fn run() {
             }
 
             if matches!(event, tauri::WindowEvent::CloseRequested { .. }) {
+                if window.label() == "main" {
+                    window.state::<audio_bridge::AudioBridgeState>().stop();
+                }
                 let _ = window.hide();
             }
         })
@@ -47,6 +52,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_libmpv::init())
         .invoke_handler(tauri::generate_handler![
+            audio_bridge::audio_bridge_start,
+            audio_bridge::audio_bridge_stop,
+            audio_bridge::audio_bridge_status,
+            audio_bridge::audio_bridge_set_display_mode,
             audio_artwork::extract_audio_artwork,
             launch::get_startup_media_argument,
             svp::resolve_svp_integration,

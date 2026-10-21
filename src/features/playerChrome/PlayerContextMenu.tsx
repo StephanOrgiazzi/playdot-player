@@ -23,6 +23,9 @@ type PlayerContextMenuProps = {
   isFsrEnabled: boolean;
   isAudioNormalizerEnabled: boolean;
   isStereoDownmixEnabled: boolean;
+  isAudioBridgeEnabled: boolean;
+  isSwitchingAudioBridge: boolean;
+  toggleAudioBridge: PlayerAction;
   isSvpAvailable: boolean;
   isSvpEnabled: boolean;
   isFullscreen: boolean;
@@ -189,6 +192,9 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
       isFsrEnabled,
       isAudioNormalizerEnabled,
       isStereoDownmixEnabled,
+      isAudioBridgeEnabled,
+      isSwitchingAudioBridge,
+      toggleAudioBridge,
       isSvpAvailable,
       isSvpEnabled,
       isFullscreen,
@@ -281,6 +287,14 @@ export const PlayerContextMenu = forwardRef<HTMLDivElement, PlayerContextMenuPro
           toggleStereoDownmix={toggleStereoDownmix}
           toggleSvp={toggleSvp}
           runAction={runAction}
+        />
+        <MenuActionItem
+          label="Dolby Surround"
+          role="menuitemcheckbox"
+          ariaChecked={isAudioBridgeEnabled}
+          disabled={isSwitchingAudioBridge || (!hasMedia && !isAudioBridgeEnabled)}
+          onClick={() => runAction(toggleAudioBridge)}
+          icon={isAudioBridgeEnabled ? <PlayerIcon name="check" className="icon icon--xs" /> : null}
         />
         <div className="player-context-menu__separator" aria-hidden="true" />
         <TrackSelectionSubmenu

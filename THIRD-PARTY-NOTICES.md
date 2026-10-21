@@ -77,3 +77,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ## Bundled license copies
 
 `bun run setup-lib` writes the applicable license texts, mpv copyright notice, this notice, and source provenance into `src-tauri/lib/licenses/`. Remote license files are fetched from pinned revisions, and the FFmpeg revision is derived from the pinned Windows build metadata. For the FFmpeg LGPLv3 component, both the LGPLv3 and GPLv3 license texts are bundled. That directory is already included in Tauri's `lib/**/*` bundled resources, so the files ship with Windows packages.
+
+## NAudio
+
+The Windows projector audio mirror includes NAudio 1.10.0 (MIT).
+Source: https://github.com/naudio/NAudio/tree/v1.10.0
+The complete license is bundled in `lib/audio-mirror/LICENSE-NAudio.txt` and
+stored in `src-tauri/audio-mirror/LICENSE-NAudio.txt`.
