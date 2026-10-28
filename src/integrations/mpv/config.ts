@@ -53,12 +53,12 @@ const MPV_STREAM_LOAD_OPTIONS = {
   "cache-pause-initial": "yes",
   "demuxer-readahead-secs": "60",
   "demuxer-max-bytes": "256MiB",
+  // The bundled curl transport ignores network-timeout and lavf reconnect options.
+  "curl-enabled": "no",
   "network-timeout": "20",
-  "curl-max-retries": "8",
-  "curl-connect-timeout": "10",
-  "curl-buffer-size": "8MiB",
+  // Retry interrupted transfers, while allowing a completed video to reach EOF.
   "stream-lavf-o":
-    "reconnect=1,reconnect_at_eof=1,reconnect_streamed=1,reconnect_delay_max=10,timeout=20000000",
+    "reconnect=1,reconnect_streamed=1,reconnect_on_network_error=1,reconnect_on_http_error=5xx,reconnect_delay_max=10,timeout=20000000",
 } as const satisfies MpvPerFileOptions;
 
 const MPV_THUMBNAIL_STREAM_LOAD_OPTIONS = {

@@ -1,16 +1,15 @@
 import { command, destroy, getProperty, init, observeProperties, setProperty } from "./libmpv-api";
 import { isLikelyAudioSource, readAudioArtworkUrl } from "./audioArtwork";
-import { OBSERVED_PROPERTIES, SUBTITLE_SCALE, clampMpvVolume } from "./constants";
+import { OBSERVED_PROPERTIES, clampMpvVolume } from "./constants";
 import {
   AUDIO_NORMALIZER_FILTER,
   createMpvConfig,
-  getMpvLoadOptionsForSource,
   getMpvResourcePaths,
   getStereoDownmixMpvOptions,
 } from "./config";
 import { toggleFsrShaders } from "./fsr";
 import { MpvThumbnailer } from "./MpvThumbnailer";
-import { getNextPauseForTransportToggle } from "./playbackControl";
+import * as playbackControl from "./playbackControl";
 import { applyObservedProperty } from "./stateUpdates";
 import { getNextAudioTrackSelection, getNextSubtitleTrackSelection } from "./tracks";
 import { setVideoViewportHidden } from "./videoViewport";
@@ -23,7 +22,7 @@ import {
   type PlayerState,
 } from "@features/player/model/playerState";
 type PlayerListener = (state: PlayerState) => void;
-type LoadRequest = { path: string; revision: number };
+type LoadRequest = { path: string; revision: number; startSeconds: number | null };
 type PropertyWrite = { revision: number; value: number; previousValue: number };
 type VolumeWrite = PropertyWrite & { previousMute: boolean };
 const MIN_PLAYBACK_SPEED = 0.01;
@@ -92,16 +91,9 @@ export class MpvPlayer {
     }
   }
 
-  private async readPlayerFlag(name: "pause" | "mute"): Promise<boolean | null> {
-    return getProperty(name, "flag").catch(() => null);
-  }
-
   private async setPlayerFlag(name: "pause" | "mute", value: boolean): Promise<void> {
-    await setProperty(name, value);
-
-    const confirmedValue = await this.readPlayerFlag(name);
+    const nextValue = await playbackControl.setMpvFlag(name, value);
     const stateKey = name === "pause" ? "paused" : "mute";
-    const nextValue = confirmedValue ?? value;
     if (this.state[stateKey] === nextValue) {
       return;
     }
@@ -225,12 +217,12 @@ export class MpvPlayer {
     }
   }
 
-  loadFile(path: string): Promise<void> {
+  loadFile(path: string, startSeconds: number | null = null): Promise<void> {
     const revision = ++this.loadRevision;
-    return this.loadWriter.write({ path, revision });
+    return this.loadWriter.write({ path, revision, startSeconds });
   }
 
-  private async loadCurrentFile({ path, revision }: LoadRequest): Promise<void> {
+  private async loadCurrentFile({ path, revision, startSeconds }: LoadRequest): Promise<void> {
     if (!this.isCurrentLoad(revision)) {
       return;
     }
@@ -248,17 +240,20 @@ export class MpvPlayer {
       return;
     }
 
-    await this.loadMpvFile(path, revision);
+    await this.loadMpvFile(path, revision, startSeconds);
   }
 
   async togglePlayPause(): Promise<void> {
-    const confirmedPaused = await this.readPlayerFlag("pause");
-    const nextPause = getNextPauseForTransportToggle(this.state, confirmedPaused);
-    await this.setPlayerFlag("pause", nextPause);
-  }
+    const revision = this.loadRevision;
+    const [confirmedPaused, restart] = await Promise.all([
+      playbackControl.readMpvFlag("pause"),
+      playbackControl.readMpvPlaybackRestart(),
+    ]);
+    if (!this.isCurrentLoad(revision)) return;
+    if (restart) return this.loadFile(restart.path, restart.startSeconds);
 
-  private async play(): Promise<void> {
-    await this.setPlayerFlag("pause", false);
+    const nextPause = playbackControl.getNextPauseForTransportToggle(this.state, confirmedPaused);
+    await this.setPlayerFlag("pause", nextPause);
   }
 
   async seekAbsolute(seconds: number): Promise<void> {
@@ -404,7 +399,7 @@ export class MpvPlayer {
       if (revision === this.volumeRevision) {
         const [volume, mute] = await Promise.all([
           getProperty("volume", "double").catch(() => null),
-          this.readPlayerFlag("mute"),
+          playbackControl.readMpvFlag("mute"),
         ]);
         this.state = {
           ...this.state,
@@ -564,24 +559,25 @@ export class MpvPlayer {
     }
   }
 
-  private async resetPerMediaDefaults(): Promise<void> {
-    await Promise.all([setProperty("sub-scale", SUBTITLE_SCALE), setProperty("gamma", 1)]);
-  }
-
   private isCurrentLoad(revision: number): boolean {
     return revision === this.loadRevision;
   }
 
-  private async loadMpvFile(path: string, revision: number): Promise<void> {
-    const loadOptions = getMpvLoadOptionsForSource(path);
-    await command("loadfile", loadOptions ? [path, "replace", -1, loadOptions] : [path]);
+  private async loadMpvFile(
+    path: string,
+    revision: number,
+    startSeconds: number | null,
+  ): Promise<void> {
+    await playbackControl.loadMpvSource(path, startSeconds);
     if (!this.isCurrentLoad(revision)) {
       return;
     }
-    await this.resetPerMediaDefaults();
+    if (startSeconds === null) {
+      await playbackControl.resetMpvPerMediaDefaults();
+    }
     if (!this.isCurrentLoad(revision)) {
       return;
     }
-    await this.play();
+    await this.setPlayerFlag("pause", false);
   }
 }
